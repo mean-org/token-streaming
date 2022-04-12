@@ -479,16 +479,6 @@ pub mod msp {
         let treasury = &mut ctx.accounts.treasury;
         msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, add_a: {4}", 
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, amount);
-        
-        // Create contributor deposit receipt. 
-        // TODO: Temporary disabled until proper handling of the pool tokens mited to the contributor is implemented 
-        // create_deposit_receipt(
-        //     &treasury,
-        //     &ctx.accounts.treasury_mint.to_account_info(),
-        //     &ctx.accounts.contributor_treasury_token.to_account_info(),
-        //     &ctx.accounts.token_program.to_account_info(),
-        //     amount,
-        // )?;
 
         // sol fee
         if ctx.accounts.contributor.key().eq(&treasury.treasurer_address) && // TODO:
@@ -594,26 +584,6 @@ pub mod msp {
             )?;
         }
 
-        // sol fee: TODO: Do we need ALLOCATE_FLAT_FEE ???
-        // if treasury.sol_fee_payed_by_treasury {
-        //     msg!("tsy{0}sfa", ALLOCATE_FLAT_FEE);
-        //     // this call needs to be after any cpi in this ix to avoid Solana's weird CPI imbalance check hack
-        //     // REF: https://discord.com/channels/889577356681945098/889584618372734977/915190505002921994
-        //     treasury_transfer_sol_amount(
-        //         &treasury.to_account_info(),
-        //         &ctx.accounts.fee_treasury.to_account_info(),
-        //         ALLOCATE_FLAT_FEE
-        //     )?;
-        // } else {
-        //     msg!("pyr{0}sfa", ALLOCATE_FLAT_FEE);
-        //     transfer_sol_amount(
-        //         &ctx.accounts.payer.to_account_info(),
-        //         &ctx.accounts.fee_treasury.to_account_info(),
-        //         &ctx.accounts.system_program.to_account_info(),
-        //         ALLOCATE_FLAT_FEE
-        //     )?;
-        // }
-
         // update stream
         let status = stream.get_status(now_ts)?;
         let is_manual_pause = stream.primitive_is_manually_paused();
@@ -715,8 +685,6 @@ pub mod msp {
         // Transfer withdrawable amount to beneficiary and deduct fee
         if beneficiary_closing_amount > 0 {
             // Transfer withdrawable amount
-            // #[cfg(feature = "test")]
-            // msg!("transferring beneficiary_closing_amount_after_deducting_fees: {0} from treasury to beneficiary", beneficiary_closing_amount_after_deducting_fees);
             msg!("try{0}bfy", beneficiary_closing_amount_after_deducting_fees);
             treasury_transfer(
                 &treasury,
@@ -728,8 +696,6 @@ pub mod msp {
 
             if fee_amount > 0 {
                 // Fee 
-                // #[cfg(feature = "test")]
-                // msg!("transferring token fees: {0} from treasury to fees account", beneficiary_closing_amount_after_deducting_fees);
                 msg!("try{0}tfa", fee_amount);
                 treasury_transfer(
                     &treasury,
@@ -740,20 +706,6 @@ pub mod msp {
                 )?;
             }
         }
-
-        // // Transfer treasurer closing funds       
-        // if treasurer_closing_amount > 0 {
-        //     // #[cfg(feature = "test")]
-        //     // msg!("transferring treasurer_closing_amount: {0} from treasury to treasurer", treasurer_closing_amount);
-        //     msg!("tsy{0}tsr", treasurer_closing_amount);
-        //     treasury_transfer(
-        //         &treasury,
-        //         &ctx.accounts.treasury_token.to_account_info(),
-        //         &ctx.accounts.treasurer_token.to_account_info(),
-        //         &ctx.accounts.token_program.to_account_info(),
-        //         treasurer_closing_amount
-        //     )?;
-        // }
 
         // Update treasury data
         let deallocated_units = beneficiary_closing_amount
