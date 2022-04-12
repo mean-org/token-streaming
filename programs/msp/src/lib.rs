@@ -815,7 +815,7 @@ pub mod msp {
         let now_ts = clock.unix_timestamp as u64;
 
         let treasury = &mut ctx.accounts.treasury;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units);
 
         // Close treasury pool token

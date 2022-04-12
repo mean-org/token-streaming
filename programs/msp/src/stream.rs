@@ -140,9 +140,6 @@ impl Stream {
             .ok_or(ErrorCode::Overflow)?;
 
         if seconds >= streaming_seconds {
-            #[cfg(feature="test")]
-            msg!("seconds >= streaming_seconds. streaming_seconds: {0}, streamable_units: {1}, self.allocation_assigned_units: {2}, seconds: {3}", 
-            streaming_seconds, streamable_units, self.allocation_assigned_units, seconds);
             return Ok(streamable_units);
         }
 
@@ -150,9 +147,6 @@ impl Stream {
             .checked_mul(seconds).unwrap()
             .checked_div(self.rate_interval_in_seconds)
             .ok_or(ErrorCode::Overflow)?;
-        #[cfg(feature="test")]
-        msg!("seconds < streaming_seconds.  streaming_seconds: {0}, streamable_units_in_given_seconds: {1}, self.allocation_assigned_units: {2}, seconds: {3}", 
-        streaming_seconds, streamable_units_in_given_seconds, self.allocation_assigned_units, seconds);
         
         Ok(streamable_units_in_given_seconds)
     }
@@ -160,8 +154,6 @@ impl Stream {
     /// Gets the stream status in the current blocktime
     pub fn get_status<'info>(&self, timestamp: u64) -> Result<StreamStatus> {
         let start_utc_seconds = self.get_start_utc()?;
-        #[cfg(feature="test")]
-        msg!("get_status started!. clock: {0}, start_ts: {1}", timestamp, start_utc_seconds);
 
         // scheduled
         if start_utc_seconds > timestamp {
@@ -194,9 +186,6 @@ impl Stream {
         let missed_earning_units_while_paused = non_stop_earning_units
             .checked_sub(actual_earned_units)
             .ok_or(ErrorCode::Overflow)?;
-        #[cfg(feature="test")]
-        msg!("seconds_since_start: {0}, not_stop_streamed_units_since_started: {1}, missed_earning_units_while_paused: {2}", 
-        seconds_since_start, not_stop_streamed_units_since_started, missed_earning_units_while_paused);
 
         assert!(
             non_stop_earning_units >= missed_earning_units_while_paused, 
@@ -253,28 +242,12 @@ impl Stream {
 
     /// Gets the funds that have not been withdrew
     pub fn get_funds_left_in_account(&self, timestamp: u64) -> Result<u64> { // TODO: Remove if possible
-        #[cfg(feature = "test")]
-        msg!("");
-        #[cfg(feature = "test")]
-        msg!("get_funds_left_in_account() started! ******");
 
         let withdrawable = self.get_beneficiary_withdrawable_amount(timestamp)?;
-        #[cfg(feature = "test")]
-        msg!("stream.allocation_assigned_units: {0}", self.allocation_assigned_units);
-        #[cfg(feature = "test")]
-        msg!("stream.total_withdrawals_units: {0}", self.total_withdrawals_units);
-        #[cfg(feature = "test")]
-        msg!("withdrawable: {0}", withdrawable);
         let funds_left_in_account = self.allocation_assigned_units
             .checked_sub(self.total_withdrawals_units).unwrap()
             .checked_sub(withdrawable).ok_or(ErrorCode::Overflow)?;
-        #[cfg(feature = "test")]
-        msg!("funds_left_in_account: {0}", funds_left_in_account);
 
-        #[cfg(feature = "test")]
-        msg!("get_funds_left_in_account() finished! ******");
-        #[cfg(feature = "test")]
-        msg!("");
         Ok(funds_left_in_account)
     }
 
@@ -291,7 +264,7 @@ impl Stream {
         #[cfg(feature = "test")]
         msg!("");
         #[cfg(feature = "test")]
-        msg!("get_beneficiary_withdrawable_amount() finished! ******");
+        msg!("get_beneficiary_withdrawable_amount() started! ******");
 
         let remaining_allocation = self.get_remaining_allocation()?;
 
@@ -347,7 +320,7 @@ impl Stream {
         //     actual_earned_units >= self.total_withdrawals_units,
         //     "entitled_earning vs total_withdrawals invariant violated"
         // );
-        // TODO: this is a work around the issue of now having a solid calculation for earned units after auto-PAUSED streams
+        // TODO: this is a work around the issue of not having a better way for calculating earned units after auto-PAUSED streams
         actual_earned_units = cmp::max(actual_earned_units, self.total_withdrawals_units);
 
         #[cfg(feature = "test")]

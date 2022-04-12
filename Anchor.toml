@@ -11,8 +11,8 @@ msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
-wallet = "keys/upgrade-authority.json"
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 
