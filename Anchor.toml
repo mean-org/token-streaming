@@ -1,0 +1,18 @@
+[programs.localnet]
+msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
+
+[programs.devnet]
+msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
+
+[programs.mainnet]
+msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/msp.ts"
