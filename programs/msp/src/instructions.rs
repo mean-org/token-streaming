@@ -206,8 +206,7 @@ pub struct WithdrawAccounts<'info> {
 pub struct PauseOrResumeStreamAccounts<'info> {
     #[account(
         constraint = (
-            initializer.key() == stream.treasurer_address || 
-            initializer.key() == stream.beneficiary_address
+            initializer.key() == stream.treasurer_address
         ) @ ErrorCode::NotAuthorized
     )]
     pub initializer: Signer<'info>,
