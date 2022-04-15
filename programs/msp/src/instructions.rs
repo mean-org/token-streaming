@@ -410,6 +410,7 @@ pub struct AllocateAccounts<'info> {
 
         constraint = stream.treasurer_address == treasurer.key() @ ErrorCode::InvalidTreasurer,
         constraint = stream.beneficiary_associated_token == associated_token.key() @ ErrorCode::InvalidTreasury, // Probably redundant check
+        constraint = amount > 0 @ ErrorCode::ZeroContributionAmount
     )]
     pub stream: Account<'info, Stream>,
     #[account(
