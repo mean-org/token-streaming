@@ -770,6 +770,24 @@ pub mod msp {
         msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units);
 
+        // sol fee
+        if treasury.sol_fee_payed_by_treasury {
+            msg!("tsy{0}sfa", CLOSE_TREASURY_FLAT_FEE);
+            treasury_transfer_sol_amount(
+                &treasury.to_account_info(),
+                &ctx.accounts.fee_treasury.to_account_info(),
+                CLOSE_TREASURY_FLAT_FEE
+            )?;
+        } else {
+            msg!("itr{0}sfa", CLOSE_TREASURY_FLAT_FEE);
+            transfer_sol_amount(
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.fee_treasury.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+                CLOSE_TREASURY_FLAT_FEE
+            )?;
+        }
+
         // Close treasury pool token
         close_treasury_pool_token_account(
             &ctx.accounts.treasurer.to_account_info(),
