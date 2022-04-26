@@ -3,7 +3,7 @@ use anchor_spl::token::*;
 use anchor_spl::associated_token::*;
 
 use crate::constants::*;
-use crate::errors::*;
+use crate::errors::ErrorCode;
 use crate::treasury::*;
 use crate::stream::*;
 use crate::enums::*;
@@ -20,8 +20,6 @@ pub mod maintenance_authority {
 #[derive(Accounts, Clone)]
 #[instruction(
     slot: u64,
-    treasury_bump: u8,
-    treasury_mint_bump: u8
 )]
 pub struct CreateTreasuryAccounts<'info> {
     #[account(mut)]
@@ -32,7 +30,7 @@ pub struct CreateTreasuryAccounts<'info> {
         init,
         payer = payer,
         seeds = [treasurer.key().as_ref(), &slot.to_le_bytes()],
-        bump = treasury_bump,
+        bump,
         space = 300
     )]
     pub treasury: Account<'info, Treasury>,
@@ -40,7 +38,7 @@ pub struct CreateTreasuryAccounts<'info> {
         init,
         payer = payer,
         seeds = [treasurer.key().as_ref(), treasury.key().as_ref(), &slot.to_le_bytes()],
-        bump = treasury_mint_bump,
+        bump,
         mint::decimals = TREASURY_POOL_MINT_DECIMALS,
         mint::authority = treasury,
         mint::freeze_authority = treasury,

@@ -44,7 +44,7 @@ export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error("ANCHOR_PROVIDER_URL is not defined");
 }
-export const options = anchor.Provider.defaultOptions();
+export const options = anchor.AnchorProvider.defaultOptions();
 export const connection = new Connection(url, options.commitment);
 export const payer = Keypair.generate();
 
@@ -60,7 +60,7 @@ export async function createMspSetup(
 ): Promise<MspSetup> {
 
   const payerWallet = new Wallet(payer);
-  const payerProvider = new anchor.Provider(connection, payerWallet, options);
+  const payerProvider = new anchor.AnchorProvider(connection, payerWallet, options);
   anchor.setProvider(payerProvider);
   // this is a work around bug https://github.com/project-serum/anchor/issues/1159
   // TODO: go back to using 'anchor.workspace.Ddca' once 1159 is fixed
@@ -229,11 +229,14 @@ export class MspSetup {
 
   public async createProgram(keypair: Keypair): Promise<Program<Msp>> {
     const wallet = new Wallet(keypair);
-    const provider = new anchor.Provider(this.connection, wallet, this.program.provider.opts);
+    const provider = new anchor.AnchorProvider(this.connection, wallet, options);
+    
     anchor.setProvider(provider);
     // this is a work around bug https://github.com/project-serum/anchor/issues/1159
     // TODO: go back to using 'anchor.workspace.Ddca' once 1159 is fixed
     const program = getWorkspace().Msp as Program<Msp>;
+    console.log(`program: ${program}`);
+    
     return program;
   }
 
@@ -265,31 +268,27 @@ export class MspSetup {
     const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
     const preTreasurerLamports = preTreasurerAccountInfo!.lamports;
 
-    const txId = await this.program.rpc.createTreasury(
+    const txId = await this.program.methods.createTreasury(
       this.slot,
-      treasuryBump,
-      this.treasuryMintBump,
       this.name,
       this.treasuryType,
       this.autoClose,
-      solFeePayedByTreasury,
-      {
-        accounts: {
-          payer: treasurer,
-          treasurer: treasurer,
-          treasury: treasury,
-          treasuryMint: treasuryLpMint,
-          treasuryToken: this.treasuryFrom,
-          associatedToken: this.fromMint,
-          feeTreasury: MSP_FEES_PUBKEY,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: tokenProgram,
-          systemProgram: systemProgram,
-          rent: rent,
-        },
-        signers: signers,
-      }
-    );
+      solFeePayedByTreasury)
+      .accounts({
+        payer: treasurer,
+        treasurer: treasurer,
+        treasury: treasury,
+        treasuryMint: treasuryLpMint,
+        treasuryToken: this.treasuryFrom,
+        associatedToken: this.fromMint,
+        feeTreasury: MSP_FEES_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgram,
+        systemProgram: systemProgram,
+        rent: rent,
+      })
+      .signers(signers)
+      .rpc();
     console.log(`\nCREATE TREASURY TX URL: https://explorer.solana.com/tx/${txId}/?cluster=custom&customUrl=${url}`);
 
     await connection.confirmTransaction(
@@ -711,7 +710,7 @@ export class MspSetup {
 
     let treasurerTokenPreBalanceBn = new BN(parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || "0"));
 
-    let txId = await this.program.rpc.createStream(
+    let txId = await this.program.methods.createStream(
       name,
       new BN(startTs),
       new BN(rateAmountUnits),
@@ -719,27 +718,25 @@ export class MspSetup {
       new BN(allocationAssignedUnits),
       new BN(cliffVestAmountUnits),
       new BN(cliffVestPercent),
-      feePayedByTreasurer ?? false,
-      {
-        accounts: {
-          payer: initializerKeypair.publicKey,
-          initializer: initializerKeypair.publicKey,
-          treasurer: this.treasurerKeypair.publicKey,
-          treasury: treasury,
-          treasuryToken: treasuryFrom,
-          associatedToken: this.fromTokenClient.publicKey,
-          beneficiary: beneficiary,
-          stream: streamKeypair.publicKey,
-          feeTreasury: MSP_FEES_PUBKEY,
-          feeTreasuryToken: this.feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: signers
-      }
-    );
+      feePayedByTreasurer ?? false)
+      .accounts({
+        payer: initializerKeypair.publicKey,
+        initializer: initializerKeypair.publicKey,
+        treasurer: this.treasurerKeypair.publicKey,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+        associatedToken: this.fromTokenClient.publicKey,
+        beneficiary: beneficiary,
+        stream: streamKeypair.publicKey,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers(signers)
+      .rpc();
     logTxUrl(ixName, txId);
 
     // assert stream
@@ -863,7 +860,7 @@ export class MspSetup {
       }
     );
     createStreamTx.feePayer = initializerKeypair.publicKey;
-    createStreamTx.recentBlockhash = (await this.connection.getRecentBlockhash()).blockhash;
+    createStreamTx.recentBlockhash = (await this.connection.getLatestBlockhash()).blockhash;
     createStreamTx.partialSign(initializerKeypair);
     createStreamTx.partialSign(streamKeypair);
 
@@ -911,27 +908,24 @@ export class MspSetup {
 
     const amountBn = new BN(amount);
 
-    const txId = await program.rpc.withdraw(
-      amountBn,
-      {
-        accounts: {
-          payer: beneficiary,
-          beneficiary: beneficiary,
-          beneficiaryToken: beneficiaryFrom,
-          associatedToken: this.fromMint,
-          treasury: treasury,
-          treasuryToken: treasuryFrom,
-          stream: stream,
-          feeTreasury: MSP_FEES_PUBKEY,
-          feeTreasuryToken: this.feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: [beneficiaryKeypair]
-      }
-    );
+    const txId = await program.methods.withdraw(amountBn)
+      .accounts({
+        payer: beneficiary,
+        beneficiary: beneficiary,
+        beneficiaryToken: beneficiaryFrom,
+        associatedToken: this.fromMint,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+        stream: stream,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers([beneficiaryKeypair])
+      .rpc();
     logTxUrl(ixName, txId);
 
     const statusResult = (
@@ -1379,18 +1373,15 @@ export class MspSetup {
     console.log(`current beneficiary: ${beneficiary}`);
     console.log(`new beneficiary:     ${newBeneficiary}`);
     
-    const txId = await this.program.rpc.transferStream(
-      newBeneficiary,
-      {
-        accounts: {
-          beneficiary: beneficiary,
-          stream: stream,
-          feeTreasury: MSP_FEES_PUBKEY,
-          systemProgram: SYSTEM_PROGRAM_ID,
-        },
-        signers: [beneficiaryKeypair]
-      }
-    );
+    const txId = await this.program.methods.transferStream(newBeneficiary)
+      .accounts({
+        beneficiary: beneficiary,
+        stream: stream,
+        feeTreasury: MSP_FEES_PUBKEY,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .signers([beneficiaryKeypair])
+      .rpc();
     logTxUrl(ixName, txId);
 
     const statusResult = (
@@ -1447,17 +1438,15 @@ export class MspSetup {
     const preStateStream = preStreamEventResponse.events[0].data;
     assert.isNotNull(preStateStream, 'pre-state stream was not found');
 
-    const txId = await this.program.rpc.pauseStream(
-      {
-        accounts: {
-          initializer: initializer,
-          treasury: preStateStream.treasuryAddress,
-          associatedToken: preStateStream.beneficiaryAssociatedToken,
-          stream: stream
-        },
-        signers: [initializerKeypair]
-      }
-    );
+    const txId = await this.program.methods.pauseStream()
+      .accounts({
+        initializer: initializer,
+        treasury: preStateStream.treasuryAddress,
+        associatedToken: preStateStream.beneficiaryAssociatedToken,
+        stream: stream
+      })
+      .signers([initializerKeypair])
+      .rpc();
     logTxUrl(ixName, txId);
     
     const statusResult = (
@@ -1606,17 +1595,15 @@ export class MspSetup {
     const preStateStream = preStreamEventResponse.events[0].data;
     assert.isNotNull(preStateStream, 'pre-state stream was not found');
 
-    const txId = await this.program.rpc.resumeStream(
-      {
-        accounts: {
-          initializer: initializer,
-          treasury: preStateStream.treasuryAddress,
-          associatedToken: preStateStream.beneficiaryAssociatedToken,
-          stream: stream
-        },
-        signers: [initializerKeypair]
-      }
-    );
+    const txId = await this.program.methods.resumeStream()
+      .accounts({
+        initializer: initializer,
+        treasury: preStateStream.treasuryAddress,
+        associatedToken: preStateStream.beneficiaryAssociatedToken,
+        stream: stream
+      })
+      .signers([initializerKeypair])
+      .rpc();
     logTxUrl(ixName, txId);
 
     const statusResult = (
@@ -1731,18 +1718,15 @@ export class MspSetup {
     signers = signers ?? [this.treasurerKeypair];
 
 
-    const txId = await this.program.rpc.refreshTreasuryData(
-      new BN(totalStreams),
-      {
-        accounts: {
-          treasurer: treasurer,
-          associatedToken: this.fromMint,
-          treasury: treasury,
-          treasuryToken: treasuryFrom,
-        },
-        signers: signers,
-      }
-    );
+    const txId = await this.program.methods.refreshTreasuryData(new BN(totalStreams))
+      .accounts({
+        treasurer: treasurer,
+        associatedToken: this.fromMint,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+      })
+      .signers(signers)
+      .rpc();
     logTxUrl(ixName, txId);
 
     logEnd(ixName);
@@ -1785,29 +1769,26 @@ export class MspSetup {
     console.log(`contributorToken:       ${contributorTokenAccount}`);
     console.log(`treasury:               ${this.treasury}`);
     console.log(`treasuryAssociatedMint: ${this.fromMint}`);
-    
-    const txId = await this.program.rpc.addFunds(
-      amountBn,
-      {
-        accounts: {
-          payer: contributorKeypair.publicKey,
-          contributor: contributorKeypair.publicKey,
-          contributorToken: contributorTokenAccount,
-          contributorTreasuryToken: contributorLpTokenAccount,
-          treasury: this.treasury,
-          treasuryToken: this.treasuryFrom,
-          associatedToken: this.fromMint,
-          treasuryMint: this.treasuryLpMint,
-          feeTreasury: MSP_FEES_PUBKEY,
-          feeTreasuryToken: this.feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: [contributorKeypair],
-      }
-    );
+
+    const txId = await this.program.methods.addFunds(amountBn)
+      .accounts({
+        payer: contributorKeypair.publicKey,
+        contributor: contributorKeypair.publicKey,
+        contributorToken: contributorTokenAccount,
+        contributorTreasuryToken: contributorLpTokenAccount,
+        treasury: this.treasury,
+        treasuryToken: this.treasuryFrom,
+        associatedToken: this.fromMint,
+        treasuryMint: this.treasuryLpMint,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers([contributorKeypair])
+      .rpc();
     logTxUrl(ixName, txId);
 
     const postContributorAccountInfo = await this.connection.getAccountInfo(contributorKeypair.publicKey);
@@ -1892,26 +1873,23 @@ export class MspSetup {
     console.log(`treasury:               ${this.treasury}`);
     console.log(`treasuryAssociatedMint: ${this.fromMint}`);
     
-    const txId = await this.program.rpc.allocate(
-      amountBn,
-      {
-        accounts: {
-          payer: this.treasurerKeypair.publicKey,
-          treasurer: this.treasurerKeypair.publicKey,
-          treasury: this.treasury,
-          treasuryToken: this.treasuryFrom,
-          associatedToken: this.fromMint,
-          stream: stream,
-          feeTreasury: MSP_FEES_PUBKEY,
-          feeTreasuryToken: this.feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: [this.treasurerKeypair],
-      }
-    );
+    const txId = await this.program.methods.allocate(amountBn)
+      .accounts({
+        payer: this.treasurerKeypair.publicKey,
+        treasurer: this.treasurerKeypair.publicKey,
+        treasury: this.treasury,
+        treasuryToken: this.treasuryFrom,
+        associatedToken: this.fromMint,
+        stream: stream,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers([this.treasurerKeypair])
+      .rpc();
     logTxUrl(ixName, txId);
 
     // const postContributorAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
@@ -1969,7 +1947,7 @@ export class MspSetup {
     destinationAuthority?: PublicKey,
     destinationTokenAccount?: PublicKey,
   ) {
-    const ixName = "CREATE TREASURY";
+    const ixName = "CLOSE TREASURY";
     logStart(ixName);
 
     treasurerSigner = treasurerSigner ?? this.treasurerKeypair;
@@ -1993,27 +1971,25 @@ export class MspSetup {
     const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
     const preTreasurerLamports = preTreasurerAccountInfo!.lamports;
 
-    const txId = await treasurerSignerProgram.rpc.closeTreasury(
-      {
-        accounts: {
-          payer: treasurer,
-          treasurer: treasurer,
-          treasurerTreasuryToken: treasurerTreasuryLp,
-          destinationAuthority: destinationAuthority,
-          destinationTokenAccount: destinationTokenAccount,
-          associatedToken: this.fromMint,
-          treasury: treasury,
-          treasuryToken: treasuryFrom,
-          treasuryMint: this.treasuryLpMint,
-          feeTreasury: MSP_FEES_PUBKEY,
-          feeTreasuryToken: this.feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-      }
-    );
+    const txId = await treasurerSignerProgram.methods.closeTreasury()
+      .accounts({
+        payer: treasurer,
+        treasurer: treasurer,
+        treasurerTreasuryToken: treasurerTreasuryLp,
+        destinationAuthority: destinationAuthority,
+        destinationTokenAccount: destinationTokenAccount,
+        associatedToken: this.fromMint,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+        treasuryMint: this.treasuryLpMint,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .rpc();
     logTxUrl(ixName, txId);
 
     // const postState = await this.getMspWorldState();
@@ -2087,27 +2063,25 @@ export class MspSetup {
 
     const treasurerTreasuryMintTokenAccount = await this.findTreasuryLpTokenAccountAddress(treasurer);
 
-    const txId = await this.program.rpc.closeStream(
-      {
-        accounts: {
-          payer: treasurer,
-          treasurer: treasurer,
-          beneficiary: beneficiary,
-          beneficiaryToken: beneficiaryFrom,
-          associatedToken: this.fromMint,
-          treasury: treasury,
-          treasuryToken: treasuryFrom,
-          stream: stream,
-          feeTreasury: fees,
-          feeTreasuryToken: feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: signers,
-      }
-    );
+    const txId = await this.program.methods.closeStream()
+      .accounts({
+        payer: treasurer,
+        treasurer: treasurer,
+        beneficiary: beneficiary,
+        beneficiaryToken: beneficiaryFrom,
+        associatedToken: this.fromMint,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+        stream: stream,
+        feeTreasury: fees,
+        feeTreasuryToken: feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers(signers)
+      .rpc();
     logTxUrl(ixName, txId);
 
     const statusResult = (
@@ -2283,7 +2257,7 @@ export class MspSetup {
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
     signers = signers ?? [this.payer];
 
-    const txId = await this.program.rpc.updateTreasuryData(
+    const txId = await this.program.methods.updateTreasuryData(
       new BN(totalAllocationAssigned),
       new BN(totalWithdrawalsUnits),
       new BN(numberOfStreams),
@@ -2321,27 +2295,24 @@ export class MspSetup {
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
 
-    const txId = await this.program.rpc.treasuryWithdraw(
-      new BN(amount),
-      {
-        accounts: {
-          payer: treasurer,
-          treasurer: treasurer,
-          destinationAuthority: destinationAuthority,
-          destinationTokenAccount: destinationTokenAccount,
-          associatedToken: this.fromMint,
-          treasury: treasury,
-          treasuryToken: treasuryFrom,
-          feeTreasury: MSP_FEES_PUBKEY,
-          feeTreasuryToken: this.feesFrom,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SYSTEM_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: signers,
-      }
-    );
+    const txId = await this.program.methods.treasuryWithdraw(new BN(amount))
+      .accounts({
+        payer: treasurer,
+        treasurer: treasurer,
+        destinationAuthority: destinationAuthority,
+        destinationTokenAccount: destinationTokenAccount,
+        associatedToken: this.fromMint,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers(signers)
+      .rpc();
     logTxUrl(ixName, txId);
 
     logEnd(ixName);
@@ -2361,9 +2332,16 @@ export class MspSetup {
   }
 
   private async getLamportsPerSignature(): Promise<number> {
-    const recentBlockhash = await this.connection.getRecentBlockhash();
-    const lamportsPerSignature = recentBlockhash.feeCalculator.lamportsPerSignature;
-    return lamportsPerSignature;
+    // const recentBlockhash = await this.connection.getLatestBlockhash();
+    // const lamportsPerSignature = recentBlockhash.feeCalculator.lamportsPerSignature;
+    // return lamportsPerSignature;
+
+    // TODO: redo lamports per signature
+    // https://discord.com/channels/428295358100013066/428295358100013069/948651669477027890
+    // https://docs.solana.com/developing/clients/jsonrpc-api#getfees (DEPRECATED)
+    // https://docs.solana.com/developing/clients/jsonrpc-api#getfeeformessage
+
+    return 5_000;
   }
 
   public async findMspProgramAddress(): Promise<[PublicKey, number]> {
@@ -2711,11 +2689,11 @@ async function logGetStreamTx(program: Program<Msp>,
     }
   );
 
-  console.log(await program.provider.simulate(tx));
+  console.log(await program.provider.simulate!(tx));
 
   // tx.feePayer = readDataKeypair.publicKey;
   tx.feePayer = program.provider.wallet.publicKey;
-  tx.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
+  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
   // tx.partialSign(readDataKeypair);
   const txBase64 = tx.serialize({ verifySignatures: false, requireAllSignatures: false }).toString("base64");
   console.log();
