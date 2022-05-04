@@ -3997,7 +3997,12 @@ function parseStreamEvent(elapsed: number, action: string, event: StreamEvent): 
   };
 }
 
-function expectAnchorError(error: AnchorError, errorCodeNumber?: number, errorCodeName?: string, errorDescription?: string) {
+export function expectAnchorError(error: AnchorError, errorCodeNumber?: number, errorCodeName?: string, errorDescription?: string) {
+  console.log('error >>>>>>>>>>>>>>>>');
+  console.log(error);
+  console.log('error.toString()');
+  console.log(error.toString());
+  console.log('error <<<<<<<<<<<<<<<<');
 
   /** Example of AnchorError
   {
