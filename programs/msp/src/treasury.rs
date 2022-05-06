@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::*;
+use crate::errors::ErrorCode;
 
 #[account]
 pub struct Treasury {

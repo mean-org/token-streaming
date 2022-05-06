@@ -15,7 +15,7 @@ use crate::enums::*;
 use crate::utils::*;
 use crate::instructions::*;
 use crate::constants::*;
-use crate::errors::*;
+use crate::errors::ErrorCode;
 use crate::extensions::*;
 
 declare_id!("MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu");
@@ -29,18 +29,16 @@ pub mod msp {
     pub fn create_treasury(
         ctx: Context<CreateTreasuryAccounts>,
         slot: u64,
-        treasury_bump: u8,
-        _treasury_mint_bump: u8,
         name: String,
         treasury_type: u8,
         auto_close: bool,
         sol_fee_payed_by_treasury: bool,
-    ) -> ProgramResult {
+    ) -> Result<()> {
 
         // Initialize Treasury
         let treasury = &mut ctx.accounts.treasury;
         treasury.version = 2;
-        treasury.bump = treasury_bump;
+        treasury.bump = ctx.bumps["treasury"];
         treasury.slot = slot;
         treasury.treasurer_address = ctx.accounts.treasurer.key();
         treasury.mint_address = ctx.accounts.treasury_mint.key();
@@ -82,7 +80,7 @@ pub mod msp {
         cliff_vest_percent: u64,
         fee_payed_by_treasurer: bool
 
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
 
@@ -220,7 +218,7 @@ pub mod msp {
         ctx: Context<WithdrawAccounts>,
         amount: u64
 
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
 
@@ -326,7 +324,7 @@ pub mod msp {
     }
 
     /// Pause Stream
-    pub fn pause_stream(ctx: Context<PauseOrResumeStreamAccounts>) -> ProgramResult {
+    pub fn pause_stream(ctx: Context<PauseOrResumeStreamAccounts>) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         msg!("clock: {0}", now_ts);
@@ -353,7 +351,7 @@ pub mod msp {
     }
 
     /// Resume Stream
-    pub fn resume_stream(ctx: Context<PauseOrResumeStreamAccounts>) -> ProgramResult {
+    pub fn resume_stream(ctx: Context<PauseOrResumeStreamAccounts>) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         msg!("clock: {0}", now_ts);
@@ -414,7 +412,7 @@ pub mod msp {
         ctx: Context<RefreshTreasuryDataAccounts>,
         total_streams: u64
 
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let clock = Clock::get()?;
         msg!("clock: {0}", clock.unix_timestamp);
 
@@ -437,7 +435,7 @@ pub mod msp {
         ctx: Context<TransferStreamAccounts>,
         new_beneficiary: Pubkey
 
-    ) -> ProgramResult {
+    ) -> Result<()> {
 
         let stream = &mut ctx.accounts.stream;
                 
@@ -456,7 +454,7 @@ pub mod msp {
     }
 
     /// Get Stream
-    pub fn get_stream(ctx: Context<GetStreamAccounts>) -> ProgramResult {
+    pub fn get_stream(ctx: Context<GetStreamAccounts>) -> Result<()> {
 
         emit!(
             get_stream_data_event(&ctx.accounts.stream)?
@@ -471,7 +469,7 @@ pub mod msp {
     pub fn add_funds<'info>(
         ctx: Context<AddFundsAccounts>,
         amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         let now_slot = clock.slot as u64;
@@ -529,7 +527,7 @@ pub mod msp {
     pub fn allocate<'info>(
         ctx: Context<AllocateAccounts>,
         amount: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         let now_slot = clock.slot as u64;
@@ -640,7 +638,7 @@ pub mod msp {
     pub fn close_stream(
         ctx: Context<CloseStreamAccounts>,
 
-    ) -> ProgramResult {
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         let now_slot = clock.slot as u64;
@@ -762,7 +760,7 @@ pub mod msp {
     }
 
     /// Close Treasury
-    pub fn close_treasury(ctx: Context<CloseTreasuryAccounts>) -> ProgramResult {
+    pub fn close_treasury(ctx: Context<CloseTreasuryAccounts>) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
 
@@ -910,7 +908,7 @@ pub mod msp {
     //     new_withdrawals_amount: u64,
     //     new_number_of_streams: u64,
 
-    // ) -> ProgramResult {
+    // ) -> Result<()> {
 
     //     let clock = Clock::get()?;
     //     msg!("clock: {0}, new_allocated_amount: {1}, new_withdrawals_amount: {2}", clock.unix_timestamp, new_allocated_amount, new_withdrawals_amount);
@@ -944,7 +942,7 @@ pub mod msp {
     // }
 
     /// Withdraw undallocated funds from treasury
-    pub fn treasury_withdraw(ctx: Context<TreasuryWithdrawAccounts>, amount: u64) -> ProgramResult {
+    pub fn treasury_withdraw(ctx: Context<TreasuryWithdrawAccounts>, amount: u64) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
 

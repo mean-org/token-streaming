@@ -9,7 +9,7 @@ import {
 } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, Token, AccountInfo } from "@solana/spl-token";
 import * as anchor from '@project-serum/anchor';
-import { Program, BN, IdlTypes, IdlAccounts } from '@project-serum/anchor';
+import { Program, BN, IdlTypes, IdlAccounts, AnchorError } from '@project-serum/anchor';
 import { Msp } from '../target/types/msp';
 import { getWorkspace } from "./workspace";
 import { assert, expect } from "chai";
@@ -43,13 +43,22 @@ describe('msp', () => {
   let fromTokenClient: Token = new Token(connection, PublicKey.default, TOKEN_PROGRAM_ID, payer); // dummy new to make it non-null; it will be overwritten soon;
 
   it("Initializes the state-of-the-world", async () => {
-    const provider = anchor.Provider.env();
+    const provider = anchor.AnchorProvider.env();
+    
     anchor.setProvider(provider);
     program = anchor.workspace.Msp as Program<Msp>;
 
     // Airdropping tokens to a payer.
     await connection.confirmTransaction(
       await connection.requestAirdrop(payer.publicKey, 10000000000),
+      "confirmed"
+    );
+
+    // Prevent 'Error: failed to send transaction: Transaction simulation failed: Transaction leaves an account with a lower balance than rent-exempt minimum' because fee account having zero sol
+    // https://discord.com/channels/428295358100013066/517163444747894795/958728019973910578
+    // https://discord.com/channels/428295358100013066/749579745645166592/956262753365008465
+    await connection.confirmTransaction(
+      await connection.requestAirdrop(new PublicKey("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw"), 10000000000),
       "confirmed"
     );
 
@@ -179,9 +188,8 @@ describe('msp', () => {
     await node_assert.rejects(async () => {
       await mspSetup.allocate(50_000_000, streamKeypair.publicKey);
     },
-    (error: anchor.ProgramError) => {
-      expect(error.code).eq(6033);
-      expect(error.msg).eq('Can not allocate funds to a stream from a locked treasury');
+    (error: AnchorError) => {
+      expectAnchorError(error, 6033, undefined, 'Can not allocate funds to a stream from a locked treasury');
       return true;
     });
 
@@ -252,9 +260,8 @@ describe('msp', () => {
         streamKeypair.publicKey
         );
     },
-    (error: anchor.ProgramError) => {
-      expect(error.code).eq(6028);
-      expect(error.msg).eq('Withdrawal amount is zero');
+    (error: AnchorError) => {
+      expectAnchorError(error, 6028, undefined, 'Withdrawal amount is zero');
       return true;
     });
 
@@ -348,9 +355,8 @@ describe('msp', () => {
         streamKeypair,
       );
     },
-      (error: any) => {
-        expect(error.code).eq(6039);
-        expect(error.msg).eq('Insufficient treasury balance');
+      (error: AnchorError) => {
+        expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
         return true;
       });
 
@@ -400,9 +406,8 @@ describe('msp', () => {
         treasurerKeypair,
       );
     },
-      (error: any) => {
-        expect(error.code).eq(6031);
-        expect(error.msg).eq('Streams in a Locked treasury can not be paused or resumed');
+      (error: AnchorError) => {
+        expectAnchorError(error, 6031, "PauseOrResumeLockedStreamNotAllowed", 'Streams in a Locked treasury can not be paused or resumed');
         return true;
       });
 
@@ -412,8 +417,7 @@ describe('msp', () => {
       await mspSetup.allocate(10_000_000, streamKeypair.publicKey);
     },
       (error: any) => {
-        expect(error.code).eq(6033);
-        expect(error.msg).eq('Can not allocate funds to a stream from a locked treasury');
+        expectAnchorError(error, 6033, undefined, 'Can not allocate funds to a stream from a locked treasury');
         return true;
       });
       
@@ -436,10 +440,7 @@ describe('msp', () => {
       );
     },
       (error: any) => {
-        console.log(error);
-        
-        expect(error.code).eq(6030);
-        expect(error.msg).eq('Streams in a Locked treasury can not be closed while running');
+        expectAnchorError(error, 6030, undefined, 'Streams in a Locked treasury can not be closed while running');
         return true;
       });
 
@@ -490,9 +491,8 @@ describe('msp', () => {
     await node_assert.rejects(async () => {
     await mspSetup.withdraw(1, beneficiaryKeypair, beneficiaryKeypair.publicKey, benefifiaryFrom, streamKeypair.publicKey);
     },
-    (error: any) => {
-      expect(error.code).eq(6029);
-      expect(error.msg).eq('Stream has not started');
+    (error: AnchorError) => {
+      expectAnchorError(error, 6029, undefined, 'Stream has not started');
       return true;
     });
 
@@ -1099,7 +1099,8 @@ describe('msp', () => {
     expect(preTreasurerFromAmount).eq(0);
 
     const preTreasuryFromAmount = new BN((await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount).toNumber();
-    expect(preTreasuryFromAmount).eq(250_000_000);
+    expect(preTreasuryFromAmount)
+      .oneOf([250_000_000, 266_666_667], "incorrect preTreasuryFromAmount");
 
     const beneficiaryFromAmount = new BN((await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount).toNumber();
     expect(beneficiaryFromAmount).eq(49_875_000);
@@ -1197,6 +1198,7 @@ describe('msp', () => {
 
   // });
 
+  // TODO: Re-implement as a pure Rust-Solana Unit Test
   it('create treasury (open) -> add funds -> create stream -> wait for 50% streamed -> withdraw -> close stream', async () => {
     const treasurerKeypair = Keypair.generate();
 
@@ -1264,12 +1266,20 @@ describe('msp', () => {
       .eq(0, "incorrect amount retured to treasurer after closing a stream");
 
     const postTreasuryFromAmount = new BN((await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount).toNumber();
+
+    // At this point is really difficult to know whether 3 or 4 full seconds have elapsed so let's check for two values
+    // 250000000 (expected if 3 secs elapsed)
+    // 233333334 (expected if 4 secs elapsed)
     expect(postTreasuryFromAmount)
-      .eq(250_000_000, "incorrect amount left in treasury after closing a stream");
+      .oneOf([233_333_334, 250_000_000], "incorrect amount left in treasury after closing a stream");
 
     const postBeneficiaryFromAmount = new BN((await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount).toNumber();
+      
+    // At this point is really difficult to know whether 3 or 4 full seconds have elapsed so let's check for two values
+    // 49875000 (expected if 3 secs elapsed)
+    // 66500000 (expected if 4 secs elapsed)
     expect(postBeneficiaryFromAmount)
-      .eq(49_875_000, "incorrect amount retured to beneficiary after closing a stream");
+      .oneOf([49_875_000, 66_500_000], "incorrect amount retured to beneficiary after closing a stream");
 
   });
 
@@ -2177,11 +2187,8 @@ describe('msp', () => {
         true,
       );
     },
-    (error: anchor.ProgramError) => {
-      console.log(error);
-      
-      expect(error.code).eq(6039);
-      expect(error.msg).eq('Insufficient treasury balance');
+    (error: AnchorError) => {
+      expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
       return true;
     });
 
@@ -2649,7 +2656,7 @@ describe('msp', () => {
 
     await sleep(1_000);
 
-    await mspSetup.program.provider.send(
+    await (mspSetup.program.provider as anchor.AnchorProvider).sendAndConfirm(
       new Transaction().add(
         Token.createTransferInstruction(
           TOKEN_PROGRAM_ID,
@@ -2962,9 +2969,8 @@ describe('msp', () => {
     await node_assert.rejects(async () => {
       await mspSetup.allocate(50_000_001, screamKeypair.publicKey);
     },
-    (error: anchor.ProgramError) => {
-      expect(error.code).eq(6039);
-      expect(error.msg).eq('Insufficient treasury balance');
+    (error: AnchorError) => {
+      expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
       return true;
     });
 
@@ -3357,9 +3363,8 @@ describe('msp', () => {
     await node_assert.rejects(async () => {
       await mspSetup.allocate(49501248, streamKeypair.publicKey);
     },
-      (error: anchor.ProgramError) => {
-        expect(error.code).eq(6039);
-        expect(error.msg).eq('Insufficient treasury balance');
+      (error: AnchorError) => {
+        expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
         return true;
       }
     );
@@ -3832,7 +3837,7 @@ describe('msp', () => {
 
   //#region TREASURY WITHDRAW
 
-  it('qqq treasury withdraw', async () => {
+  it('treasury withdraw', async () => {
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
@@ -3899,9 +3904,8 @@ describe('msp', () => {
     await node_assert.rejects(async () => {
       await mspSetup.treasuryWithdraw(100_000_001, treasurerKeypair.publicKey, mspSetup.treasurerFrom);
     },
-    (error: anchor.ProgramError) => {
-      expect(error.code).eq(6039);
-      expect(error.msg).eq("Insufficient treasury balance");
+    (error: AnchorError) => {
+      expectAnchorError(error, 6039, undefined, "Insufficient treasury balance");
       return true;
     });
   });
@@ -3925,9 +3929,8 @@ describe('msp', () => {
     await node_assert.rejects(async () => {
       await mspSetup.treasuryWithdraw(0, treasurerKeypair.publicKey, mspSetup.treasurerFrom);
     },
-    (error: anchor.ProgramError) => {
-      expect(error.code).eq(6022);
-      expect(error.msg).eq("Invalid withdrawal amount");
+    (error: AnchorError) => {
+      expectAnchorError(error, 6022, undefined, "Invalid withdrawal amount");
       return true;
     });
   });
@@ -3959,11 +3962,8 @@ describe('msp', () => {
       treasurer2From,
       );
     },
-    (error: anchor.ProgramError) => {
-      console.log(error);
-      
-      expect(error.code).eq(6013);
-      expect(error.msg).eq("Invalid treasurer");
+    (error: AnchorError) => {
+      expectAnchorError(error, 6013, undefined, "Invalid treasurer");
       return true;
     });
   });
@@ -3995,6 +3995,41 @@ function parseStreamEvent(elapsed: number, action: string, event: StreamEvent): 
     last_manual_resume_remaining_allocation_snap: event.lastManualResumeRemainingAllocationUnitsSnap.toNumber(),
     // post_allocation: number,
   };
+}
+
+export function expectAnchorError(error: AnchorError, errorCodeNumber?: number, errorCodeName?: string, errorDescription?: string) {
+  console.log('error >>>>>>>>>>>>>>>>');
+  console.log(error);
+  console.log('error.toString()');
+  console.log(error.toString());
+  console.log('error <<<<<<<<<<<<<<<<');
+
+  /** Example of AnchorError
+  {
+    error: {
+      errorCode: { code: 'PauseOrResumeLockedStreamNotAllowed', number: 6031 },
+      errorMessage: 'Streams in a Locked treasury can not be paused or resumed',
+      comparedValues: undefined,
+      origin: 'stream'
+    }
+  }
+  */
+
+  if(!errorCodeNumber && !errorCodeName && !errorDescription) {
+    throw Error("At least one of errorCodeNumber, errorCodeName or errorDescription is required")
+  }
+
+  if(errorCodeNumber) {
+    expect(error.error.errorCode.number).eq(errorCodeNumber);
+  }
+
+  if(errorCodeName) {
+    expect(error.error.errorCode.code).eq(errorCodeName);
+  }
+
+  if(errorDescription) {
+    expect(error.error.errorMessage).eq(errorDescription);
+  }
 }
 
 type ParsedStreamEvent = { 

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
 use crate::treasury::*;
-use crate::errors::*;
+use crate::errors::ErrorCode;
 use crate::events::*;
 use crate::stream::*;
 use crate::enums::*;
@@ -12,10 +12,10 @@ pub fn transfer_sol_amount<'info>(
     system_program: &AccountInfo<'info>,
     amount: u64
 
-) -> ProgramResult {
+) -> Result<()> {
 
     let pay_fee_ix = solana_program::system_instruction::transfer(from.key, to.key, amount);
-    solana_program::program::invoke(&pay_fee_ix, &[from.clone(), to.clone(), system_program.clone()])
+    solana_program::program::invoke(&pay_fee_ix, &[from.clone(), to.clone(), system_program.clone()]).map_err(Into::into)
 }
 
 pub fn treasury_transfer_sol_amount<'info>(
@@ -23,7 +23,7 @@ pub fn treasury_transfer_sol_amount<'info>(
     to: &AccountInfo<'info>,
     amount: u64
 
-) -> ProgramResult {
+) -> Result<()> {
 
     let treasury_lamports =  treasury.lamports();
     let treasury_min_rent_exempt = Rent::get()?.minimum_balance(treasury.data_len());
@@ -63,7 +63,7 @@ pub fn transfer_token_amount<'info>(
     token_program: &AccountInfo<'info>,
     amount: u64
 
-) -> ProgramResult {
+) -> Result<()> {
 
     let cpi_accounts = Transfer { from: from.clone(), to: to.clone(), authority: authority.clone() };
     let cpi_ctx = CpiContext::new(token_program.clone(), cpi_accounts);
@@ -77,7 +77,7 @@ pub fn treasury_transfer<'info>(
     token_program: &AccountInfo<'info>,
     amount: u64,
 
-) -> ProgramResult {
+) -> Result<()> {
 
     let treasury_signer_seed: &[&[&[_]]] = &[&[
         treasury.treasurer_address.as_ref(),
