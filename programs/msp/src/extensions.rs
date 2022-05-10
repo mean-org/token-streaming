@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::*;
 use crate::treasury::*;
 use crate::stream::*;
-use crate::errors::*;
+use crate::errors::ErrorCode;
 
 // TODO: Temporary disabled until proper handling of the pool tokens mited to the contributor is implemented 
 // pub fn create_deposit_receipt<'info>(
@@ -12,7 +12,7 @@ use crate::errors::*;
 //     token_program: &AccountInfo<'info>,
 //     amount: u64,
 
-// ) -> ProgramResult {
+// ) -> Result<()> {
 
 //     let treasury_signer_seed: &[&[&[_]]] = &[&[
 //         treasury.treasurer_address.as_ref(),
@@ -34,7 +34,7 @@ pub fn validate_stream<'info>(
     treasury_info: &AccountInfo<'info>,
     associated_token_info: &AccountInfo<'info>
     
-) -> ProgramResult {
+) -> Result<()> {
     
     let stream = &mut stream_account.clone().into_inner() as &mut Stream;
 
@@ -64,14 +64,14 @@ pub fn close_treasury_pool_token_account<'info>(
     token_program: &AccountInfo<'info>,
     amount: u64
 
-) -> ProgramResult {
+) -> Result<()> {
 
     if treasurer_treasury_token.data_len() == TokenAccount::LEN {
         // Burn
         let burn_cpi_accounts = Burn {
             mint: treasury_mint.clone(), 
-            to: treasurer_treasury_token.clone(), 
-            authority: treasurer.clone()
+            from: treasurer_treasury_token.clone(), 
+            authority: treasurer.clone(),
         };
 
         let burn_cpi_ctx = CpiContext::new(token_program.clone(), burn_cpi_accounts);
@@ -98,7 +98,7 @@ pub fn close_stream_update_treasury<'info>(
     deallocated_units: u64,
     timestamp: u64,
     slot: u64,
-) -> ProgramResult {
+) -> Result<()> {
 
     assert!(deallocated_units >= transferred_out_units);
 

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use std::cmp;
 use crate::constants::*;
-use crate::errors::*;
+use crate::errors::ErrorCode;
 use crate::enums::*;
 
 #[account]
@@ -353,7 +353,7 @@ impl Stream {
     }
 
     /// Updates the stream start UTC to seconds if it's necesary
-    pub fn update_start_utc(&mut self) -> ProgramResult {
+    pub fn update_start_utc(&mut self) -> Result<()> {
 
         let start_utc_seconds = self.get_start_utc()?;
 
