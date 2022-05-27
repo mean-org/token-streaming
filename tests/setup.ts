@@ -29,6 +29,7 @@ export const TREASURY_POOL_MINT_DECIMALS = 6;
 export const MSP_FEES_PUBKEY = new PublicKey("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw");
 export const MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES = 300;
 export const MSP_CREATE_TREASURY_FEE_IN_LAMPORTS: number = 10_000;
+export const MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES: number = 100_000;
 export const MSP_ADD_FUNDS_FEE_IN_LAMPORTS: number = 25_000;
 export const MSP_WITHDRAW_FEE_PCT_NUMERATOR: number = 2500;
 export const MSP_FEE_PCT_DENOMINATOR: number = 1_000_000;
@@ -325,12 +326,16 @@ export class MspSetup {
     const treasuryRentExemptLamports = new BN(await this.connection.getMinimumBalanceForRentExemption(MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES));
     const treasuryMintRentExemptLamports = new BN(await this.connection.getMinimumBalanceForRentExemption(SOLANA_MINT_ACCOUNT_SIZE_IN_BYTES));
 
-    const expectedPostTreasurerLamport = new BN(preTreasurerLamports)
+    let expectedPostTreasurerLamport = new BN(preTreasurerLamports)
       .sub(treasuryRentExemptLamports)
       .sub(treasuryMintRentExemptLamports)
       .sub(new BN(MSP_CREATE_TREASURY_FEE_IN_LAMPORTS))
       .sub(new BN(2_039_280)) // rent payed for the treasury associated token account
       ;
+
+    if(solFeePayedByTreasury) {
+      expectedPostTreasurerLamport = expectedPostTreasurerLamport.sub(new BN(MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES));
+    }
 
     // console.log();
     // console.log(`preTreasurerLamports:                ${preTreasurerLamports}`);

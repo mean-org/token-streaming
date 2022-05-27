@@ -64,7 +64,19 @@ pub mod msp {
             &ctx.accounts.fee_treasury.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
             CREATE_TREASURY_FLAT_FEE
-        )
+        )?;
+
+        if sol_fee_payed_by_treasury {
+            transfer_sol_amount(
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.treasury.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+                CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES
+            )?;
+        }
+
+        return Ok(())
+
     }
 
     /// Create Stream
