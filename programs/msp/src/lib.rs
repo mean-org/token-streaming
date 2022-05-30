@@ -64,7 +64,19 @@ pub mod msp {
             &ctx.accounts.fee_treasury.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
             CREATE_TREASURY_FLAT_FEE
-        )
+        )?;
+
+        if sol_fee_payed_by_treasury {
+            transfer_sol_amount(
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.treasury.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+                CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES
+            )?;
+        }
+
+        return Ok(())
+
     }
 
     /// Create Stream
@@ -768,24 +780,6 @@ pub mod msp {
         msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units);
 
-        // sol fee
-        if treasury.sol_fee_payed_by_treasury {
-            msg!("tsy{0}sfa", CLOSE_TREASURY_FLAT_FEE);
-            treasury_transfer_sol_amount(
-                &treasury.to_account_info(),
-                &ctx.accounts.fee_treasury.to_account_info(),
-                CLOSE_TREASURY_FLAT_FEE
-            )?;
-        } else {
-            msg!("itr{0}sfa", CLOSE_TREASURY_FLAT_FEE);
-            transfer_sol_amount(
-                &ctx.accounts.payer.to_account_info(),
-                &ctx.accounts.fee_treasury.to_account_info(),
-                &ctx.accounts.system_program.to_account_info(),
-                CLOSE_TREASURY_FLAT_FEE
-            )?;
-        }
-
         // Close treasury pool token
         close_treasury_pool_token_account(
             &ctx.accounts.treasurer.to_account_info(),
@@ -845,14 +839,14 @@ pub mod msp {
             // )?;
         }
 
+        // CLOSE THE TREASURY TOKEN ACCOUNT
         // Treasury seeds
-        // Approach 1. using Anchor spl wrapper
         let treasury_signer_seed: &[&[_]] = &[&[
             treasury.treasurer_address.as_ref(),
             &treasury.slot.to_le_bytes(),
             &treasury.bump.to_le_bytes()
         ]];
-
+        // Approach 1. using Anchor spl wrapper
         // Close treasury token account
         let close_cpi_accounts = CloseAccount {
             account: ctx.accounts.treasury_token.to_account_info(),
@@ -873,7 +867,7 @@ pub mod msp {
         // let mut close_account_ix = spl_token::instruction::close_account(
         //     &ctx.accounts.token_program.key(),
         //     &ctx.accounts.treasury_token.key(),
-        //     ctx.accounts.treasurer.key,
+        //     ctx.accounts.destination_authority.key,
         //     &treasury.key(),
         //     &[],
         // )?;
@@ -891,12 +885,31 @@ pub mod msp {
         //     &close_account_ix,
         //     &[
         //         ctx.accounts.treasury_token.to_account_info(),
-        //         ctx.accounts.treasurer.to_account_info(),
+        //         ctx.accounts.destination_authority.to_account_info(),
         //         treasury.to_account_info(),
         //         ctx.accounts.fee_treasury.to_account_info(),
         //     ],
         //     treasury_signer_seed
         // )?;
+
+        // sol fee
+        // this is done at the end to avoid pre-CPI imbalance check error
+        if treasury.sol_fee_payed_by_treasury {
+            msg!("tsy{0}sfa", CLOSE_TREASURY_FLAT_FEE);
+            treasury_transfer_sol_amount(
+                &treasury.to_account_info(),
+                &ctx.accounts.fee_treasury.to_account_info(),
+                CLOSE_TREASURY_FLAT_FEE
+            )?;
+        } else {
+            msg!("itr{0}sfa", CLOSE_TREASURY_FLAT_FEE);
+            transfer_sol_amount(
+                &ctx.accounts.payer.to_account_info(),
+                &ctx.accounts.fee_treasury.to_account_info(),
+                &ctx.accounts.system_program.to_account_info(),
+                CLOSE_TREASURY_FLAT_FEE
+            )?;
+        }
 
         Ok(())
     }
