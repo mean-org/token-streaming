@@ -10,7 +10,7 @@ import {
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, Token, AccountInfo } from "@solana/spl-token";
 import Wallet from '@project-serum/anchor/dist/cjs/nodewallet';
 import * as anchor from '@project-serum/anchor';
-import { Program, BN, IdlTypes, IdlAccounts } from '@project-serum/anchor';
+import { Program, BN, IdlTypes, IdlAccounts, AnchorError } from '@project-serum/anchor';
 import { Msp } from '../target/types/msp';
 import { getWorkspace } from "./workspace";
 import { assert, expect } from "chai";
@@ -29,6 +29,7 @@ export const TREASURY_POOL_MINT_DECIMALS = 6;
 export const MSP_FEES_PUBKEY = new PublicKey("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw");
 export const MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES = 300;
 export const MSP_CREATE_TREASURY_FEE_IN_LAMPORTS: number = 10_000;
+export const MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES: number = 100_000;
 export const MSP_ADD_FUNDS_FEE_IN_LAMPORTS: number = 25_000;
 export const MSP_WITHDRAW_FEE_PCT_NUMERATOR: number = 2500;
 export const MSP_FEE_PCT_DENOMINATOR: number = 1_000_000;
@@ -88,7 +89,7 @@ export async function createMspSetup(
     ],
     payerProgram.programId
   );
-
+  
   const treasurerFromAccountInfo = await fromTokenClient.getOrCreateAssociatedAccountInfo(treasurerKeypair.publicKey);
   const treasurerFrom = treasurerFromAccountInfo.address;
 
@@ -291,10 +292,10 @@ export class MspSetup {
       .rpc();
     console.log(`\nCREATE TREASURY TX URL: https://explorer.solana.com/tx/${txId}/?cluster=custom&customUrl=${url}`);
 
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(treasury, 1_000_000_000),
-      "confirmed"
-    );
+    // await connection.confirmTransaction(
+    //   await connection.requestAirdrop(treasury, 1_000_000_000),
+    //   "confirmed"
+    // );
 
     const postState = await this.getMspWorldState();
     assert.isNotNull(postState.treasuryAccount, "treasury was not created");
@@ -325,12 +326,16 @@ export class MspSetup {
     const treasuryRentExemptLamports = new BN(await this.connection.getMinimumBalanceForRentExemption(MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES));
     const treasuryMintRentExemptLamports = new BN(await this.connection.getMinimumBalanceForRentExemption(SOLANA_MINT_ACCOUNT_SIZE_IN_BYTES));
 
-    const expectedPostTreasurerLamport = new BN(preTreasurerLamports)
+    let expectedPostTreasurerLamport = new BN(preTreasurerLamports)
       .sub(treasuryRentExemptLamports)
       .sub(treasuryMintRentExemptLamports)
       .sub(new BN(MSP_CREATE_TREASURY_FEE_IN_LAMPORTS))
       .sub(new BN(2_039_280)) // rent payed for the treasury associated token account
       ;
+
+    if(solFeePayedByTreasury) {
+      expectedPostTreasurerLamport = expectedPostTreasurerLamport.sub(new BN(MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES));
+    }
 
     // console.log();
     // console.log(`preTreasurerLamports:                ${preTreasurerLamports}`);
@@ -2700,4 +2705,39 @@ async function logGetStreamTx(program: Program<Msp>,
   console.log("getStreamTx Base64");
   console.log(txBase64);
 
+}
+
+export function expectAnchorError(error: AnchorError, errorCodeNumber?: number, errorCodeName?: string, errorDescription?: string) {
+  console.log('error >>>>>>>>>>>>>>>>');
+  console.log(error);
+  console.log('error.toString()');
+  console.log(error.toString());
+  console.log('error <<<<<<<<<<<<<<<<');
+
+  /** Example of AnchorError
+  {
+    error: {
+      errorCode: { code: 'PauseOrResumeLockedStreamNotAllowed', number: 6031 },
+      errorMessage: 'Streams in a Locked treasury can not be paused or resumed',
+      comparedValues: undefined,
+      origin: 'stream'
+    }
+  }
+  */
+
+  if(!errorCodeNumber && !errorCodeName && !errorDescription) {
+    throw Error("At least one of errorCodeNumber, errorCodeName or errorDescription is required")
+  }
+
+  if(errorCodeNumber) {
+    expect(error.error.errorCode.number).eq(errorCodeNumber);
+  }
+
+  if(errorCodeName) {
+    expect(error.error.errorCode.code).eq(errorCodeName);
+  }
+
+  if(errorDescription) {
+    expect(error.error.errorMessage).eq(errorDescription);
+  }
 }
