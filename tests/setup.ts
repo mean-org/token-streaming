@@ -777,6 +777,11 @@ export class MspSetup {
     expect(postStream!.lastManualResumeBlockTime.toNumber()).eq(0);
     expect(postStream!.lastKnownTotalSecondsInPausedStatus.toNumber()).eq(0);
 
+    const now_ts = Math.round(Date.now() / 1000);    
+    // no more than 5 seconds offset between now and the created_on_utc of the
+    // stream that was just created
+    expect(Math.abs(postStream!.createdOnUtc.toNumber() - now_ts)).lte(5);
+
     if (feePayedByTreasurer === true) {
       expect(postStream!.feePayedByTreasurer).eq(true);
       console.log('pre treasurer token amount', treasurerTokenPreBalanceBn.toNumber());

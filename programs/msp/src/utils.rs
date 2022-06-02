@@ -223,7 +223,8 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
         withdrawable_units_while_running: withdrawable_units_while_running,
         beneficiary_remaining_allocation: unused_allocation,
         beneficiary_withdrawable_amount: stream.get_beneficiary_withdrawable_amount(now_ts)?,
-        last_known_stop_block_time: stream.primitive_get_last_known_stop_block_time()
+        last_known_stop_block_time: stream.primitive_get_last_known_stop_block_time(),
+        created_on_utc: stream.created_on_utc
     };
 
     Ok(data)

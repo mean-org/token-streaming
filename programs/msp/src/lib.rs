@@ -163,6 +163,7 @@ pub mod msp {
         stream.start_utc_in_seconds = 0;
         stream.fee_payed_by_treasurer = fee_payed_by_treasurer;
         stream.initialized = true;
+        stream.created_on_utc = now_ts;
 
         if start_utc < now_ts {
             stream.start_utc = now_ts;
