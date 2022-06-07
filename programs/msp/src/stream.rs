@@ -6,10 +6,10 @@ use crate::enums::*;
 
 #[account]
 pub struct Stream {
-    pub version: u8,
+    pub version: u8, // offset: 8
     pub initialized: bool,
     pub name: [u8; 32],
-    pub treasurer_address: Pubkey,
+    pub treasurer_address: Pubkey, // offset: 42
     pub rate_amount_units: u64,
     pub rate_interval_in_seconds: u64,
     /// The start timestamp in seconds
@@ -22,9 +22,9 @@ pub struct Stream {
     /// inmidiately (without streaming) once the money stream starts.
     /// If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the second (this field) will be used.
     pub cliff_vest_percent: u64, // deprecated
-    pub beneficiary_address: Pubkey,
-    pub beneficiary_associated_token: Pubkey,
-    pub treasury_address: Pubkey,
+    pub beneficiary_address: Pubkey, // offset: 114
+    pub beneficiary_associated_token: Pubkey, // offset: 146
+    pub treasury_address: Pubkey, // offset: 178
     /// Amount of tokens allocated to the stream on creation or top up. If the
     /// treasurer decides to close the stream, the vested amount will be sent
     /// to the benefifiary and the unvested amount will be sent to the 
@@ -69,7 +69,10 @@ pub struct Stream {
     pub last_auto_stop_block_time: u64,
     pub fee_payed_by_treasurer: bool,
     /// The start timestamp blocktime
-    pub start_utc_in_seconds: u64
+    pub start_utc_in_seconds: u64,
+    /// Unix timestamp (in seconds) when the stream was created
+    pub created_on_utc: u64
+    // total bytes: 339
 }
 
 impl Stream {
