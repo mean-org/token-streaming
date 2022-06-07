@@ -48,5 +48,7 @@ pub struct StreamEvent {
     pub withdrawable_units_while_running: u64,
     pub beneficiary_remaining_allocation: u64, // unused_allocation
     pub beneficiary_withdrawable_amount: u64, // withdrawable_units,
-    pub last_known_stop_block_time: u64
+    pub last_known_stop_block_time: u64,
+    /// Unix timestamp (in seconds) when the stream was created
+    pub created_on_utc: u64
 }
