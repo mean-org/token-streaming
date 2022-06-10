@@ -241,17 +241,29 @@ export class MspSetup {
     return program;
   }
 
-  public async createTreasury(
-    treasurer?: PublicKey,
-    signers?: Keypair[],
-    tokenProgram?: PublicKey,
-    systemProgram?: PublicKey,
-    rent?: PublicKey,
-    treasuryLpMint?: PublicKey,
-    treasury?: PublicKey,
-    treasuryBump?: number,
-    solFeePayedByTreasury?: boolean,
-    ) {
+  public async createTreasury({
+    treasurer,
+    signers,
+    tokenProgram,
+    systemProgram,
+    rent,
+    treasuryLpMint,
+    treasury,
+    treasuryBump,
+    solFeePayedByTreasury,
+    category
+  }: {
+    treasurer?: PublicKey;
+    signers?: Keypair[];
+    tokenProgram?: PublicKey;
+    systemProgram?: PublicKey;
+    rent?: PublicKey;
+    treasuryLpMint?: PublicKey;
+    treasury?: PublicKey;
+    treasuryBump?: number;
+    solFeePayedByTreasury?: boolean;
+    category?: Category,
+  }) {
 
     console.log("\n\n********** CREATE TREASURY STARTED! **********");
 
@@ -264,18 +276,21 @@ export class MspSetup {
     treasury = treasury ?? this.treasury;
     treasuryBump = treasuryBump ?? this.treasuryBump;
     solFeePayedByTreasury = solFeePayedByTreasury ?? false;
+    category = category ?? Category.default;
 
     const clusterNowTs = await this.program.provider.connection.getBlockTime(this.slot.toNumber());
     const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
     const preTreasurerLamports = preTreasurerAccountInfo!.lamports;
 
-    const txId = await this.program.methods.createTreasury(
-      this.slot,
-      this.name,
-      this.treasuryType,
-      this.autoClose,
-      solFeePayedByTreasury)
-      .accounts({
+    let txId = await this.program.methods
+      .createTreasury(
+        this.slot,
+        this.name,
+        this.treasuryType,
+        this.autoClose,
+        solFeePayedByTreasury,
+        { [Category[category]]: {} },
+      ).accounts({
         payer: treasurer,
         treasurer: treasurer,
         treasury: treasury,
@@ -2562,7 +2577,38 @@ export class MspSetup {
       allocationAssignedUnits: treasury?.allocationAssignedUnits.toNumber(),
     };
     console.log(mapped);
-    
+  }
+
+  public async filterStreamByCategory(
+    category: Category,
+    stream: PublicKey
+  ) {
+    let num: number = category;
+    let memcmpFilters = [
+      {
+        memcmp: {
+          offset: 339,
+          bytes: bs58.encode(new anchor.BN(num).toBuffer()),
+        },
+      },
+    ];
+
+    const configOrCommitment = {
+      filters: [{ dataSize: 500 }, ...memcmpFilters],
+    };
+
+    const accounts = await this.program.provider.connection.getProgramAccounts(
+      this.program.programId,
+      configOrCommitment
+    );
+    const filtered_account = accounts[0];
+    expect(filtered_account.pubkey.equals(stream));
+    const { category: streamCategory } =
+      await this.program.account.stream.fetch(
+        stream
+      );
+   
+    expect(streamCategory === (category as number));
   }
 
   //#endregion
@@ -2745,4 +2791,9 @@ export function expectAnchorError(error: AnchorError, errorCodeNumber?: number, 
   if(errorDescription) {
     expect(error.error.errorMessage).eq(errorDescription);
   }
+}
+
+export enum Category {
+  default = 0,
+  vesting = 1,
 }

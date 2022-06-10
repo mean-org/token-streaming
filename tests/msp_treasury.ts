@@ -86,7 +86,7 @@ describe('msp', () => {
       ONE_SOL,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
   });
 
@@ -109,7 +109,7 @@ describe('msp', () => {
     );
 
     await node_assert.rejects(async () => {
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
     },
       (error: anchor.web3.SendTransactionError) => {
         expect(error.message).contains("Error processing Instruction 0: custom program error: 0x1");
@@ -132,7 +132,7 @@ describe('msp', () => {
       ONE_SOL,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -151,7 +151,7 @@ describe('msp', () => {
       ONE_SOL,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -171,7 +171,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
     await mspSetup.closeTreasury();
 
@@ -191,7 +191,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.closeTreasury();
 
   });
@@ -211,7 +211,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     await mspSetup.treasuryWithdraw(100_000_000, treasurerKeypair.publicKey, mspSetup.treasurerFrom);
@@ -235,7 +235,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     await mspSetup.treasuryWithdraw(50_000_000, treasurerKeypair.publicKey, mspSetup.treasurerFrom);
@@ -259,7 +259,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     await node_assert.rejects(async () => {
@@ -284,7 +284,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     await node_assert.rejects(async () => {
@@ -309,17 +309,17 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
-    const treasurer2From = await mspSetup.findTreasuryFromAssociatedTokenAddress(mspSetup.program.provider.wallet.publicKey);
+    const treasurer2From = await mspSetup.findTreasuryFromAssociatedTokenAddress((mspSetup.program.provider as anchor.AnchorProvider).wallet.publicKey);
 
     await node_assert.rejects(async () => {
       await mspSetup.treasuryWithdraw(100_000_000,
-        mspSetup.program.provider.wallet.publicKey,
+        (mspSetup.program.provider as anchor.AnchorProvider).wallet.publicKey,
         treasurer2From,
         [],
-        mspSetup.program.provider.wallet.publicKey,
+        (mspSetup.program.provider as anchor.AnchorProvider).wallet.publicKey,
         treasurer2From,
       );
     },
@@ -342,7 +342,7 @@ describe('msp', () => {
       ONE_SOL,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -364,17 +364,9 @@ describe('msp', () => {
       1000_000_000,
     );
 
-    await mspSetup.createTreasury(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      true // solFeePayedByTreasury
-    );
+    await mspSetup.createTreasury({
+      solFeePayedByTreasury: true
+    });
 
     await connection.confirmTransaction(
       await connection.requestAirdrop(mspSetup.treasury, 1_000_000_000),
@@ -399,16 +391,9 @@ describe('msp', () => {
       1000_000_000,
     );
 
-    await mspSetup.createTreasury(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      true // solFeePayedByTreasury
+    await mspSetup.createTreasury({
+      solFeePayedByTreasury: true
+    }
     );
 
     await connection.confirmTransaction(

@@ -10,6 +10,7 @@ pub mod instructions;
 pub mod utils;
 pub mod extensions;
 pub mod events;
+pub mod categories;
 
 use crate::enums::*;
 use crate::utils::*;
@@ -17,6 +18,7 @@ use crate::instructions::*;
 use crate::constants::*;
 use crate::errors::ErrorCode;
 use crate::extensions::*;
+pub use categories::*;
 
 declare_id!("MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu");
 
@@ -33,6 +35,7 @@ pub mod msp {
         treasury_type: u8,
         auto_close: bool,
         sol_fee_payed_by_treasury: bool,
+        category: Category
     ) -> Result<()> {
 
         // Initialize Treasury
@@ -57,6 +60,7 @@ pub mod msp {
         treasury.auto_close = auto_close;
         treasury.initialized = true;
         treasury.sol_fee_payed_by_treasury = sol_fee_payed_by_treasury;
+        treasury.category = category as u8;
 
         // Fee
         transfer_sol_amount(
@@ -198,6 +202,9 @@ pub mod msp {
             treasury.last_known_balance_units = treasury.last_known_balance_units
                 .checked_sub(treasurer_fee_amount).ok_or(ErrorCode::Overflow)?;
         }
+
+        // set categories
+        stream.category = treasury.category;
 
         // sol fee
         if treasury.sol_fee_payed_by_treasury {

@@ -88,7 +88,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     const nowBn = new anchor.BN(Date.now() / 1000);
@@ -142,7 +142,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(50_000_000);
 
@@ -226,7 +226,7 @@ describe('msp', () => {
       1000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -279,7 +279,7 @@ describe('msp', () => {
   //     1_000_000_000,
   //   )
 
-  //   await mspSetup.createTreasury();
+  //   await mspSetup.createTreasury({});
   //   await mspSetup.addFunds(100_000_000);
 
   //   const nowBn = new anchor.BN(Date.now() / 1000);
@@ -350,7 +350,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
@@ -404,7 +404,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -459,7 +459,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(300_000_000);
 
@@ -536,7 +536,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -607,7 +607,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -685,7 +685,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
@@ -747,7 +747,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -829,7 +829,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -899,7 +899,7 @@ describe('msp', () => {
       1000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(1_000_000);
 
@@ -976,7 +976,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
@@ -1035,7 +1035,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1154,7 +1154,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1212,7 +1212,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1273,7 +1273,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(5_000_000);
     let nowBn = new anchor.BN(Date.now() / 1000);
@@ -1413,7 +1413,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1469,7 +1469,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1526,7 +1526,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1595,7 +1595,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1665,7 +1665,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1749,7 +1749,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(1000_000_000);
 
@@ -1860,7 +1860,7 @@ describe('msp', () => {
       ONE_SOL,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1900,7 +1900,7 @@ describe('msp', () => {
       ONE_SOL,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -1949,7 +1949,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(1000_000_000);
 
     const beneficiaryKeypair = Keypair.generate();
@@ -2090,7 +2090,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
     await mspSetup.addFunds(200_000_000);
 
     const beneficiaryKeypair = Keypair.generate();
@@ -2187,7 +2187,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(200_000_000);
     
@@ -2295,7 +2295,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(200_000_000);
     
@@ -2407,7 +2407,7 @@ describe('msp', () => {
   //     1_000_000_000,
   //   );
 
-  //   await mspSetup.createTreasury();
+  //   await mspSetup.createTreasury({});
   //   await mspSetup.addFunds(1000_000_000);
 
   //   const beneficiaryOneKeypair = Keypair.generate();
@@ -2524,7 +2524,7 @@ describe('msp', () => {
   //     1_000_000_000,
   //   );
 
-  //   await mspSetup.createTreasury();
+  //   await mspSetup.createTreasury({});
   //   await mspSetup.addFunds(1000_000_000);
 
   //   const beneficiaryOneKeypair = Keypair.generate();

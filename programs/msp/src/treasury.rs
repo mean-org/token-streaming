@@ -47,6 +47,9 @@ pub struct Treasury {
     /// lamports balance (when true) or by the `payer` account in the
     /// transaction (when false)
     pub sol_fee_payed_by_treasury: bool,
+    /// Indicates the main product category such as `Vesting(1)`
+    /// The default value is set to a `Default(0)` cateogry.
+    pub category: u8,
 }
 
 impl Treasury {

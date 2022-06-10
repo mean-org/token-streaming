@@ -37,6 +37,7 @@ import {
   MSP_FEE_PCT_DENOMINATOR,
   StreamEvent,
   expectAnchorError,
+  Category,
 } from './setup';
 
 describe('msp', () => {
@@ -88,7 +89,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -135,7 +136,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -180,7 +181,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -224,7 +225,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -271,7 +272,7 @@ describe('msp', () => {
       1_000_000_000,
     )
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -320,7 +321,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -387,7 +388,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -432,7 +433,7 @@ describe('msp', () => {
       1_000_000_000,
     );
 
-    await mspSetup.createTreasury();
+    await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
@@ -463,4 +464,58 @@ describe('msp', () => {
 
   });
 
+   it('create treasury with categories -> add funds -> create stream (fee payer = treasurer)', async () => {
+    
+     const category = Category.vesting;
+
+    const treasurerKeypair = Keypair.generate();
+
+    const mspSetup = await createMspSetup(
+      fromTokenClient,
+      treasurerKeypair,
+      "test_treasury",
+      TREASURY_TYPE_OPEN,
+      false,
+      1000_000_000,
+      1_000_000_000,
+    )
+
+     await mspSetup.createTreasury({
+       category: category
+    });
+
+    await mspSetup.addFunds(100_000_000);
+
+    const nowTs = Date.now() / 1000;
+    const nowBn = new anchor.BN(nowTs);
+    console.log("nowTs:", nowTs);
+
+
+    const beneficiaryKeypair = Keypair.generate();
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      "confirmed"
+    );
+
+    const streamKeypair = Keypair.generate();
+
+    await mspSetup.createStream(
+      "test_stream",
+      nowBn.toNumber(), // startUtc
+      10,    // rateAmountUnits
+      1,     // rateIntervalInSeconds
+      1000,  // allocationAssignedUnits
+      0,     // cliffVestAmountUnits
+      0,     // cliffVestPercent
+
+      treasurerKeypair, // initializerKeypair
+      beneficiaryKeypair.publicKey, // beneficiary
+      streamKeypair,
+      undefined,
+      undefined,
+      true
+    );
+     
+     await mspSetup.filterStreamByCategory(category, streamKeypair.publicKey);
+  });
 });

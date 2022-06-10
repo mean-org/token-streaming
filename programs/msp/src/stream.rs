@@ -71,8 +71,11 @@ pub struct Stream {
     /// The start timestamp blocktime
     pub start_utc_in_seconds: u64,
     /// Unix timestamp (in seconds) when the stream was created
-    pub created_on_utc: u64
-    // total bytes: 339
+    pub created_on_utc: u64,
+    /// Indicates the main product category such as `Vesting(1)`
+    /// The default value is set to a `Default(0)` cateogry.
+    pub category: u8,
+    // total bytes: 340
 }
 
 impl Stream {

@@ -87,7 +87,7 @@ import {
         1_000_000_000,
       )
   
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
   
       await mspSetup.addFunds(100_000_000);
   
@@ -189,7 +189,7 @@ import {
         1_000_000_000,
       );
   
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
   
       await mspSetup.addFunds(300_000_000);
   
@@ -266,7 +266,7 @@ import {
     //     1_000_000_000,
     //   );
   
-    //   await mspSetup.createTreasury();
+    //   await mspSetup.createTreasury({});
   
     //   await mspSetup.addFunds(30, StreamAllocationType.LeaveUnallocated);
   
@@ -344,7 +344,7 @@ import {
         1_000_000_000,
       );
   
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
   
       await mspSetup.addFunds(300_000_000);
   
@@ -429,7 +429,7 @@ import {
         1_000_000_000,
       );
   
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
   
       await mspSetup.addFunds(100_000_000);
   
@@ -477,7 +477,7 @@ import {
         1_000_000_000,
       )
   
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
       await mspSetup.addFunds(100_000_000);
   
       const nowBn = new anchor.BN(Date.now() / 1000);
@@ -550,7 +550,7 @@ import {
         1_000_000_000,
       );
   
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
   
       await mspSetup.addFunds(100_000_000);
   
@@ -610,7 +610,7 @@ import {
       );
   
       // create stream
-      await mspSetup.createTreasury();
+      await mspSetup.createTreasury({});
   
       // add funds
       await mspSetup.addFunds(100_000_000);
