@@ -14,7 +14,7 @@ pub struct StreamEvent {
     pub cliff_vest_percent: u64,
     pub beneficiary_address: Pubkey,
     pub beneficiary_associated_token: Pubkey,
-    pub treasury_address: Pubkey,    
+    pub treasury_address: Pubkey,
     pub allocation_assigned_units: u64,
     #[deprecated]
     pub allocation_reserved_units: u64, // deprecated
@@ -22,7 +22,7 @@ pub struct StreamEvent {
     pub last_withdrawal_units: u64,
     pub last_withdrawal_slot: u64,
     pub last_withdrawal_block_time: u64,
-    pub last_manual_stop_withdrawable_units_snap: u64, 
+    pub last_manual_stop_withdrawable_units_snap: u64,
     pub last_manual_stop_slot: u64,
     pub last_manual_stop_block_time: u64,
     pub last_manual_resume_remaining_allocation_units_snap: u64,
@@ -47,8 +47,8 @@ pub struct StreamEvent {
     pub entitled_earnings_units: u64,
     pub withdrawable_units_while_running: u64,
     pub beneficiary_remaining_allocation: u64, // unused_allocation
-    pub beneficiary_withdrawable_amount: u64, // withdrawable_units,
+    pub beneficiary_withdrawable_amount: u64,  // withdrawable_units,
     pub last_known_stop_block_time: u64,
     /// Unix timestamp (in seconds) when the stream was created
-    pub created_on_utc: u64
+    pub created_on_utc: u64,
 }

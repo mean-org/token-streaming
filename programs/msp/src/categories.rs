@@ -4,5 +4,5 @@ use anchor_lang::prelude::*;
 #[derive(Copy, Clone, AnchorSerialize, AnchorDeserialize)]
 pub enum Category {
     Default = 0,
-    Vesting = 1
+    Vesting = 1,
 }

@@ -53,11 +53,11 @@ pub struct Treasury {
 }
 
 impl Treasury {
-
     /// Gets the last known unallocated balance as
     /// `last_known_balance_units` - `allocation_assigned_units`
     pub fn last_known_unallocated_balance(&self) -> Result<u64> {
-        let result = self.last_known_balance_units
+        let result = self
+            .last_known_balance_units
             .checked_sub(self.allocation_assigned_units)
             .ok_or(ErrorCode::Overflow)?;
         #[cfg(feature = "test")]

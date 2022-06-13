@@ -24,8 +24,8 @@ pub const ALLOCATION_TYPE_LEAVE_UNALLOCATED: u8 = 2;
 pub const TREASURY_TYPE_OPEN: u8 = 0;
 pub const TREASURY_TYPE_LOCKED: u8 = 1;
 
-/// Current version of the IDL file. Not to confuse with the program version 
+/// Current version of the IDL file. Not to confuse with the program version
 /// written into the IDL file. Every time a new breaking change is done to
-/// the IDL (i.e. added or removed instruction argument or account, argument 
+/// the IDL (i.e. added or removed instruction argument or account, argument
 /// type changed, etc.), then this value is increased.
 pub const IDL_FILE_VERSION: u8 = 1;
