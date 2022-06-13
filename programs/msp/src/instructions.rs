@@ -6,6 +6,7 @@ use crate::constants::*;
 use crate::errors::ErrorCode;
 use crate::treasury::*;
 use crate::stream::*;
+use crate::template::*;
 use crate::enums::*;
 
 pub mod fee_treasury {
@@ -114,6 +115,115 @@ pub struct CreateStreamAccounts<'info> {
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
     )]
     pub stream: Account<'info, Stream>,
+    #[account(
+        mut, 
+        constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
+    )]
+    pub fee_treasury: SystemAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = associated_token,
+        associated_token::authority = fee_treasury
+    )]
+    pub fee_treasury_token: Box<Account<'info, TokenAccount>>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts, Clone)]
+#[instruction(
+    start_utc: u64,
+    rate_amount_units: u64,
+    rate_interval_in_seconds: u64,
+    cliff_vest_amount_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool
+)]
+pub struct CreateTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+
+    #[account(
+        init,
+        seeds = [b"template", treasury.key().as_ref()],
+        bump,
+        payer = payer,
+        space = 200,
+        constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = treasury.allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+    pub system_program: Program<'info, System>,
+}
+
+/// Create stream with template
+#[derive(Accounts, Clone)]
+#[instruction(
+    name: String,
+    allocation_assigned_units: u64,
+)]
+pub struct CreateStreamWithTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub initializer: Signer<'info>,
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+    #[account(
+        mut,
+        associated_token::mint = associated_token,
+        associated_token::authority = treasury
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+    #[account(
+        constraint = associated_token.key() == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken
+    )]
+    pub associated_token: Box<Account<'info, Mint>>,
+    #[account(constraint = beneficiary.key() != treasurer.key() @ ErrorCode::InvalidBeneficiary)]
+    pub beneficiary: SystemAccount<'info>,
+    
+    #[account(
+        seeds = [b"template", treasury.key().as_ref()],
+        bump = template.bump,
+        constraint = template.version == 2 @ ErrorCode::InvalidTemplateVersion,
+        constraint = template.to_account_info().data_len() == 200 @ ErrorCode::InvalidTemplateSize
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 500,
+        constraint = allocation_assigned_units >= template.cliff_vest_amount_units @ ErrorCode::InvalidCliff,
+    )]
+    pub stream: Box<Account<'info, Stream>>,
     #[account(
         mut, 
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount

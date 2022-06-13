@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
+use crate::constants::{WITHDRAW_PERCENT_FEE, PERCENT_DENOMINATOR, TREASURY_TYPE_LOCKED, CREATE_STREAM_FLAT_FEE};
 use crate::treasury::*;
 use crate::errors::ErrorCode;
 use crate::events::*;
@@ -228,4 +229,144 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
     };
 
     Ok(data)
+}
+
+
+pub fn construct_stream_account<'info>(
+    name: String,
+    start_utc: u64,
+    rate_amount_units: u64,
+    rate_interval_in_seconds: u64,
+    allocation_assigned_units: u64,
+    fee_payed_by_treasurer: bool,
+    effective_cliff_units: u64,
+    stream: &mut Account<'info, Stream>,
+    treasury: &mut Account<'info, Treasury>,
+    treasury_token: &mut Account<'info, TokenAccount>,
+    treasurer: &AccountInfo<'info>,
+    beneficiary: &AccountInfo<'info>,
+    beneficiary_associated_token: &AccountInfo<'info>,
+    fee_treasury_token: &AccountInfo<'info>,
+    fee_treasury: &AccountInfo<'info>,
+    payer: &AccountInfo<'info>,
+    token_program: &AccountInfo<'info>,
+    system_program: &AccountInfo<'info>,
+) -> Result<()> {
+
+    let clock = Clock::get()?;
+    let now_ts = clock.unix_timestamp as u64;
+
+     msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, crt_alloc: {4}", 
+            now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, allocation_assigned_units);
+
+    let mut treasurer_fee_amount = 0u64;
+    let mut total_treasury_allocation_amount = allocation_assigned_units;
+
+    if fee_payed_by_treasurer {
+        // beneficiary fee payed by the treasurer
+        treasurer_fee_amount = WITHDRAW_PERCENT_FEE
+            .checked_mul(allocation_assigned_units).unwrap()
+            .checked_div(PERCENT_DENOMINATOR).ok_or(ErrorCode::Overflow)?;
+
+        total_treasury_allocation_amount = allocation_assigned_units
+            .checked_add(treasurer_fee_amount).ok_or(ErrorCode::Overflow)?;
+    }
+
+    if total_treasury_allocation_amount > treasury.last_known_unallocated_balance()? {
+        return Err(ErrorCode::InsufficientTreasuryBalance.into());
+    }
+
+    if treasury.treasury_type == TREASURY_TYPE_LOCKED && allocation_assigned_units == 0 {
+        return Err(ErrorCode::InvalidRequestedStreamAllocation.into());
+    }
+
+    // update stream (needs to go before updating the treasury)
+    stream.version = 2;
+    stream.name = string_to_bytes(name)?;
+    stream.treasurer_address = treasurer.key();
+    stream.rate_amount_units = rate_amount_units;
+    stream.rate_interval_in_seconds = rate_interval_in_seconds;
+    stream.beneficiary_address = beneficiary.key();
+    stream.beneficiary_associated_token = beneficiary_associated_token.key();
+    stream.treasury_address = treasury.key();
+    stream.allocation_assigned_units = allocation_assigned_units;
+    stream.allocation_reserved_units = 0; // deprecated
+    stream.total_withdrawals_units = 0;
+    stream.last_withdrawal_units = 0;
+    stream.last_withdrawal_slot = 0;
+    stream.last_withdrawal_block_time = 0;
+    stream.last_manual_stop_withdrawable_units_snap = 0; 
+    stream.last_manual_stop_slot = 0;
+    stream.last_manual_stop_block_time = 0;
+    stream.last_manual_resume_remaining_allocation_units_snap = 0;
+    stream.last_auto_stop_block_time = 0;
+    stream.last_manual_resume_slot = 0;
+    stream.last_manual_resume_block_time = 0;
+    stream.last_known_total_seconds_in_paused_status = 0;
+    stream.cliff_vest_amount_units = effective_cliff_units;
+    stream.cliff_vest_percent = 0; // deprecated
+    stream.start_utc_in_seconds = 0;
+    stream.fee_payed_by_treasurer = fee_payed_by_treasurer;
+    stream.initialized = true;
+    stream.created_on_utc = now_ts;
+
+    if start_utc < now_ts {
+        stream.start_utc = now_ts;
+        stream.start_utc_in_seconds = now_ts;
+    } else {
+        stream.start_utc = start_utc;
+        stream.start_utc_in_seconds = start_utc;
+    }
+
+    // update treasury (needs to after before updating the stream)
+    if stream.allocation_assigned_units > 0 {
+        treasury.allocation_assigned_units = treasury.allocation_assigned_units
+        .checked_add(stream.allocation_assigned_units).ok_or(ErrorCode::Overflow)?;
+    }
+
+    treasury.total_streams = treasury.total_streams.checked_add(1u64).ok_or(ErrorCode::Overflow)?;
+
+    if treasurer_fee_amount > 0 {           
+        // beneficiary withdraw fee payed by the treasurer
+        msg!("tsy{0}tfa", treasurer_fee_amount);
+        treasury_transfer(
+            &treasury,
+            &treasury_token.to_account_info(),
+            &fee_treasury_token,
+            &token_program,
+            treasurer_fee_amount
+        )?;
+
+        // update treasury
+        treasury.last_known_balance_slot = clock.slot as u64;
+        treasury.last_known_balance_block_time = now_ts;
+        treasury.last_known_balance_units = treasury.last_known_balance_units
+            .checked_sub(treasurer_fee_amount).ok_or(ErrorCode::Overflow)?;
+    }
+
+    // set categories
+    stream.category = treasury.category;
+    if treasury.sol_fee_payed_by_treasury {
+        msg!("tsy{0}sfa", CREATE_STREAM_FLAT_FEE);
+        treasury_transfer_sol_amount(
+            &treasury.to_account_info(),
+            &fee_treasury,
+            CREATE_STREAM_FLAT_FEE
+        )?;
+    } else {
+        msg!("itr{0}sfa", CREATE_STREAM_FLAT_FEE);
+        transfer_sol_amount( // Not changing yet to be paid by treasury because of the airdrop streams
+            &payer,
+            &fee_treasury,
+            &system_program,
+            CREATE_STREAM_FLAT_FEE
+        )?;
+    }
+
+    treasury_token.reload()?;
+    assert!(treasury_token.amount >= treasury.last_known_balance_units, 
+            "treasury balance units invariant violated");
+    assert!(treasury.allocation_assigned_units >= stream.allocation_assigned_units, 
+            "treasury vs stream assigned units invariant violated");
+    Ok(())
 }

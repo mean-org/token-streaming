@@ -825,6 +825,253 @@ export class MspSetup {
     logEnd(ixName);
   }
 
+  public async createTemplate(
+    { 
+      startTs,
+      rateAmountUnits,
+      rateIntervalInSeconds,
+      cliffVestAmountUnits,
+      cliffVestPercent,
+      initializerKeypair,
+      template,
+      templateBump,
+      treasury,
+      feePayedByTreasurer,
+      signers
+    }: {
+    startTs: number,
+    rateAmountUnits: number,
+    rateIntervalInSeconds: number,
+    cliffVestAmountUnits: number,
+    cliffVestPercent: number,
+    initializerKeypair: Keypair,
+    template: PublicKey,
+    templateBump: number,
+    treasury?: PublicKey,
+    feePayedByTreasurer?: boolean,
+    signers?: Keypair[],
+    }
+  ) {
+
+    const ixName = "CREATE TEMPLATE";
+    logStart(ixName);
+
+    treasury = treasury ?? this.treasury;
+    signers = signers ?? [initializerKeypair, this.treasurerKeypair];
+
+    const preTreasury = await this.program.account.treasury.fetch(treasury);
+
+    console.log();
+    console.log(`startTs:                 ${startTs}`);
+    console.log(`rateAmountUnits:         ${rateAmountUnits}`);
+    console.log(`rateIntervalInSeconds:   ${rateIntervalInSeconds}`);
+    console.log(`cliffVestAmountUnits:    ${cliffVestAmountUnits}`);
+    console.log(`cliffVestPercent:        ${cliffVestPercent}`);
+    console.log(`initializer:             ${initializerKeypair.publicKey}`);
+    console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
+    console.log(`template:                ${template}`);
+    console.log(`treasury:                ${treasury.toBase58()}`);
+
+    let treasurerTokenPreBalanceBn = new BN(parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || "0"));
+
+    let txId = await this.program.methods
+      .createTemplate(
+        new BN(startTs),
+        new BN(rateAmountUnits),
+        new BN(rateIntervalInSeconds),
+        new BN(cliffVestAmountUnits),
+        new BN(cliffVestPercent),
+        feePayedByTreasurer ?? false
+      )
+      .accounts({
+        template: template,
+        payer: initializerKeypair.publicKey,
+        treasurer: this.treasurerKeypair.publicKey,
+        treasury: treasury,
+        systemProgram: SYSTEM_PROGRAM_ID
+      })
+      .signers(signers)
+      .rpc();
+    logTxUrl(ixName, txId);
+
+    // assert template
+    const postTemplate = await this.program.account.streamTemplate.fetchNullable(template);
+    assert.isNotNull(postTemplate);
+
+    expect(postTemplate!.bump).eq(templateBump);
+    expect(postTemplate!.version).eq(2);
+    expect(postTemplate!.startUtcInSeconds.toNumber()).gte(startTs);
+    const expectedEffectiveCliffUnits = cliffVestPercent > 0
+      ? new BN(cliffVestPercent).mul(preTreasury.allocationAssignedUnits).divn(1_000_000).toNumber()
+      : cliffVestAmountUnits;
+    expect(postTemplate!.cliffVestAmountUnits.toNumber()).eq(expectedEffectiveCliffUnits);
+    expect(postTemplate!.rateAmountUnits.toNumber()).eq(rateAmountUnits);
+    expect(postTemplate!.rateIntervalInSeconds.toNumber()).eq(rateIntervalInSeconds);  
+
+    if (feePayedByTreasurer === true) {
+      expect(postTemplate!.feePayedByTreasurer).eq(true);
+      console.log('pre treasurer token amount', treasurerTokenPreBalanceBn.toNumber());
+      let treasurerTokenPostBalanceBn = new BN(parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || "0"));
+      let treasurerFeeBn = preTreasury.allocationAssignedUnits
+        .mul(new BN(MSP_WITHDRAW_FEE_PCT_NUMERATOR))
+        .div(new BN(MSP_FEE_PCT_DENOMINATOR));
+
+      console.log('stream fee payed by the treasurer', treasurerFeeBn.toNumber());
+      console.log('pre treasurer token amount', treasurerTokenPostBalanceBn.toNumber());
+      expect(
+        treasurerTokenPostBalanceBn.toNumber() === treasurerTokenPreBalanceBn.sub(treasurerFeeBn).toNumber(),
+        "incorrect treasurer balance after create a stream as a fee payer"
+      );
+
+    } else {
+      expect(postTemplate!.feePayedByTreasurer).eq(false);
+    }
+    logEnd(ixName);
+  }
+
+  public async createStreamWithTemplate(
+    { 
+      name,
+      allocationAssignedUnits,
+      template,
+      initializerKeypair,
+      beneficiary,
+      streamKeypair,
+      treasury,
+      treasuryFrom,
+      signers
+    }
+    :
+    {
+      name: string,
+      allocationAssignedUnits: number,
+      template: PublicKey,
+      initializerKeypair: Keypair,
+      beneficiary: PublicKey,
+      streamKeypair: Keypair,
+      treasury?: PublicKey,
+      treasuryFrom?: PublicKey,
+      feePayedByTreasurer?: boolean,
+      signers?: Keypair[],
+    }
+  ) {
+
+    const ixName = "CREATE STREAM WITH TEMPLATE";
+    logStart(ixName);
+
+    treasury = treasury ?? this.treasury;
+    treasuryFrom = treasuryFrom ?? this.treasuryFrom;
+    signers = signers ?? [initializerKeypair, this.treasurerKeypair, streamKeypair];
+
+    const preTreasury = await this.program.account.treasury.fetchNullable(treasury);
+    assert.isNotNull(preTreasury);
+
+    const preTemplate = await this.program.account.streamTemplate.fetch(template);
+
+    console.log();
+    console.log(`name:                    ${name}`);
+    console.log(`startTs:                 ${preTemplate.startUtcInSeconds.toNumber()}`);
+    console.log(`rateAmountUnits:         ${preTemplate.rateAmountUnits.toNumber()}`);
+    console.log(`rateIntervalInSeconds:   ${preTemplate.rateIntervalInSeconds.toNumber()}`);
+    console.log(`allocationAssignedUnits: ${allocationAssignedUnits}`);
+    console.log(`cliffVestAmountUnits:    ${preTemplate.cliffVestAmountUnits.toNumber()}`);
+    console.log(`initializer:             ${initializerKeypair.publicKey}`);
+    console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
+    console.log(`beneficiary:             ${beneficiary}`);
+    console.log(`template:                ${template}`);
+    console.log(`stream:                  ${streamKeypair.publicKey}`);
+    console.log(`treasury:                ${treasury.toBase58()}`);
+
+    let treasurerTokenPreBalanceBn = new BN(parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || "0"));
+    let txId = await this.program.methods.createStreamWithTemplate(
+      name,
+      new BN(allocationAssignedUnits))
+      .accounts({
+        payer: initializerKeypair.publicKey,
+        initializer: initializerKeypair.publicKey,
+        treasurer: this.treasurerKeypair.publicKey,
+        treasury: treasury,
+        treasuryToken: treasuryFrom,
+        associatedToken: this.fromTokenClient.publicKey,
+        beneficiary: beneficiary,
+        stream: streamKeypair.publicKey,
+        template: template,
+        feeTreasury: MSP_FEES_PUBKEY,
+        feeTreasuryToken: this.feesFrom,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        rent: SYSVAR_RENT_PUBKEY,
+      })
+      .signers(signers)
+      .rpc();
+
+    logTxUrl(ixName, txId);
+
+    // assert stream
+    const postStream = await this.program.account.stream.fetchNullable(streamKeypair.publicKey);
+    assert.isNotNull(postStream);
+
+    expect(postStream!.version).eq(2);
+    expect(postStream!.initialized).eq(true);
+    expect(postStream!.treasurerAddress.toBase58()).eq(this.treasurerKeypair.publicKey.toBase58());
+    expect(postStream!.rateAmountUnits.toNumber()).eq(preTemplate.rateAmountUnits.toNumber());
+    expect(postStream!.rateIntervalInSeconds.toNumber()).eq(preTemplate.rateIntervalInSeconds.toNumber());
+    expect(postStream!.startUtc.toNumber()).gte(preTemplate.startUtcInSeconds.toNumber());
+    expect(postStream!.startUtcInSeconds.toNumber()).gte(preTemplate.startUtcInSeconds.toNumber());
+    expect(postStream!.cliffVestAmountUnits.toNumber()).eq(preTemplate.cliffVestAmountUnits.toNumber());
+    expect(postStream!.cliffVestPercent.toNumber()).eq(0);
+    expect(postStream!.beneficiaryAddress.toBase58()).eq(beneficiary.toBase58());
+    expect(postStream!.beneficiaryAssociatedToken.toBase58()).eq(this.fromTokenClient.publicKey.toBase58());
+    expect(postStream!.treasuryAddress.toBase58()).eq(treasury.toBase58());
+    expect(postStream!.allocationAssignedUnits.toNumber()).eq(allocationAssignedUnits);
+    expect(postStream!.allocationReservedUnits.toNumber()).eq(0); // deprecated
+    expect(postStream!.totalWithdrawalsUnits.toNumber()).eq(0);
+    expect(postStream!.lastWithdrawalUnits.toNumber()).eq(0);
+    expect(postStream!.lastWithdrawalSlot.toNumber()).eq(0);
+    expect(postStream!.lastWithdrawalBlockTime.toNumber()).eq(0);
+    expect(postStream!.lastManualStopWithdrawableUnitsSnap.toNumber()).eq(0);
+    expect(postStream!.lastManualStopSlot.toNumber()).eq(0);
+    expect(postStream!.lastManualStopBlockTime.toNumber()).eq(0);
+    expect(postStream!.lastManualResumeRemainingAllocationUnitsSnap.toNumber()).eq(0);
+    expect(postStream!.lastManualResumeSlot.toNumber()).eq(0);
+    expect(postStream!.lastManualResumeBlockTime.toNumber()).eq(0);
+    expect(postStream!.lastKnownTotalSecondsInPausedStatus.toNumber()).eq(0);
+
+    const now_ts = Math.round(Date.now() / 1000);    
+    // no more than 5 seconds offset between now and the created_on_utc of the
+    // stream that was just created
+    expect(Math.abs(postStream!.createdOnUtc.toNumber() - now_ts)).lte(5);
+
+    if (preTemplate.feePayedByTreasurer === true) {
+      expect(postStream!.feePayedByTreasurer).eq(true);
+      console.log('pre treasurer token amount', treasurerTokenPreBalanceBn.toNumber());
+      let treasurerTokenPostBalanceBn = new BN(parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || "0"));
+      let treasurerFeeBn = new BN(allocationAssignedUnits)
+        .mul(new BN(MSP_WITHDRAW_FEE_PCT_NUMERATOR))
+        .div(new BN(MSP_FEE_PCT_DENOMINATOR));
+
+      console.log('stream fee payed by the treasurer', treasurerFeeBn.toNumber());
+      console.log('pre treasurer token amount', treasurerTokenPostBalanceBn.toNumber());
+      expect(
+        treasurerTokenPostBalanceBn.toNumber() === treasurerTokenPreBalanceBn.sub(treasurerFeeBn).toNumber(),
+        "incorrect treasurer balance after create a stream as a fee payer"
+      );
+
+    } else {
+      expect(postStream!.feePayedByTreasurer).eq(false);
+    }
+
+    // assert treasury
+    const postTreasury = await this.program.account.treasury.fetchNullable(treasury);
+    assert.isNotNull(postTreasury);
+    // console.log(postTreasury);
+    expect(postTreasury!.totalStreams.toNumber()).eq(preTreasury!.totalStreams.addn(1).toNumber());
+
+    logEnd(ixName);
+  }
+
+
   public async getCreateStreamTx(
     name: string,
     startTs: number,
