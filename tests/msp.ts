@@ -2,65 +2,48 @@
 import {
   PublicKey,
   Keypair,
-  SystemProgram,
-  Connection,
-  Transaction,
-  sendAndConfirmRawTransaction
+  Transaction
 } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, Token, AccountInfo } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
 import * as anchor from '@project-serum/anchor';
-import { Program, BN, IdlTypes, IdlAccounts, AnchorError } from '@project-serum/anchor';
+import { Program, BN, AnchorError } from '@project-serum/anchor';
 import { Msp } from '../target/types/msp';
-import { getWorkspace } from "./workspace";
-import { assert, expect } from "chai";
-import node_assert from "assert";
-import { base64, bs58 } from '@project-serum/anchor/dist/cjs/utils/bytes';
-import https from 'https';
-import { 
-  connection, 
-  payer, 
-  createMspSetup, 
-  MspSetup, 
-  TREASURY_TYPE_OPEN, 
-  TREASURY_TYPE_LOCKED, 
-  MSP_FEES_PUBKEY, 
-  TREASURY_POOL_MINT_DECIMALS, 
-  WhitelistedAddress,
-  StreamAllocationType,
+import { assert, expect } from 'chai';
+import node_assert from 'assert';
+import {
+  connection,
+  payer,
+  createMspSetup,
+  TREASURY_TYPE_OPEN,
+  TREASURY_TYPE_LOCKED,
+  TREASURY_POOL_MINT_DECIMALS,
   sleep,
   ONE_SOL,
-  MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES,
-  SOLANA_MINT_ACCOUNT_SIZE_IN_BYTES,
-  MSP_CREATE_TREASURY_FEE_IN_LAMPORTS,
   MSP_WITHDRAW_FEE_PCT_NUMERATOR,
   MSP_FEE_PCT_DENOMINATOR,
   StreamEvent,
-  expectAnchorError,
+  expectAnchorError
 } from './setup';
 
 describe('msp', () => {
-
   let program: Program<Msp>;
   let fromTokenClient: Token = new Token(connection, PublicKey.default, TOKEN_PROGRAM_ID, payer); // dummy new to make it non-null; it will be overwritten soon;
 
-  it("Initializes the state-of-the-world", async () => {
+  it('Initializes the state-of-the-world', async () => {
     const provider = anchor.AnchorProvider.env();
-    
+
     anchor.setProvider(provider);
     program = anchor.workspace.Msp as Program<Msp>;
 
     // Airdropping tokens to a payer.
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(payer.publicKey, 10000000000),
-      "confirmed"
-    );
+    await connection.confirmTransaction(await connection.requestAirdrop(payer.publicKey, 10000000000), 'confirmed');
 
     // Prevent 'Error: failed to send transaction: Transaction simulation failed: Transaction leaves an account with a lower balance than rent-exempt minimum' because fee account having zero sol
     // https://discord.com/channels/428295358100013066/517163444747894795/958728019973910578
     // https://discord.com/channels/428295358100013066/749579745645166592/956262753365008465
     await connection.confirmTransaction(
-      await connection.requestAirdrop(new PublicKey("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw"), 10000000000),
-      "confirmed"
+      await connection.requestAirdrop(new PublicKey('3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw'), 10000000000),
+      'confirmed'
     );
 
     fromTokenClient = await Token.createMint(
@@ -81,12 +64,12 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_LOCKED,
       false,
       1000_000_000,
-      1_000_000_000,
-    )
+      1_000_000_000
+    );
 
     await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
@@ -96,35 +79,35 @@ describe('msp', () => {
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      100_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await mspSetup.addFunds(50_000_000);
 
-    await node_assert.rejects(async () => {
-      await mspSetup.allocate(50_000_000, streamKeypair.publicKey);
-    },
-    (error: AnchorError) => {
-      expectAnchorError(error, 6033, undefined, 'Can not allocate funds to a stream from a locked treasury');
-      return true;
-    });
-
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.allocate(50_000_000, streamKeypair.publicKey);
+      },
+      (error: AnchorError) => {
+        expectAnchorError(error, 6033, undefined, 'Can not allocate funds to a stream from a locked treasury');
+        return true;
+      }
+    );
   });
 
   //#endregion
@@ -135,11 +118,11 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_LOCKED,
       false,
       100_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -152,45 +135,49 @@ describe('msp', () => {
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      50_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 50_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
-
-    await node_assert.rejects(async () => {
-      await mspSetup.pauseStream(
-        streamKeypair.publicKey,
-        treasurerKeypair.publicKey,
-        treasurerKeypair,
-      );
-    },
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
+      },
       (error: AnchorError) => {
-        expectAnchorError(error, 6031, "PauseOrResumeLockedStreamNotAllowed", 'Streams in a Locked treasury can not be paused or resumed');
+        expectAnchorError(
+          error,
+          6031,
+          'PauseOrResumeLockedStreamNotAllowed',
+          'Streams in a Locked treasury can not be paused or resumed'
+        );
         return true;
-      });
+      }
+    );
 
     await mspSetup.addFunds(10_000_000);
 
-    await node_assert.rejects(async () => {
-      await mspSetup.allocate(10_000_000, streamKeypair.publicKey);
-    },
-      (error: any) => {
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.allocate(10_000_000, streamKeypair.publicKey);
+      },
+      (error: AnchorError) => {
         expectAnchorError(error, 6033, undefined, 'Can not allocate funds to a stream from a locked treasury');
         return true;
-      });
-      
+      }
+    );
+
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -199,18 +186,15 @@ describe('msp', () => {
       beneficiaryKeypair.publicKey,
       true
     );
-    await node_assert.rejects(async () => {
-      await mspSetup.closeStream(
-        beneficiaryKeypair.publicKey,
-        beneficiaryFrom,
-        streamKeypair.publicKey,
-      );
-    },
-      (error: any) => {
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.closeStream(beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
+      },
+      (error: AnchorError) => {
         expectAnchorError(error, 6030, undefined, 'Streams in a Locked treasury can not be closed while running');
         return true;
-      });
-
+      }
+    );
   });
 
   it("create treasury -> add funds -> create stream (schedulled) -> withdraw (should fail because stream hasn't started yet)", async () => {
@@ -219,11 +203,11 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1000_000_000,
+      1000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -236,33 +220,39 @@ describe('msp', () => {
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const benefifiaryFrom = await mspSetup.findTreasuryFromAssociatedTokenAddress(beneficiaryKeypair.publicKey);
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
-
-    await node_assert.rejects(async () => {
-    await mspSetup.withdraw(1, beneficiaryKeypair, beneficiaryKeypair.publicKey, benefifiaryFrom, streamKeypair.publicKey);
-    },
-    (error: AnchorError) => {
-      expectAnchorError(error, 6029, undefined, 'Stream has not started');
-      return true;
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
     });
 
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.withdraw(
+          1,
+          beneficiaryKeypair,
+          beneficiaryKeypair.publicKey,
+          benefifiaryFrom,
+          streamKeypair.publicKey
+        );
+      },
+      (error: AnchorError) => {
+        expectAnchorError(error, 6029, undefined, 'Stream has not started');
+        return true;
+      }
+    );
   });
 
   // TODO: Transfer filtering in ui needs rateAmountUnits and rateIntervalInSeconds to be equal to zero
@@ -337,46 +327,44 @@ describe('msp', () => {
   // });
 
   it('create treasury -> add funds -> create stream -> withdraw', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
-    )
+      1_000_000_000
+    );
 
     await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    )
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -387,8 +375,13 @@ describe('msp', () => {
     );
 
     await sleep(3000);
-    await mspSetup.withdraw(10, beneficiaryKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
-
+    await mspSetup.withdraw(
+      10,
+      beneficiaryKeypair,
+      beneficiaryKeypair.publicKey,
+      beneficiaryFrom,
+      streamKeypair.publicKey
+    );
   });
 
   it('create treasury -> add funds -> create stream (100% cliff) -> withdraw', async () => {
@@ -397,12 +390,12 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1_000_000_000,
-      1_000_000_000,
-    )
+      1_000_000_000
+    );
 
     await mspSetup.createTreasury({});
 
@@ -410,28 +403,27 @@ describe('msp', () => {
 
     const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      100_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      1_000_000,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    )
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 1_000_000,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -442,8 +434,13 @@ describe('msp', () => {
     );
 
     await sleep(3000);
-    await mspSetup.withdraw(100_000_000, beneficiaryKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
-
+    await mspSetup.withdraw(
+      100_000_000,
+      beneficiaryKeypair,
+      beneficiaryKeypair.publicKey,
+      beneficiaryFrom,
+      streamKeypair.publicKey
+    );
   });
 
   it('create treasury (open) -> add funds -> create stream (100% cliff so all withdrawable from start) -> withdraw -> close stream', async () => {
@@ -452,11 +449,11 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       300_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -466,7 +463,7 @@ describe('msp', () => {
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const streamKeypair = Keypair.generate();
 
@@ -480,47 +477,59 @@ describe('msp', () => {
 
     const nowBn = new anchor.BN(Date.now() / 1000);
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      100_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      1_000_000,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 1_000_000,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(3000);
-    await mspSetup.withdraw(100_000_000, beneficiaryKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
+    await mspSetup.withdraw(
+      100_000_000,
+      beneficiaryKeypair,
+      beneficiaryKeypair.publicKey,
+      beneficiaryFrom,
+      streamKeypair.publicKey
+    );
 
-    const preTreasurerFromAmount = new BN((await connection.getTokenAccountBalance(mspSetup.treasurerFrom)).value.amount).toNumber();
+    const preTreasurerFromAmount = new BN(
+      (await connection.getTokenAccountBalance(mspSetup.treasurerFrom)).value.amount
+    ).toNumber();
     expect(preTreasurerFromAmount).eq(0);
 
-    const preTreasuryFromAmount = new BN((await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount).toNumber();
+    const preTreasuryFromAmount = new BN(
+      (await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount
+    ).toNumber();
     expect(preTreasuryFromAmount).eq(200_000_000);
 
-    const beneficiaryFromAmount = new BN((await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount).toNumber();
+    const beneficiaryFromAmount = new BN(
+      (await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount
+    ).toNumber();
     expect(beneficiaryFromAmount).eq(99_750_000);
-
 
     await mspSetup.closeStream(beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
 
-    const postTreasurerFromAmount = new BN((await connection.getTokenAccountBalance(mspSetup.treasurerFrom)).value.amount).toNumber();
-    expect(postTreasurerFromAmount)
-      .eq(0, "incorrect amount retured to treasurer after closing a stream");
+    const postTreasurerFromAmount = new BN(
+      (await connection.getTokenAccountBalance(mspSetup.treasurerFrom)).value.amount
+    ).toNumber();
+    expect(postTreasurerFromAmount).eq(0, 'incorrect amount retured to treasurer after closing a stream');
 
-    const postTreasuryFromAmount =  new BN((await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount).toNumber();
-    expect(postTreasuryFromAmount)
-      .eq(200_000_000, "incorrect amount left in treasury after closing a stream");
+    const postTreasuryFromAmount = new BN(
+      (await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount
+    ).toNumber();
+    expect(postTreasuryFromAmount).eq(200_000_000, 'incorrect amount left in treasury after closing a stream');
 
-    const postBeneficiaryFromAmount =  new BN((await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount).toNumber();
-    expect(postBeneficiaryFromAmount)
-      .eq(99_750_000, "incorrect amount retured to beneficiary after closing a stream");
-
+    const postBeneficiaryFromAmount = new BN(
+      (await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount
+    ).toNumber();
+    expect(postBeneficiaryFromAmount).eq(99_750_000, 'incorrect amount retured to beneficiary after closing a stream');
   });
 
   it('create treasury -> add funds -> create stream (SCHEDULED) -> withdraw (Fails since Stream is Scheduled)', async () => {
@@ -529,12 +538,12 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1_000_000_000,
-      1_000_000_000,
-    )
+      1_000_000_000
+    );
 
     await mspSetup.createTreasury({});
 
@@ -542,29 +551,27 @@ describe('msp', () => {
 
     const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
-
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.addn(60).toNumber(), // startUtc scheduled to 1 min after created
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      100_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      1_000_000,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    )
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.addn(60).toNumber(), // scheduled to 1 min after created
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 1_000_000,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -575,37 +582,35 @@ describe('msp', () => {
     );
 
     await sleep(3000);
-    
+
     try {
       const txId = await mspSetup.withdraw(
-        100_000_000, 
-        beneficiaryKeypair, 
-        beneficiaryKeypair.publicKey, 
-        beneficiaryFrom, 
+        100_000_000,
+        beneficiaryKeypair,
+        beneficiaryKeypair.publicKey,
+        beneficiaryFrom,
         streamKeypair.publicKey
       );
       console.log(txId);
     } catch (error: any) {
-      assert.isNotNull(error, "Unknown error");
-      assert.isNotNull(error.code, "Unknown error");
-      expect(error.code === 6029, "Stream already running");
+      assert.isNotNull(error, 'Unknown error');
+      assert.isNotNull(error.code, 'Unknown error');
+      expect(error.code === 6029, 'Stream already running');
     }
-
   });
 
   it('create treasury -> add funds -> create stream (100% cliff) -> withdraw (100%) -> withdraw (Fails since Stream is lack of funds)', async () => {
-    
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1_000_000_000,
-      1_000_000_000,
-    )
+      1_000_000_000
+    );
 
     await mspSetup.createTreasury({});
 
@@ -613,28 +618,27 @@ describe('msp', () => {
 
     const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      100_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      1_000_000,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 1_000_000,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -645,31 +649,31 @@ describe('msp', () => {
     );
 
     await sleep(3000);
-    await mspSetup.withdraw( // withdraw 100%
-      100_000_000, 
-      beneficiaryKeypair, 
-      beneficiaryKeypair.publicKey, 
-      beneficiaryFrom, 
+    await mspSetup.withdraw(
+      // withdraw 100%
+      100_000_000,
+      beneficiaryKeypair,
+      beneficiaryKeypair.publicKey,
+      beneficiaryFrom,
       streamKeypair.publicKey
     );
-    
-    // try to withdraw again fails since the stream is lack of funds and is paused 
+
+    // try to withdraw again fails since the stream is lack of funds and is paused
     // (withdrawable amount is zero)
     try {
       const txId = await mspSetup.withdraw(
-        100_000_000, 
-        beneficiaryKeypair, 
-        beneficiaryKeypair.publicKey, 
-        beneficiaryFrom, 
+        100_000_000,
+        beneficiaryKeypair,
+        beneficiaryKeypair.publicKey,
+        beneficiaryFrom,
         streamKeypair.publicKey
       );
       console.log(txId);
     } catch (error: any) {
-      assert.isNotNull(error, "Unknown error");
-      assert.isNotNull(error.code, "Unknown error");
-      expect(error.code === 6028, "Stream already running");
+      assert.isNotNull(error, 'Unknown error');
+      assert.isNotNull(error.code, 'Unknown error');
+      expect(error.code === 6028, 'Stream already running');
     }
-
   });
 
   it('create treasury -> add funds -> create stream -> add funds -> allocate -> withdraw', async () => {
@@ -678,41 +682,40 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
-    )
+      1_000_000_000
+    );
 
     await mspSetup.createTreasury({});
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(1000);
 
@@ -729,39 +732,43 @@ describe('msp', () => {
     );
 
     await sleep(3000);
-    await mspSetup.withdraw(10, beneficiaryKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
-
+    await mspSetup.withdraw(
+      10,
+      beneficiaryKeypair,
+      beneficiaryKeypair.publicKey,
+      beneficiaryFrom,
+      streamKeypair.publicKey
+    );
   });
 
   it('create treasury -> add funds -> create stream -> close stream (as a beneficiary: should fail)', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       100_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
     const startTs = nowBn.addn(10).toNumber();
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -774,46 +781,46 @@ describe('msp', () => {
 
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      100_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      beneficiaryKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: beneficiaryKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     await sleep(3_000);
 
-    await node_assert.rejects(async () => {
-      await mspSetup.closeStream(
-        beneficiaryKeypair.publicKey,
-        beneficiaryFrom,
-        streamKeypair.publicKey,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        [beneficiaryKeypair] // <-- injecting unauthorized signer
-      );
-    },
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.closeStream(
+          beneficiaryKeypair.publicKey,
+          beneficiaryFrom,
+          streamKeypair.publicKey,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          [beneficiaryKeypair] // <-- injecting unauthorized signer
+        );
+      },
       (error: any) => {
-        assert.ok(error.toString().includes("unknown signer"));
+        assert.ok(error.toString().includes('unknown signer'));
         return true;
-      });
-
+      }
+    );
   });
 
   it('create treasury -> add funds -> create stream -> close stream (as a treasurer)', async () => {
@@ -822,27 +829,27 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
     const startTs = nowBn.addn(10).toNumber();
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(treasurerKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const beneficiary = Keypair.generate().publicKey;
@@ -856,69 +863,62 @@ describe('msp', () => {
 
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiary,
+      streamKeypair
+    });
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     await sleep(3_000);
 
-    await mspSetup.closeStream(
-      beneficiary, 
-      beneficiaryFrom,
-      streamKeypair.publicKey,
-    );
-    
+    await mspSetup.closeStream(beneficiary, beneficiaryFrom, streamKeypair.publicKey);
   });
 
   it('create treasury -> add funds -> create stream -> close stream (as a treasurer) -> close treasury', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "v2t4_open_2022-02-02",
+      'v2t4_open_2022-02-02',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1000_000_000,
+      1000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(1_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
     const startTs = nowBn.toNumber();
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(treasurerKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const beneficiary = Keypair.generate().publicKey;
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -930,50 +930,43 @@ describe('msp', () => {
 
     const streamKeypair1 = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      500_000,    // rateAmountUnits
-      2_629_750,     // rateIntervalInSeconds
-      500_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary, // beneficiary
-      streamKeypair1,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 500_000,
+      rateIntervalInSeconds: 2_629_750,
+      allocationAssignedUnits: 500_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary,
+      streamKeypair: streamKeypair1
+    });
 
     await sleep(3_000);
 
-    await mspSetup.closeStream(
-      beneficiary, 
-      beneficiaryFrom,
-      streamKeypair1.publicKey,
-    );
+    await mspSetup.closeStream(beneficiary, beneficiaryFrom, streamKeypair1.publicKey);
 
     await sleep(1_000);
 
     const postState = await mspSetup.getMspWorldState();
     const postStateStream = await mspSetup.program.account.stream.fetchNullable(streamKeypair1.publicKey);
-    assert.isNull(postStateStream, "Stream was not closed");
-    assert.isNotNull(postState.treasuryAccountInfo, "Treasury was closed");
-    assert.isNotNull(postState.treasuryFromAccountInfo, "Treasury associated token was closed");
-    
+    assert.isNull(postStateStream, 'Stream was not closed');
+    assert.isNotNull(postState.treasuryAccountInfo, 'Treasury was closed');
+    assert.isNotNull(postState.treasuryFromAccountInfo, 'Treasury associated token was closed');
   });
 
   it('create treasury -> add funds -> create stream -> transfer stream', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -982,32 +975,31 @@ describe('msp', () => {
     const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
     const startTs = nowBn.addn(10).toNumber();
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(treasurerKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const newBeneficiaryKeypair = Keypair.generate();
@@ -1016,23 +1008,21 @@ describe('msp', () => {
       streamKeypair.publicKey,
       beneficiaryKeypair.publicKey,
       beneficiaryKeypair,
-      newBeneficiaryKeypair.publicKey,
+      newBeneficiaryKeypair.publicKey
     );
-
   });
 
   it('get stream (event)', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -1040,209 +1030,221 @@ describe('msp', () => {
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
-
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(3000);
     const streamEvent = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey);
-    const beneficiaryFromAta = await mspSetup.findTreasuryFromAssociatedTokenAddress(beneficiaryKeypair.publicKey);
+    // const beneficiaryFromAta = await mspSetup.findTreasuryFromAssociatedTokenAddress(beneficiaryKeypair.publicKey);
 
     expect(streamEvent).to.exist;
 
-    expect(streamEvent!.version).eq(2, "incorrect version");
-    expect(streamEvent!.initialized).eq(true, "incorrect initialized");
+    expect(streamEvent!.version).eq(2, 'incorrect version');
+    expect(streamEvent!.initialized).eq(true, 'incorrect initialized');
     // console.log(streamEvent.name.length);
     // expect(streamEvent.name.length).eq("test_stream".length, "incorrect stream name lenght") // uncomment
     // expect(streamEvent.name).eq("test_stream", "incorrect stream name");
-    expect(streamEvent!.name.trimEnd()).eq("test_stream", "incorrect ???"); // TODO: remove this line and uncomment the one above
-    expect(streamEvent!.treasurerAddress.toBase58()).eq(treasurerKeypair.publicKey.toBase58(), "incorrect treasurerAddress");
-    expect(streamEvent!.rateAmountUnits.toNumber()).eq(10, "incorrect rateAmountUnits");
-    expect(streamEvent!.rateIntervalInSeconds.toNumber()).eq(1, "incorrect rateIntervalInSeconds");
-    expect(streamEvent!.startUtc.toNumber()).eq(streamStartTs.toNumber(), "incorrect startUtc");
-    expect(streamEvent!.cliffVestAmountUnits.toNumber()).eq(0, "incorrect cliffVestAmountUnits");
-    expect(streamEvent!.cliffVestPercent.toNumber()).eq(0, "incorrect cliffVestPercent");
-    expect(streamEvent!.beneficiaryAddress.toBase58()).eq(beneficiaryKeypair.publicKey.toBase58(), "incorrect beneficiaryAddress");
-    expect(streamEvent!.beneficiaryAssociatedToken.toBase58()).eq(mspSetup.fromMint.toBase58(), "incorrect beneficiaryAssociatedToken (Mint)");
-    expect(streamEvent!.treasuryAddress.toBase58()).eq(mspSetup.treasury.toBase58(), "incorrect treasuryAddress");
-    expect(streamEvent!.allocationAssignedUnits.toNumber()).eq(1000, "incorrect allocationAssignedUnits");
-    expect(streamEvent!.allocationReservedUnits.toNumber()).eq(0, "incorrect allocationReservedUnits");
-    expect(streamEvent!.totalWithdrawalsUnits.toNumber()).eq(0, "incorrect totalWithdrawalsUnits"); // it should be 10 afer 1 elapsed second
-    expect(streamEvent!.lastWithdrawalUnits.toNumber()).eq(0, "incorrect lastWithdrawalUnits");
-    expect(streamEvent!.lastWithdrawalSlot.toNumber()).eq(0, "incorrect lastWithdrawalSlot");
-    expect(streamEvent!.lastWithdrawalBlockTime.toNumber()).eq(0, "incorrect lastWithdrawalBlockTime");
-    expect(streamEvent!.lastManualStopWithdrawableUnitsSnap.toNumber()).eq(0, "incorrect lastManualStopWithdrawableUnitsSnap");
-    expect(streamEvent!.lastManualStopSlot.toNumber()).eq(0, "incorrect lastManualStopSlot");
-    expect(streamEvent!.lastManualStopBlockTime.toNumber()).eq(0, "incorrect lastManualStopBlockTime");
-    expect(streamEvent!.lastManualResumeRemainingAllocationUnitsSnap.toNumber()).eq(0, "incorrect lastManualResumeRemainingAllocationUnitsSnap");
-    expect(streamEvent!.lastManualResumeSlot.toNumber()).eq(0, "incorrect lastManualResumeSlot");
-    expect(streamEvent!.lastManualResumeBlockTime.toNumber()).eq(0, "incorrect lastManualResumeBlockTime");
-    expect(streamEvent!.lastKnownTotalSecondsInPausedStatus.toNumber()).eq(0, "incorrect lastKnownTotalSecondsInPausedStatus");
-    expect(streamEvent!.lastAutoStopBlockTime.toNumber()).eq(0, "incorrect lastAutoStopBlockTime");
-    expect(streamEvent!.status).eq("Running", "incorrect status"); // TODO    
-    expect(streamEvent!.isManualPause).eq(false, "incorrect isManualPause");
-    expect(streamEvent!.cliffUnits.toNumber()).eq(0, "incorrect cliffUnits");
+    expect(streamEvent!.name.trimEnd()).eq('test_stream', 'incorrect ???'); // TODO: remove this line and uncomment the one above
+    expect(streamEvent!.treasurerAddress.toBase58()).eq(
+      treasurerKeypair.publicKey.toBase58(),
+      'incorrect treasurerAddress'
+    );
+    expect(streamEvent!.rateAmountUnits.toNumber()).eq(10, 'incorrect rateAmountUnits');
+    expect(streamEvent!.rateIntervalInSeconds.toNumber()).eq(1, 'incorrect rateIntervalInSeconds');
+    expect(streamEvent!.startUtc.toNumber()).eq(streamStartTs.toNumber(), 'incorrect startUtc');
+    expect(streamEvent!.cliffVestAmountUnits.toNumber()).eq(0, 'incorrect cliffVestAmountUnits');
+    expect(streamEvent!.cliffVestPercent.toNumber()).eq(0, 'incorrect cliffVestPercent');
+    expect(streamEvent!.beneficiaryAddress.toBase58()).eq(
+      beneficiaryKeypair.publicKey.toBase58(),
+      'incorrect beneficiaryAddress'
+    );
+    expect(streamEvent!.beneficiaryAssociatedToken.toBase58()).eq(
+      mspSetup.fromMint.toBase58(),
+      'incorrect beneficiaryAssociatedToken (Mint)'
+    );
+    expect(streamEvent!.treasuryAddress.toBase58()).eq(mspSetup.treasury.toBase58(), 'incorrect treasuryAddress');
+    expect(streamEvent!.allocationAssignedUnits.toNumber()).eq(1000, 'incorrect allocationAssignedUnits');
+    expect(streamEvent!.allocationReservedUnits.toNumber()).eq(0, 'incorrect allocationReservedUnits');
+    expect(streamEvent!.totalWithdrawalsUnits.toNumber()).eq(0, 'incorrect totalWithdrawalsUnits'); // it should be 10 afer 1 elapsed second
+    expect(streamEvent!.lastWithdrawalUnits.toNumber()).eq(0, 'incorrect lastWithdrawalUnits');
+    expect(streamEvent!.lastWithdrawalSlot.toNumber()).eq(0, 'incorrect lastWithdrawalSlot');
+    expect(streamEvent!.lastWithdrawalBlockTime.toNumber()).eq(0, 'incorrect lastWithdrawalBlockTime');
+    expect(streamEvent!.lastManualStopWithdrawableUnitsSnap.toNumber()).eq(
+      0,
+      'incorrect lastManualStopWithdrawableUnitsSnap'
+    );
+    expect(streamEvent!.lastManualStopSlot.toNumber()).eq(0, 'incorrect lastManualStopSlot');
+    expect(streamEvent!.lastManualStopBlockTime.toNumber()).eq(0, 'incorrect lastManualStopBlockTime');
+    expect(streamEvent!.lastManualResumeRemainingAllocationUnitsSnap.toNumber()).eq(
+      0,
+      'incorrect lastManualResumeRemainingAllocationUnitsSnap'
+    );
+    expect(streamEvent!.lastManualResumeSlot.toNumber()).eq(0, 'incorrect lastManualResumeSlot');
+    expect(streamEvent!.lastManualResumeBlockTime.toNumber()).eq(0, 'incorrect lastManualResumeBlockTime');
+    expect(streamEvent!.lastKnownTotalSecondsInPausedStatus.toNumber()).eq(
+      0,
+      'incorrect lastKnownTotalSecondsInPausedStatus'
+    );
+    expect(streamEvent!.lastAutoStopBlockTime.toNumber()).eq(0, 'incorrect lastAutoStopBlockTime');
+    expect(streamEvent!.status).eq('Running', 'incorrect status'); // TODO
+    expect(streamEvent!.isManualPause).eq(false, 'incorrect isManualPause');
+    expect(streamEvent!.cliffUnits.toNumber()).eq(0, 'incorrect cliffUnits');
     expect(streamEvent!.currentBlockTime.toNumber()).gte(
-      parseInt((nowBn.toNumber() / 1000).toString()), "incorrect currentBlockTime"
+      parseInt((nowBn.toNumber() / 1000).toString()),
+      'incorrect currentBlockTime'
     ); //
-    
-    expect(streamEvent!.secondsSinceStart.toNumber()).gte(1, "incorrect secondsSinceStart");
+
+    expect(streamEvent!.secondsSinceStart.toNumber()).gte(1, 'incorrect secondsSinceStart');
     // expect(streamEvent.estDepletionTime.toNumber()).eq(, "incorrect ???");
     // expect(streamEvent!.streamedUnitsPerSecond).eq(10, "incorrect streamedUnitsPerSecond"); // TODO: how is this different than rateAmountUnits ???
-    
-    let fundsLeft = streamEvent!.allocationAssignedUnits
-      .sub(streamEvent!.totalWithdrawalsUnits)
-      .sub(new BN(10));
 
-    expect(streamEvent!.fundsLeftInStream.toNumber()).gte(fundsLeft.subn(10).toNumber(), "incorrect fundsLeftInStream");
-    expect(streamEvent!.fundsLeftInStream.toNumber()).lte(fundsLeft.addn(10).toNumber(), "incorrect fundsLeftInStream");
+    const fundsLeft = streamEvent!.allocationAssignedUnits.sub(streamEvent!.totalWithdrawalsUnits).sub(new BN(10));
 
-    expect(streamEvent!.fundsSentToBeneficiary.toNumber()).gte(0, "incorrect fundsSentToBeneficiary"); // TODO: 'sent' here is missleading
-    expect(streamEvent!.fundsSentToBeneficiary.toNumber()).lte(20, "incorrect fundsSentToBeneficiary"); // TODO: 'sent' here is missleading
+    expect(streamEvent!.fundsLeftInStream.toNumber()).gte(fundsLeft.subn(10).toNumber(), 'incorrect fundsLeftInStream');
+    expect(streamEvent!.fundsLeftInStream.toNumber()).lte(fundsLeft.addn(10).toNumber(), 'incorrect fundsLeftInStream');
 
-    expect(streamEvent!.withdrawableUnitsWhilePaused.toNumber()).eq(0, "incorrect withdrawableUnitsWhilePaused");
+    expect(streamEvent!.fundsSentToBeneficiary.toNumber()).gte(0, 'incorrect fundsSentToBeneficiary'); // TODO: 'sent' here is missleading
+    expect(streamEvent!.fundsSentToBeneficiary.toNumber()).lte(20, 'incorrect fundsSentToBeneficiary'); // TODO: 'sent' here is missleading
 
-    expect(streamEvent!.nonStopEarningUnits.toNumber()).gte(0, "incorrect nonStopEarningUnits");
-    expect(streamEvent!.nonStopEarningUnits.toNumber()).lte(20, "incorrect nonStopEarningUnits");
+    expect(streamEvent!.withdrawableUnitsWhilePaused.toNumber()).eq(0, 'incorrect withdrawableUnitsWhilePaused');
 
-    expect(streamEvent!.missedUnitsWhilePaused.toNumber()).eq(0, "incorrect missedUnitsWhilePaused");
+    expect(streamEvent!.nonStopEarningUnits.toNumber()).gte(0, 'incorrect nonStopEarningUnits');
+    expect(streamEvent!.nonStopEarningUnits.toNumber()).lte(20, 'incorrect nonStopEarningUnits');
 
-    expect(streamEvent!.entitledEarningsUnits.toNumber()).gte(0, "incorrect entitledEarningsUnits");
-    expect(streamEvent!.entitledEarningsUnits.toNumber()).lte(20, "incorrect entitledEarningsUnits");
+    expect(streamEvent!.missedUnitsWhilePaused.toNumber()).eq(0, 'incorrect missedUnitsWhilePaused');
 
-    expect(streamEvent!.withdrawableUnitsWhileRunning.toNumber()).gte(0, "incorrect withdrawableUnitsWhileRunning");
-    expect(streamEvent!.withdrawableUnitsWhileRunning.toNumber()).lte(20, "incorrect withdrawableUnitsWhileRunning");
+    expect(streamEvent!.entitledEarningsUnits.toNumber()).gte(0, 'incorrect entitledEarningsUnits');
+    expect(streamEvent!.entitledEarningsUnits.toNumber()).lte(20, 'incorrect entitledEarningsUnits');
 
-    expect(streamEvent!.beneficiaryRemainingAllocation.toNumber()).eq(1000, "incorrect beneficiaryRemainingAllocation"); // same as allocation since any withdraw has been done
+    expect(streamEvent!.withdrawableUnitsWhileRunning.toNumber()).gte(0, 'incorrect withdrawableUnitsWhileRunning');
+    expect(streamEvent!.withdrawableUnitsWhileRunning.toNumber()).lte(20, 'incorrect withdrawableUnitsWhileRunning');
 
-    expect(streamEvent!.beneficiaryWithdrawableAmount.toNumber()).gte(0, "incorrect beneficiaryWithdrawableAmount"); // TODO: how is this different than totalWithdrawalsUnits ???
-    expect(streamEvent!.beneficiaryWithdrawableAmount.toNumber()).lte(20, "incorrect beneficiaryWithdrawableAmount");
+    expect(streamEvent!.beneficiaryRemainingAllocation.toNumber()).eq(1000, 'incorrect beneficiaryRemainingAllocation'); // same as allocation since any withdraw has been done
 
-    expect(streamEvent!.lastKnownStopBlockTime.toNumber()).eq(0, "incorrect lastKnownStopBlockTime");
+    expect(streamEvent!.beneficiaryWithdrawableAmount.toNumber()).gte(0, 'incorrect beneficiaryWithdrawableAmount'); // TODO: how is this different than totalWithdrawalsUnits ???
+    expect(streamEvent!.beneficiaryWithdrawableAmount.toNumber()).lte(20, 'incorrect beneficiaryWithdrawableAmount');
 
+    expect(streamEvent!.lastKnownStopBlockTime.toNumber()).eq(0, 'incorrect lastKnownStopBlockTime');
   });
 
   it('create treasury -> add funds -> create stream -> pause stream -> pause stream (error already paused)', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(3_000);
     await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
     await sleep(1_000);
 
-    await node_assert.rejects(async () => {
-      const txId = await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
-      console.log(txId);
-    },
+    await node_assert.rejects(
+      async () => {
+        const txId = await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
+        console.log(txId);
+      },
       (error: any) => {
-        assert.isNotNull(error, "Unknown error");
-        assert.isNotNull(error.code, "Unknown error");
-        expect(error.code === 6025, "Stream already paused");
+        assert.isNotNull(error, 'Unknown error');
+        assert.isNotNull(error.code, 'Unknown error');
+        expect(error.code === 6025, 'Stream already paused');
         return true;
-      });
+      }
+    );
   });
 
   it('create treasury -> add funds -> create stream -> pause stream (after 3 seconds running) -> resume stream', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(3_000);
     await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
-    
+
     const preStreamEventResponse = await mspSetup.program.simulate.getStream({
       accounts: { stream: streamKeypair.publicKey }
     });
@@ -1251,40 +1253,38 @@ describe('msp', () => {
     assert.equal(
       preStateStream.treasurerAddress.toBase58(),
       treasurerKeypair.publicKey.toBase58(),
-      "stream treasurer is not valid"
+      'stream treasurer is not valid'
     );
 
     const txId = await mspSetup.resumeStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
     console.log(txId);
-
   });
 
   it('create treasury -> add funds -> create stream -> pause stream (after 3 seconds running) -> resume stream -> withdraw', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(5_000_000);
-    let nowBn = new anchor.BN(Date.now() / 1000);
-    console.log("nowTs:", nowBn.toNumber());
-    
+    const nowBn = new anchor.BN(Date.now() / 1000);
+    console.log('nowTs:', nowBn.toNumber());
+
     await mspSetup.refreshTreasuryData(1);
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     // const beneficiaryFrom = await Token.getAssociatedTokenAddress(
     //   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1296,30 +1296,29 @@ describe('msp', () => {
     const streamKeypair = Keypair.generate();
     // const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      250000,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      5_000_000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 250000,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 5_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
-    
     await mspSetup.refreshTreasuryData(1);
 
     await mspSetup.addFunds(250_000);
 
     await mspSetup.allocate(250_000, streamKeypair.publicKey);
-    
+
     await mspSetup.refreshTreasuryData(1);
 
     // await mspSetup.addFunds(
-    //   1_000_000, 
+    //   1_000_000,
     //   StreamAllocationType.AssignToSpecificStream,
     //   undefined,
     //   undefined,
@@ -1328,7 +1327,7 @@ describe('msp', () => {
     //   );
 
     // await mspSetup.addFunds(
-    //   1_000_000, 
+    //   1_000_000,
     //   StreamAllocationType.AssignToSpecificStream,
     //   undefined,
     //   undefined,
@@ -1347,7 +1346,7 @@ describe('msp', () => {
     const beneficiary2Keypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiary2Keypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
     // const beneficiary2From = await Token.getAssociatedTokenAddress(
     //   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1358,59 +1357,56 @@ describe('msp', () => {
     // );
     const stream2Keypair = Keypair.generate();
     // const streamStartTs = nowBn.addn(1);
-    await node_assert.rejects(async () => {
-      await mspSetup.createStream(
-        "test_stream",
-        nowBn.toNumber(), // startUtc
-        100000,    // rateAmountUnits
-        1,     // rateIntervalInSeconds
-        500_000,  // allocationAssignedUnits
-        0,     // cliffVestAmountUnits
-        0,     // cliffVestPercent
-
-        treasurerKeypair, // initializerKeypair
-        beneficiary2Keypair.publicKey, // beneficiary
-        stream2Keypair,
-        undefined,
-        undefined,
-        true,
-      );
-    },
-    (error: AnchorError) => {
-      expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
-      return true;
-    });
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.createStream({
+          name: 'test_stream',
+          startTs: nowBn.toNumber(),
+          rateAmountUnits: 100000,
+          rateIntervalInSeconds: 1,
+          allocationAssignedUnits: 500_000,
+          cliffVestAmountUnits: 0,
+          cliffVestPercent: 0,
+          initializerKeypair: treasurerKeypair,
+          beneficiary: beneficiary2Keypair.publicKey,
+          streamKeypair: stream2Keypair,
+          feePayedByTreasurer: true
+        });
+      },
+      (error: AnchorError) => {
+        expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
+        return true;
+      }
+    );
 
     // await mspSetup.addFunds(
-    //   500_000, 
+    //   500_000,
     //   StreamAllocationType.AssignToSpecificStream,
     //   undefined,
     //   undefined,
     //   undefined,
     //   stream2Keypair.publicKey,
     //   );
-    
+
     // // close s2
     // await mspSetup.closeStream(treasurerKeypair, beneficiary2Keypair.publicKey, beneficiary2From, stream2Keypair.publicKey, true);
 
     // // close s1
-    
-    // await mspSetup.closeStream(treasurerKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey, false);
 
+    // await mspSetup.closeStream(treasurerKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey, false);
   });
 
   it('create treasury -> add funds -> create stream -> resume stream (error stream already running)', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -1418,123 +1414,120 @@ describe('msp', () => {
     await mspSetup.addFunds(100_000_000);
 
     const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
-
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(3_000);
 
-    await node_assert.rejects(async () => {
-      const txId = await mspSetup.resumeStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
-      console.log(txId);
-    },
+    await node_assert.rejects(
+      async () => {
+        const txId = await mspSetup.resumeStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
+        console.log(txId);
+      },
       (error: any) => {
-        assert.isNotNull(error, "Unknown error");
-        assert.isNotNull(error.code, "Unknown error");
-        expect(error.code === 6024, "Stream already running");
+        assert.isNotNull(error, 'Unknown error');
+        assert.isNotNull(error.code, 'Unknown error');
+        expect(error.code === 6024, 'Stream already running');
         return true;
-      });
-
+      }
+    );
   });
 
   it('create lock treasury -> add funds -> create stream -> pause stream (error trying to pause a lock stream)', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_LOCKED,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
-
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(3_000);
-    
-    await node_assert.rejects(async () => {
-      const txId = await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
-      console.log(txId);
-    },
+
+    await node_assert.rejects(
+      async () => {
+        const txId = await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
+        console.log(txId);
+      },
       (error: any) => {
-        assert.isNotNull(error, "Unknown error");
-        assert.isNotNull(error.code, "Unknown error");
-        expect(error.code === 6031, "Streams in a Lock treasury can not be paused");
+        assert.isNotNull(error, 'Unknown error');
+        assert.isNotNull(error.code, 'Unknown error');
+        expect(error.code === 6031, 'Streams in a Lock treasury can not be paused');
         return true;
-      });
+      }
+    );
   });
 
   it('create lock treasury -> add funds -> create stream -> close stream (error trying to close a lock stream while running)', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_LOCKED,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiary = Keypair.generate().publicKey;
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -1544,42 +1537,38 @@ describe('msp', () => {
       beneficiary,
       true
     );
-    
+
     const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiary,
+      streamKeypair
+    });
 
     await sleep(3_000);
 
-    await node_assert.rejects(async () => {
-      const txId = await mspSetup.closeStream(
-        beneficiary,
-        beneficiaryFrom,
-        streamKeypair.publicKey,
-      );
+    await node_assert.rejects(
+      async () => {
+        const txId = await mspSetup.closeStream(beneficiary, beneficiaryFrom, streamKeypair.publicKey);
 
-      console.log(txId);
-    },
+        console.log(txId);
+      },
       (error: any) => {
-        assert.isNotNull(error, "Unknown error");
-        assert.isNotNull(error.code, "Unknown error");
-        expect(error.code === 6030, "Streams in a Lock treasury can not be closed while running");
+        assert.isNotNull(error, 'Unknown error');
+        assert.isNotNull(error.code, 'Unknown error');
+        expect(error.code === 6030, 'Streams in a Lock treasury can not be closed while running');
         return true;
-      });
-
+      }
+    );
   });
 
   it('create open treasury -> add funds -> create stream -> close stream (as a treasurer succeed since is paused because of lack of funds)', async () => {
@@ -1588,27 +1577,27 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
     const nowBn = new anchor.BN(nowTs);
     const startTs = nowBn.addn(10).toNumber();
-    console.log("nowTs:", nowTs);
+    console.log('nowTs:', nowTs);
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(treasurerKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     const beneficiary = Keypair.generate().publicKey;
@@ -1622,58 +1611,51 @@ describe('msp', () => {
 
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      startTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      20,    // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 20,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiary,
+      streamKeypair
+    });
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
 
     await sleep(3_000);
 
-    await mspSetup.closeStream(
-      beneficiary, 
-      beneficiaryFrom,
-      streamKeypair.publicKey,
-    );
-    
+    await mspSetup.closeStream(beneficiary, beneficiaryFrom, streamKeypair.publicKey);
   });
 
   it('create open treasury -> add funds -> create stream -> transfer tokens -> close stream -> close treasury', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(100_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
     // const nowTs = Date.now() / 1000;
-    let nowBn = new anchor.BN(nowTs);
-    console.log("nowTs:", nowTs);
+    // const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -1686,19 +1668,18 @@ describe('msp', () => {
 
     const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream(
-      "test_stream",
-      nowTs, // startUtc
-      10,    // rateAmountUnits
-      1,     // rateIntervalInSeconds
-      1000,  // allocationAssignedUnits
-      0,     // cliffVestAmountUnits
-      0,     // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiaryKeypair.publicKey, // beneficiary
-      streamKeypair,
-    );
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowTs,
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
     await sleep(1_000);
 
@@ -1716,55 +1697,50 @@ describe('msp', () => {
       [treasurerKeypair]
     );
 
-    let afterTransferTreasuryFromAmount = await mspSetup.getTokenAccountBalance(mspSetup.treasuryFrom);
-    let afterTransferTreasuryFromBalance = afterTransferTreasuryFromAmount ? parseInt(afterTransferTreasuryFromAmount.amount) : 0;
-    assert(afterTransferTreasuryFromBalance === 200_000_000, "Incorrect treasury token balance after external transfer");
+    const afterTransferTreasuryFromAmount = await mspSetup.getTokenAccountBalance(mspSetup.treasuryFrom);
+    const afterTransferTreasuryFromBalance = afterTransferTreasuryFromAmount
+      ? parseInt(afterTransferTreasuryFromAmount.amount)
+      : 0;
+    assert(
+      afterTransferTreasuryFromBalance === 200_000_000,
+      'Incorrect treasury token balance after external transfer'
+    );
 
     await mspSetup.connection.confirmTransaction(
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      "confirmed"
+      'confirmed'
     );
-    
+
     await sleep(3_000);
 
-    await mspSetup.closeStream(
-      beneficiaryKeypair.publicKey, 
-      beneficiaryFrom,
-      streamKeypair.publicKey,
-    ); 
-
+    await mspSetup.closeStream(beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
   });
 
   it('create open treasury -> add funds -> create stream (short life) -> close paused stream', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(1000_000_000);
 
-    const slot = await mspSetup.connection.getSlot("finalized");
-    const nowTs = await mspSetup.connection.getBlockTime(slot) as number;
-    let nowBn = new anchor.BN(nowTs);
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
+    const nowBn = new anchor.BN(nowTs);
     console.log(`now: ${nowBn.toNumber()}`);
-
 
     const beneficiary = Keypair.generate().publicKey;
 
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
-    );
+    await connection.confirmTransaction(await connection.requestAirdrop(beneficiary, 1_000_000_000), 'confirmed');
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -1777,22 +1753,19 @@ describe('msp', () => {
     const streamStartTs = nowBn.addn(1);
     console.log(`streamStartTs: ${streamStartTs.toNumber()}`);
 
-    await mspSetup.createStream(
-      "test_stream",
-      streamStartTs.toNumber(), // startUtc
-      100_000_000,      // rateAmountUnits
-      1,                // rateIntervalInSeconds
-      100_000_000,      // allocationAssignedUnits
-      0,                // cliffVestAmountUnits
-      0,                // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary,      // beneficiary
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: streamStartTs.toNumber(),
+      rateAmountUnits: 100_000_000,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiary,
       streamKeypair,
-      undefined,
-      undefined,
-      true,             // feePayedByTreasurer
-    );
+      feePayedByTreasurer: true
+    });
 
     // console.log();
     // const preStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey);
@@ -1822,11 +1795,7 @@ describe('msp', () => {
     //   }
     // );
 
-    const txId = await mspSetup.closeStream(
-      beneficiary,
-      beneficiaryFrom,
-      streamKeypair.publicKey,
-    );
+    const txId = await mspSetup.closeStream(beneficiary, beneficiaryFrom, streamKeypair.publicKey);
 
     console.log(txId);
 
@@ -1839,9 +1808,7 @@ describe('msp', () => {
     const beneficiaryFromAmount = (await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount;
     // console.log('beneficiaryFromAmount:', beneficiaryFromAmount);
     expect(beneficiaryFromAmount).eq('100000000', 'invalid beneficiaryFromAmount after close stream');
-
   });
-
 
   // SPLITTING INSTRUCTIONS
 
@@ -1853,11 +1820,11 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       100_000_000,
-      ONE_SOL,
+      ONE_SOL
     );
 
     await mspSetup.createTreasury({});
@@ -1865,26 +1832,25 @@ describe('msp', () => {
     await mspSetup.addFunds(100_000_000);
 
     const beneficiaryKeypair = Keypair.generate();
-      await mspSetup.connection.confirmTransaction(
-        await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-        "confirmed"
-      );
-    const screamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      new BN(Date.now() / 1000).toNumber(),
-      50_000_000,
-      3600,
-      0, // assigned
-      0,
-      0,
-      treasurerKeypair,
-      beneficiaryKeypair.publicKey,
-      screamKeypair,
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      'confirmed'
     );
+    const streamKeypair = Keypair.generate();
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: new BN(Date.now() / 1000).toNumber(),
+      rateAmountUnits: 50_000_000,
+      rateIntervalInSeconds: 3600,
+      allocationAssignedUnits: 0,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
 
-    await mspSetup.allocate(50_000_000, screamKeypair.publicKey);
-
+    await mspSetup.allocate(50_000_000, streamKeypair.publicKey);
   });
 
   it('create treasury -> fund treasury -> create stream -> allocate', async () => {
@@ -1893,11 +1859,11 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       100_000_000,
-      ONE_SOL,
+      ONE_SOL
     );
 
     await mspSetup.createTreasury({});
@@ -1905,48 +1871,48 @@ describe('msp', () => {
     await mspSetup.addFunds(100_000_000);
 
     const beneficiaryKeypair = Keypair.generate();
-      await mspSetup.connection.confirmTransaction(
-        await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-        "confirmed"
-      );
-    const screamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      new BN(Date.now() / 1000).toNumber(),
-      50_000_000,
-      3600,
-      50_000_000, // assigned
-      0,
-      0,
-      treasurerKeypair,
-      beneficiaryKeypair.publicKey,
-      screamKeypair,
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      'confirmed'
     );
-
-    await node_assert.rejects(async () => {
-      await mspSetup.allocate(50_000_001, screamKeypair.publicKey);
-    },
-    (error: AnchorError) => {
-      expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
-      return true;
+    const streamKeypair = Keypair.generate();
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: new BN(Date.now() / 1000).toNumber(),
+      rateAmountUnits: 50_000_000,
+      rateIntervalInSeconds: 3600,
+      allocationAssignedUnits: 50_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
     });
 
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.allocate(50_000_001, streamKeypair.publicKey);
+      },
+      (error: AnchorError) => {
+        expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
+        return true;
+      }
+    );
   });
 
   //#endregion
 
   it('create treasury -> add funds -> create stream -> wait for auto-pause', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -1954,10 +1920,7 @@ describe('msp', () => {
 
     const beneficiaryKeypair = Keypair.generate();
     const beneficiary = beneficiaryKeypair.publicKey;
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
-    );
+    await connection.confirmTransaction(await connection.requestAirdrop(beneficiary, 1_000_000_000), 'confirmed');
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -1966,43 +1929,42 @@ describe('msp', () => {
       true
     );
 
-    let nowBn = new anchor.BN(Date.now() / 1000);
+    const nowBn = new anchor.BN(Date.now() / 1000);
     const streamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      2,      // rateAmountUnits
-      1,                // rateIntervalInSeconds
-      5,      // allocationAssignedUnits
-      0,                // cliffVestAmountUnits
-      0,                // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary,      // beneficiary
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 2,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 5,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiary,
       streamKeypair,
-      undefined,
-      undefined,
-      true,             // feePayedByTreasurer
-    );
+      feePayedByTreasurer: true
+    });
 
-    let streamLifeEvents: ParsedStreamEvent[] = [];
+    const streamLifeEvents: ParsedStreamEvent[] = [];
 
     let elapsed = 0;
-    await sleep(1000); elapsed++;
+    await sleep(1000);
+    elapsed++;
     let postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
 
-    await sleep(1000); elapsed++;
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
-    
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
 
-    await sleep(1000); elapsed++;
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
     // After 3 seconds streaming, the result is:
     /*
     ...
@@ -2015,42 +1977,43 @@ describe('msp', () => {
     ...
     */
 
-
     await mspSetup.withdraw(5, beneficiaryKeypair, beneficiary, beneficiaryFrom, streamKeypair.publicKey);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "withdraw -5", postStream!))
-    
+    streamLifeEvents.push(parseStreamEvent(elapsed, 'withdraw -5', postStream!));
 
-    await sleep(1000); elapsed++;
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
-
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
 
     await mspSetup.allocate(5, streamKeypair.publicKey);
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "allocate +5", postStream!))
-    
+    streamLifeEvents.push(parseStreamEvent(elapsed, 'allocate +5', postStream!));
 
-    await sleep(1000); elapsed++;
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
-    
-    await sleep(1000); elapsed++;
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
+
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
-    
-    await sleep(1000); elapsed++;
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
+
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
-    
-    await sleep(1000); elapsed++;
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
+
+    await sleep(1000);
+    elapsed++;
     postStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey, true);
     // console.log(postStream);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "+1 sec", postStream!))
+    streamLifeEvents.push(parseStreamEvent(elapsed, '+1 sec', postStream!));
 
     console.table(streamLifeEvents);
 
@@ -2064,15 +2027,12 @@ describe('msp', () => {
     // console.log('beneficiaryFromAmount:', beneficiaryFromAmount);
     expect(beneficiaryFromAmount).eq('5', 'invalid beneficiaryFromAmount after close stream');
 
-
     await mspSetup.withdraw(5, beneficiaryKeypair, beneficiary, beneficiaryFrom, streamKeypair.publicKey);
-    streamLifeEvents.push(parseStreamEvent(elapsed, "withdraw -5", postStream!));
-
+    streamLifeEvents.push(parseStreamEvent(elapsed, 'withdraw -5', postStream!));
 
     beneficiaryFromAmount = (await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount;
     // console.log('beneficiaryFromAmount:', beneficiaryFromAmount);
     expect(beneficiaryFromAmount).eq('10', 'invalid beneficiaryFromAmount after close stream');
-
   });
 
   it('create treasury -> add funds -> create stream (fee payed from treasury) -> withdraw -> add funds -> add funds MNY-869', async () => {
@@ -2083,11 +2043,11 @@ describe('msp', () => {
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
@@ -2095,10 +2055,7 @@ describe('msp', () => {
 
     const beneficiaryKeypair = Keypair.generate();
     const beneficiary = beneficiaryKeypair.publicKey;
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
-    );
+    await connection.confirmTransaction(await connection.requestAirdrop(beneficiary, 1_000_000_000), 'confirmed');
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -2107,24 +2064,21 @@ describe('msp', () => {
       true
     );
 
-    let nowBn = new anchor.BN(Date.now() / 1000);
+    const nowBn = new anchor.BN(Date.now() / 1000);
     const streamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      100_000_000,      // rateAmountUnits
-      1,         // rateIntervalInSeconds
-      100_000_000,      // allocationAssignedUnits
-      0,                // cliffVestAmountUnits
-      0,                // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary,      // beneficiary
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 100_000_000,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary,
       streamKeypair,
-      undefined,
-      undefined,
-      true,             // feePayedByTreasurer
-    );
+      feePayedByTreasurer: true
+    });
 
     await sleep(2000);
     await mspSetup.withdraw(100_000_000, beneficiaryKeypair, beneficiary, beneficiaryFrom, streamKeypair.publicKey);
@@ -2156,50 +2110,46 @@ describe('msp', () => {
     // │    8    │       2000000       │     0.0025      │        1995012         │   4987    │  1999999  │      1       │         1995013         │  2000000  │       0       │
     // │    9    │      49625000       │     0.0025      │        49501246        │  123753   │ 49624999  │      1       │        49501247         │ 49625000  │       0       │
     // └─────────┴─────────────────────┴─────────────────┴────────────────────────┴───────────┴───────────┴──────────────┴─────────────────────────┴───────────┴───────────────┘
-    
+
     // await sleep(1000);
     await mspSetup.allocate(49501247, streamKeypair.publicKey);
 
-    await node_assert.rejects(async () => {
-      await mspSetup.allocate(49501248, streamKeypair.publicKey);
-    },
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.allocate(49501248, streamKeypair.publicKey);
+      },
       (error: AnchorError) => {
         expectAnchorError(error, 6039, undefined, 'Insufficient treasury balance');
         return true;
       }
     );
-
   });
 
   //#region WITHDRAW
 
   it('create treasury -> add funds -> create stream (withdraw fee payed by beneficiary) -> withdraw', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(200_000_000);
-    
+
     const preFeesFrom = await mspSetup.getTokenAccountBalance(mspSetup.feesFrom);
     const preFeesFromAtaAmount = new BN(preFeesFrom!.amount);
 
     const beneficiaryKeypair = Keypair.generate();
     const beneficiary = beneficiaryKeypair.publicKey;
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
-    );
+    await connection.confirmTransaction(await connection.requestAirdrop(beneficiary, 1_000_000_000), 'confirmed');
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -2208,64 +2158,48 @@ describe('msp', () => {
       true
     );
 
-    let nowBn = new anchor.BN(Date.now() / 1000);
+    const nowBn = new anchor.BN(Date.now() / 1000);
     const streamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      100_000_000,      // rateAmountUnits
-      1,         // rateIntervalInSeconds
-      100_000_000,      // allocationAssignedUnits
-      0,                // cliffVestAmountUnits
-      0,                // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary,      // beneficiary
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 100_000_000,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary,
       streamKeypair,
-      undefined,
-      undefined,
-      false,             // feePayedByTreasurer
-    );
+      feePayedByTreasurer: false
+    });
 
     const preState = await mspSetup.getMspWorldState();
-    expect(preState.treasuryAccount!.lastKnownBalanceUnits.toNumber())
-      .eq(200_000_000);
-    expect(preState.treasuryAccount!.allocationAssignedUnits.toNumber())
-      .eq(100_000_000);
+    expect(preState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(200_000_000);
+    expect(preState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(100_000_000);
 
     const preStream = await program.account.stream.fetch(streamKeypair.publicKey);
-    expect(preStream.allocationAssignedUnits.toNumber())
-      .eq(100_000_000);
-
+    expect(preStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
 
     // WITHDRAW
     await sleep(2000);
     await mspSetup.withdraw(100_000_000, beneficiaryKeypair, beneficiary, beneficiaryFrom, streamKeypair.publicKey);
 
-
     const postState = await mspSetup.getMspWorldState();
-    expect(postState.treasuryAccount!.lastKnownBalanceUnits.toNumber())
-      .eq(100_000_000);
-    expect(postState.treasuryAccount!.allocationAssignedUnits.toNumber())
-      .eq(0);
+    expect(postState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(100_000_000);
+    expect(postState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(0);
 
     const postTreasuryFrom = await mspSetup.getTokenAccountBalance(mspSetup.treasuryFrom);
     const postTreasuryFromAtaAmount = new BN(postTreasuryFrom!.amount);
-    expect(postTreasuryFromAtaAmount.toNumber())
-      .eq(100_000_000);
+    expect(postTreasuryFromAtaAmount.toNumber()).eq(100_000_000);
 
     const postStream = await program.account.stream.fetch(streamKeypair.publicKey);
-    expect(postStream.allocationAssignedUnits.toNumber())
-      .eq(100_000_000);
-    expect(postStream.totalWithdrawalsUnits.toNumber())
-      .eq(100_000_000);
-    
+    expect(postStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
+    expect(postStream.totalWithdrawalsUnits.toNumber()).eq(100_000_000);
+
     const postBeneficiaryFrom = await mspSetup.getTokenAccountBalance(beneficiaryFrom);
     const postBeneficiaryFromAtaAmount = new BN(postBeneficiaryFrom!.amount);
-    expect(postBeneficiaryFromAtaAmount.toNumber())
-      .eq(99_750_000,
-      "incorrect beneficiary token amount after withdraw"
-    );
+    expect(postBeneficiaryFromAtaAmount.toNumber()).eq(99_750_000, 'incorrect beneficiary token amount after withdraw');
 
     const postFeesFrom = await mspSetup.getTokenAccountBalance(mspSetup.feesFrom);
     const postFeesFromAtaAmount = new BN(postFeesFrom!.amount);
@@ -2273,41 +2207,32 @@ describe('msp', () => {
       .mul(new BN(MSP_WITHDRAW_FEE_PCT_NUMERATOR))
       .div(new BN(MSP_FEE_PCT_DENOMINATOR));
 
-    expect(postFeesFromAtaAmount.toNumber()).eq(
-      preFeesFromAtaAmount
-        .add(withdrawFeeAmountBn)
-        .toNumber()
-    );
-
+    expect(postFeesFromAtaAmount.toNumber()).eq(preFeesFromAtaAmount.add(withdrawFeeAmountBn).toNumber());
   });
 
   it('create treasury (withdraw fee payed by treasury) -> add funds -> create stream -> withdraw', async () => {
-
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup(
       fromTokenClient,
       treasurerKeypair,
-      "test_treasury",
+      'test_treasury',
       TREASURY_TYPE_OPEN,
       false,
       1000_000_000,
-      1_000_000_000,
+      1_000_000_000
     );
 
     await mspSetup.createTreasury({});
 
     await mspSetup.addFunds(200_000_000);
-    
+
     const preFeesFrom = await mspSetup.getTokenAccountBalance(mspSetup.feesFrom);
     const preFeesFromAtaAmount = new BN(preFeesFrom!.amount);
 
     const beneficiaryKeypair = Keypair.generate();
     const beneficiary = beneficiaryKeypair.publicKey;
-    await connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiary, 1_000_000_000),
-      "confirmed"
-    );
+    await connection.confirmTransaction(await connection.requestAirdrop(beneficiary, 1_000_000_000), 'confirmed');
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -2316,62 +2241,49 @@ describe('msp', () => {
       true
     );
 
-    let nowBn = new anchor.BN(Date.now() / 1000);
+    const nowBn = new anchor.BN(Date.now() / 1000);
     const streamKeypair = Keypair.generate();
-    await mspSetup.createStream(
-      "test_stream",
-      nowBn.toNumber(), // startUtc
-      100_000_000,      // rateAmountUnits
-      1,         // rateIntervalInSeconds
-      100_000_000,      // allocationAssignedUnits
-      0,                // cliffVestAmountUnits
-      0,                // cliffVestPercent
-
-      treasurerKeypair, // initializerKeypair
-      beneficiary,      // beneficiary
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(), // startUtc
+      rateAmountUnits: 100_000_000,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 100_000_000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary, // beneficiary
       streamKeypair,
-      undefined,
-      undefined,
-      true,             // feePayedByTreasurer
-    );
+      feePayedByTreasurer: true
+    });
 
     const preState = await mspSetup.getMspWorldState();
-    expect(preState.treasuryAccount!.lastKnownBalanceUnits.toNumber())
-      .eq(199_750_000);
-    expect(preState.treasuryAccount!.allocationAssignedUnits.toNumber())
-      .eq(100_000_000);
+    expect(preState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(199_750_000);
+    expect(preState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(100_000_000);
     const preStream = await program.account.stream.fetch(streamKeypair.publicKey);
-    expect(preStream.allocationAssignedUnits.toNumber())
-      .eq(100_000_000);
-
+    expect(preStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
 
     // WITHDRAW
     await sleep(2000);
     await mspSetup.withdraw(100_000_000, beneficiaryKeypair, beneficiary, beneficiaryFrom, streamKeypair.publicKey);
 
-
     const postState = await mspSetup.getMspWorldState();
-    expect(postState.treasuryAccount!.lastKnownBalanceUnits.toNumber())
-      .eq(99_750_000);
-    expect(postState.treasuryAccount!.allocationAssignedUnits.toNumber())
-      .eq(0);
+    expect(postState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(99_750_000);
+    expect(postState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(0);
 
     const postTreasuryFrom = await mspSetup.getTokenAccountBalance(mspSetup.treasuryFrom);
     const postTreasuryFromAtaAmount = new BN(postTreasuryFrom!.amount);
-    expect(postTreasuryFromAtaAmount.toNumber())
-      .eq(99_750_000);
+    expect(postTreasuryFromAtaAmount.toNumber()).eq(99_750_000);
 
     const postStream = await program.account.stream.fetch(streamKeypair.publicKey);
-    expect(postStream.allocationAssignedUnits.toNumber())
-      .eq(100_000_000);
-    expect(postStream.totalWithdrawalsUnits.toNumber())
-      .eq(100_000_000);
-    
+    expect(postStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
+    expect(postStream.totalWithdrawalsUnits.toNumber()).eq(100_000_000);
+
     const postBeneficiaryFrom = await mspSetup.getTokenAccountBalance(beneficiaryFrom);
     const postBeneficiaryFromAtaAmount = new BN(postBeneficiaryFrom!.amount);
-    expect(postBeneficiaryFromAtaAmount.toNumber())
-      .eq(100_000_000,
-      "incorrect beneficiary token amount after withdraw"
+    expect(postBeneficiaryFromAtaAmount.toNumber()).eq(
+      100_000_000,
+      'incorrect beneficiary token amount after withdraw'
     );
 
     const postFeesFrom = await mspSetup.getTokenAccountBalance(mspSetup.feesFrom);
@@ -2379,14 +2291,8 @@ describe('msp', () => {
     const withdrawFeeAmountBn = new BN(100_000_000)
       .mul(new BN(MSP_WITHDRAW_FEE_PCT_NUMERATOR))
       .div(new BN(MSP_FEE_PCT_DENOMINATOR));
-    
 
-    expect(postFeesFromAtaAmount.toNumber()).eq(
-      preFeesFromAtaAmount
-        .add(withdrawFeeAmountBn)
-        .toNumber()
-    );
-
+    expect(postFeesFromAtaAmount.toNumber()).eq(preFeesFromAtaAmount.add(withdrawFeeAmountBn).toNumber());
   });
 
   //#endregion
@@ -2491,13 +2397,13 @@ describe('msp', () => {
   //   assert.isNotNull(postStreamOne, "Null postStreamOne after withdraw: ERROR !!!");
   //   assert.isNotNull(postStreamTwo, "Null postStreamTwo after withdraw: ERROR !!!");
 
-  //   let total_allocation_assigned = 
-  //     postStreamOne!.allocationAssignedUnits.toNumber() + 
-  //     postStreamOne!.totalWithdrawalsUnits.toNumber() + 
-  //     postStreamTwo!.allocationAssignedUnits.toNumber() + 
+  //   let total_allocation_assigned =
+  //     postStreamOne!.allocationAssignedUnits.toNumber() +
+  //     postStreamOne!.totalWithdrawalsUnits.toNumber() +
+  //     postStreamTwo!.allocationAssignedUnits.toNumber() +
   //     postStreamTwo!.totalWithdrawalsUnits.toNumber();
 
-  //   let total_withdrawals_units = 
+  //   let total_withdrawals_units =
   //     postStreamOne!.totalWithdrawalsUnits.toNumber() +
   //     postStreamTwo!.totalWithdrawalsUnits.toNumber();
 
@@ -2506,7 +2412,6 @@ describe('msp', () => {
   //     total_withdrawals_units,
   //     2
   //   );
-    
 
   // });
 
@@ -2608,13 +2513,13 @@ describe('msp', () => {
   //   assert.isNotNull(postStreamOne, "Null postStreamOne after withdraw: ERROR !!!");
   //   assert.isNotNull(postStreamTwo, "Null postStreamTwo after withdraw: ERROR !!!");
 
-  //   let total_allocation_assigned = 
-  //     postStreamOne!.allocationAssignedUnits.toNumber() + 
-  //     postStreamOne!.totalWithdrawalsUnits.toNumber() + 
-  //     postStreamTwo!.allocationAssignedUnits.toNumber() + 
+  //   let total_allocation_assigned =
+  //     postStreamOne!.allocationAssignedUnits.toNumber() +
+  //     postStreamOne!.totalWithdrawalsUnits.toNumber() +
+  //     postStreamTwo!.allocationAssignedUnits.toNumber() +
   //     postStreamTwo!.totalWithdrawalsUnits.toNumber();
 
-  //   let total_withdrawals_units = 
+  //   let total_withdrawals_units =
   //     postStreamOne!.totalWithdrawalsUnits.toNumber() +
   //     postStreamTwo!.totalWithdrawalsUnits.toNumber();
 
@@ -2629,12 +2534,11 @@ describe('msp', () => {
   //     expect(error.code).eq(6041);
   //     expect(error.msg).eq('Treasury allocation can not be greater than treasury balance');
   //     return true;
-  //   });    
+  //   });
 
   // });
 
   //#endregion
-
 });
 
 function parseStreamEvent(elapsed: number, action: string, event: StreamEvent): ParsedStreamEvent {
@@ -2657,30 +2561,30 @@ function parseStreamEvent(elapsed: number, action: string, event: StreamEvent): 
     est_depletion_ts: event.estDepletionTime.toNumber(),
     last_auto_stop_ts: event.lastAutoStopBlockTime.toNumber(),
     last_known_seconds_paused: event.lastKnownTotalSecondsInPausedStatus.toNumber(),
-    last_manual_resume_remaining_allocation_snap: event.lastManualResumeRemainingAllocationUnitsSnap.toNumber(),
+    last_manual_resume_remaining_allocation_snap: event.lastManualResumeRemainingAllocationUnitsSnap.toNumber()
     // post_allocation: number,
   };
 }
 
-type ParsedStreamEvent = { 
-  elapsed: number,
-  started_ts: number,
-  action: string,
-  current_ts: number,
-  allocation: number,
-  rate_units: number,
-  rate_interval: number,
-  cliff: number,
-  status: string,
-  streamed: number,
-  missed_while_paused: number,
-  non_stop_earnings: number,
-  entitled_earnings: number,
-  total_withdrawals: number,
-  withdrawable: number,
-  est_depletion_ts: number,
-  last_auto_stop_ts: number,
-  last_known_seconds_paused: number,
-  last_manual_resume_remaining_allocation_snap: number,
+type ParsedStreamEvent = {
+  elapsed: number;
+  started_ts: number;
+  action: string;
+  current_ts: number;
+  allocation: number;
+  rate_units: number;
+  rate_interval: number;
+  cliff: number;
+  status: string;
+  streamed: number;
+  missed_while_paused: number;
+  non_stop_earnings: number;
+  entitled_earnings: number;
+  total_withdrawals: number;
+  withdrawable: number;
+  est_depletion_ts: number;
+  last_auto_stop_ts: number;
+  last_known_seconds_paused: number;
+  last_manual_resume_remaining_allocation_snap: number;
   // post_allocation: number,
 };

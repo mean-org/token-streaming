@@ -1,9 +1,9 @@
-import camelCase from "camelcase";
-import * as toml from "toml";
-import { PublicKey } from "@solana/web3.js";
-import { Program } from "@project-serum/anchor/dist/cjs/program";
-import { Idl } from "@project-serum/anchor/dist/cjs/idl";
-import { isBrowser } from "@project-serum/anchor/dist/cjs/utils/common";
+import camelCase from 'camelcase';
+import * as toml from 'toml';
+import { PublicKey } from '@solana/web3.js';
+import { Program } from '@project-serum/anchor/dist/cjs/program';
+import { Idl } from '@project-serum/anchor/dist/cjs/idl';
+import { isBrowser } from '@project-serum/anchor/dist/cjs/utils/common';
 
 let _populatedWorkspace = false;
 
@@ -15,24 +15,27 @@ let _populatedWorkspace = false;
  * This API is for Node only.
  */
 export function getWorkspace() {
-
-  const workspace = new Proxy({} as any, {
+  const workspace = new Proxy({}, {
     get(workspaceCache: { [key: string]: Program }, programName: string) {
       if (isBrowser) {
         console.log("Workspaces aren't available in the browser");
         return undefined;
       }
 
-      const fs = require("fs");
-      const process = require("process");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const fs = require('fs');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const process = require('process');
 
       // console.log(`_populatedWorkspace: ${_populatedWorkspace}`);
-      
+
+      // eslint-disable-next-line no-constant-condition
       if (!_populatedWorkspace || true) {
-        const path = require("path");
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const path = require('path');
 
         let projectRoot = process.cwd();
-        while (!fs.existsSync(path.join(projectRoot, "Anchor.toml"))) {
+        while (!fs.existsSync(path.join(projectRoot, 'Anchor.toml'))) {
           const parentDir = path.dirname(projectRoot);
           if (parentDir === projectRoot) {
             projectRoot = undefined;
@@ -41,55 +44,43 @@ export function getWorkspace() {
         }
 
         if (projectRoot === undefined) {
-          throw new Error("Could not find workspace root.");
+          throw new Error('Could not find workspace root.');
         }
 
         const idlFolder = `${projectRoot}/target/idl`;
         if (!fs.existsSync(idlFolder)) {
-          throw new Error(
-            `${idlFolder} doesn't exist. Did you use "anchor build"?`
-          );
+          throw new Error(`${idlFolder} doesn't exist. Did you use "anchor build"?`);
         }
 
         const idlMap = new Map<string, Idl>();
         fs.readdirSync(idlFolder)
-          .filter((file) => file.endsWith(".json"))
-          .forEach((file) => {
+          .filter((file: string) => file.endsWith('.json'))
+          .forEach((file: string) => {
             const filePath = `${idlFolder}/${file}`;
             const idlStr = fs.readFileSync(filePath);
             const idl = JSON.parse(idlStr);
             idlMap.set(idl.name, idl);
             const name = camelCase(idl.name, { pascalCase: true });
             if (idl.metadata && idl.metadata.address) {
-              workspaceCache[name] = new Program(
-                idl,
-                new PublicKey(idl.metadata.address)
-              );
+              workspaceCache[name] = new Program(idl, new PublicKey(idl.metadata.address));
             }
           });
-  
+
         // Override the workspace programs if the user put them in the config.
-        const anchorToml = toml.parse(
-          fs.readFileSync(path.join(projectRoot, "Anchor.toml"), "utf-8")
-        );
+        const anchorToml = toml.parse(fs.readFileSync(path.join(projectRoot, 'Anchor.toml'), 'utf-8'));
         const clusterId = anchorToml.provider.cluster;
         if (anchorToml.programs && anchorToml.programs[clusterId]) {
-          attachWorkspaceOverride(
-            workspaceCache,
-            anchorToml.programs[clusterId],
-            idlMap
-          );
+          attachWorkspaceOverride(workspaceCache, anchorToml.programs[clusterId], idlMap);
         }
 
         _populatedWorkspace = true;
       }
-  
+
       return workspaceCache[programName];
-    },
+    }
   });
 
-return workspace;
-
+  return workspace;
 }
 
 function attachWorkspaceOverride(
@@ -100,12 +91,11 @@ function attachWorkspaceOverride(
   Object.keys(overrideConfig).forEach((programName) => {
     const wsProgramName = camelCase(programName, { pascalCase: true });
     const entry = overrideConfig[programName];
-    const overrideAddress = new PublicKey(
-      typeof entry === "string" ? entry : entry.address
-    );
+    const overrideAddress = new PublicKey(typeof entry === 'string' ? entry : entry.address);
     let idl = idlMap.get(programName);
-    if (typeof entry !== "string" && entry.idl) {
-      idl = JSON.parse(require("fs").readFileSync(entry.idl, "utf-8"));
+    if (typeof entry !== 'string' && entry.idl) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      idl = JSON.parse(require('fs').readFileSync(entry.idl, 'utf-8'));
     }
     if (!idl) {
       throw new Error(`Error loading workspace IDL for ${programName}`);
