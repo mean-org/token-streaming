@@ -36,6 +36,7 @@ import {
   MSP_FEE_PCT_DENOMINATOR,
   StreamEvent,
   expectAnchorError,
+  LATEST_IDL_FILE_VERSION,
 } from './setup';
 
 describe('msp', () => {
@@ -1243,7 +1244,8 @@ describe('msp', () => {
     await sleep(3_000);
     await mspSetup.pauseStream(streamKeypair.publicKey, treasurerKeypair.publicKey, treasurerKeypair);
     
-    const preStreamEventResponse = await mspSetup.program.simulate.getStream({
+    const preStreamEventResponse = await mspSetup.program.simulate.getStream(LATEST_IDL_FILE_VERSION,
+      {
       accounts: { stream: streamKeypair.publicKey }
     });
     const preStateStream = preStreamEventResponse.events[0].data;

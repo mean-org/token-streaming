@@ -19,6 +19,7 @@ pub mod maintenance_authority {
 /// Create Treasury
 #[derive(Accounts, Clone)]
 #[instruction(
+    idl_file_version: u8,
     slot: u64,
 )]
 pub struct CreateTreasuryAccounts<'info> {
@@ -31,7 +32,8 @@ pub struct CreateTreasuryAccounts<'info> {
         payer = payer,
         seeds = [treasurer.key().as_ref(), &slot.to_le_bytes()],
         bump,
-        space = 300
+        space = 300,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -68,6 +70,7 @@ pub struct CreateTreasuryAccounts<'info> {
 /// Create Stream
 #[derive(Accounts, Clone)]
 #[instruction(
+    idl_file_version: u8,
     name: String,
     start_utc: u64,
     rate_amount_units: u64,
@@ -89,7 +92,8 @@ pub struct CreateStreamAccounts<'info> {
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
-        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -134,14 +138,17 @@ pub struct CreateStreamAccounts<'info> {
 
 /// Withdraw
 #[derive(Accounts)]
-#[instruction(amount: u64)]
+#[instruction(
+    idl_file_version: u8,
+    amount: u64,
+)]
 pub struct WithdrawAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
         mut,
         constraint = amount > 0 @ ErrorCode::ZeroWithdrawalAmount,
-        constraint = beneficiary.key() == stream.beneficiary_address @ ErrorCode::InvalidBeneficiary
+        constraint = beneficiary.key() == stream.beneficiary_address @ ErrorCode::InvalidBeneficiary,
     )]
     pub beneficiary: Signer<'info>,
     #[account(
@@ -179,6 +186,7 @@ pub struct WithdrawAccounts<'info> {
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -201,6 +209,7 @@ pub struct WithdrawAccounts<'info> {
 
 /// Pause or Resume Stream
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct PauseOrResumeStreamAccounts<'info> {
     #[account(
         constraint = (
@@ -214,7 +223,8 @@ pub struct PauseOrResumeStreamAccounts<'info> {
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
-        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -239,6 +249,7 @@ pub struct PauseOrResumeStreamAccounts<'info> {
 
 /// Refresh Treasury Data
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct RefreshTreasuryDataAccounts<'info> {
     #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::InvalidTreasurer)]
     pub treasurer: Signer<'info>,
@@ -252,6 +263,7 @@ pub struct RefreshTreasuryDataAccounts<'info> {
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -264,7 +276,10 @@ pub struct RefreshTreasuryDataAccounts<'info> {
 
 /// Transfer Stream
 #[derive(Accounts)]
-#[instruction(new_beneficiary: Pubkey)]
+#[instruction(
+    idl_file_version: u8,
+    new_beneficiary: Pubkey,
+)]
 pub struct TransferStreamAccounts<'info> {
     #[account(
         mut,
@@ -275,7 +290,8 @@ pub struct TransferStreamAccounts<'info> {
         mut,
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
-        constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize
+        constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -299,6 +315,7 @@ pub struct GetStreamAccounts<'info> {
 
 #[derive(Accounts)]
 #[instruction(
+    idl_file_version: u8,
     amount: u64,
 )]
 pub struct AddFundsAccounts<'info> {
@@ -332,6 +349,7 @@ pub struct AddFundsAccounts<'info> {
             treasury.associated_token_address == Pubkey::default() ||
             treasury.associated_token_address == associated_token.key()
         ) @ ErrorCode::InvalidAssociatedToken,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -368,6 +386,7 @@ pub struct AddFundsAccounts<'info> {
 
 #[derive(Accounts)]
 #[instruction(
+    idl_file_version: u8,
     amount: u64,
 )]
 pub struct AllocateAccounts<'info> {
@@ -386,6 +405,7 @@ pub struct AllocateAccounts<'info> {
         constraint = treasury.associated_token_address == associated_token.key() @ ErrorCode::InvalidAssociatedToken,
         constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::AllocateNotAllowedOnLockedStreams,
         constraint = treasury.treasurer_address == treasurer.key() @ ErrorCode::InvalidTreasurer,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -430,6 +450,7 @@ pub struct AllocateAccounts<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct CloseStreamAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -465,7 +486,8 @@ pub struct CloseStreamAccounts<'info> {
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
-        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -505,6 +527,7 @@ pub struct CloseStreamAccounts<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct CloseTreasuryAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -545,6 +568,7 @@ pub struct CloseTreasuryAccounts<'info> {
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
         constraint = treasury.total_streams == 0 @ ErrorCode::TreasuryContainsStreams,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -613,7 +637,10 @@ pub struct CloseTreasuryAccounts<'info> {
 
 
 #[derive(Accounts)]
-#[instruction(amount: u64)]
+#[instruction(
+    idl_file_version: u8,
+    amount: u64,
+)]
 pub struct TreasuryWithdrawAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -644,6 +671,7 @@ pub struct TreasuryWithdrawAccounts<'info> {
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
         constraint = amount > 0 @ ErrorCode::InvalidWithdrawalAmount,
         constraint = treasury.last_known_unallocated_balance()? >= amount @ ErrorCode::InsufficientTreasuryBalance,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(

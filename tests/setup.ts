@@ -40,6 +40,8 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
+export const LATEST_IDL_FILE_VERSION = 1;
+
 const process = require("process");
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
@@ -270,6 +272,7 @@ export class MspSetup {
     const preTreasurerLamports = preTreasurerAccountInfo!.lamports;
 
     const txId = await this.program.methods.createTreasury(
+      LATEST_IDL_FILE_VERSION,
       this.slot,
       this.name,
       this.treasuryType,
@@ -716,6 +719,7 @@ export class MspSetup {
     let treasurerTokenPreBalanceBn = new BN(parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || "0"));
 
     let txId = await this.program.methods.createStream(
+      LATEST_IDL_FILE_VERSION,
       name,
       new BN(startTs),
       new BN(rateAmountUnits),
@@ -918,7 +922,7 @@ export class MspSetup {
 
     const amountBn = new BN(amount);
 
-    const txId = await program.methods.withdraw(amountBn)
+    const txId = await program.methods.withdraw(LATEST_IDL_FILE_VERSION, amountBn)
       .accounts({
         payer: beneficiary,
         beneficiary: beneficiary,
@@ -1288,7 +1292,8 @@ export class MspSetup {
 
     await logGetStreamTx(program, stream);
 
-    const streamEventResponse = await program.simulate.getStream({
+    const streamEventResponse = await program.simulate.getStream(LATEST_IDL_FILE_VERSION,
+      {
       accounts: {
         stream: stream
       }
@@ -1383,7 +1388,7 @@ export class MspSetup {
     console.log(`current beneficiary: ${beneficiary}`);
     console.log(`new beneficiary:     ${newBeneficiary}`);
     
-    const txId = await this.program.methods.transferStream(newBeneficiary)
+    const txId = await this.program.methods.transferStream(LATEST_IDL_FILE_VERSION, newBeneficiary)
       .accounts({
         beneficiary: beneficiary,
         stream: stream,
@@ -1436,7 +1441,8 @@ export class MspSetup {
     const ixName = "PAUSE STREAM";
     logStart(ixName);
 
-    const preStreamEventResponse = await this.program.simulate.getStream({
+    const preStreamEventResponse = await this.program.simulate.getStream(LATEST_IDL_FILE_VERSION,
+      {
       accounts: { stream: stream }
     });
 
@@ -1448,7 +1454,7 @@ export class MspSetup {
     const preStateStream = preStreamEventResponse.events[0].data;
     assert.isNotNull(preStateStream, 'pre-state stream was not found');
 
-    const txId = await this.program.methods.pauseStream()
+    const txId = await this.program.methods.pauseStream(LATEST_IDL_FILE_VERSION)
       .accounts({
         initializer: initializer,
         treasury: preStateStream.treasuryAddress,
@@ -1466,7 +1472,8 @@ export class MspSetup {
       )
     );
 
-    const postStreamEventResponse = await this.program.simulate.getStream({
+    const postStreamEventResponse = await this.program.simulate.getStream(LATEST_IDL_FILE_VERSION,
+      {
       accounts: { stream: stream }
     });
 
@@ -1593,7 +1600,8 @@ export class MspSetup {
     const ixName = "RESUME STREAM";
     logStart(ixName);
 
-    const preStreamEventResponse = await this.program.simulate.getStream({
+    const preStreamEventResponse = await this.program.simulate.getStream(LATEST_IDL_FILE_VERSION,
+      {
       accounts: { stream: stream }
     });
 
@@ -1605,7 +1613,7 @@ export class MspSetup {
     const preStateStream = preStreamEventResponse.events[0].data;
     assert.isNotNull(preStateStream, 'pre-state stream was not found');
 
-    const txId = await this.program.methods.resumeStream()
+    const txId = await this.program.methods.resumeStream(LATEST_IDL_FILE_VERSION)
       .accounts({
         initializer: initializer,
         treasury: preStateStream.treasuryAddress,
@@ -1623,7 +1631,8 @@ export class MspSetup {
       )
     );
 
-    const postStreamEventResponse = await this.program.simulate.getStream({
+    const postStreamEventResponse = await this.program.simulate.getStream(LATEST_IDL_FILE_VERSION,
+      {
       accounts: { stream: stream }
     });
 
@@ -1728,7 +1737,7 @@ export class MspSetup {
     signers = signers ?? [this.treasurerKeypair];
 
 
-    const txId = await this.program.methods.refreshTreasuryData(new BN(totalStreams))
+    const txId = await this.program.methods.refreshTreasuryData(LATEST_IDL_FILE_VERSION, new BN(totalStreams))
       .accounts({
         treasurer: treasurer,
         associatedToken: this.fromMint,
@@ -1780,7 +1789,7 @@ export class MspSetup {
     console.log(`treasury:               ${this.treasury}`);
     console.log(`treasuryAssociatedMint: ${this.fromMint}`);
 
-    const txId = await this.program.methods.addFunds(amountBn)
+    const txId = await this.program.methods.addFunds(LATEST_IDL_FILE_VERSION, amountBn)
       .accounts({
         payer: contributorKeypair.publicKey,
         contributor: contributorKeypair.publicKey,
@@ -1883,7 +1892,7 @@ export class MspSetup {
     console.log(`treasury:               ${this.treasury}`);
     console.log(`treasuryAssociatedMint: ${this.fromMint}`);
     
-    const txId = await this.program.methods.allocate(amountBn)
+    const txId = await this.program.methods.allocate(LATEST_IDL_FILE_VERSION, amountBn)
       .accounts({
         payer: this.treasurerKeypair.publicKey,
         treasurer: this.treasurerKeypair.publicKey,
@@ -1981,7 +1990,7 @@ export class MspSetup {
     const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
     const preTreasurerLamports = preTreasurerAccountInfo!.lamports;
 
-    const txId = await treasurerSignerProgram.methods.closeTreasury()
+    const txId = await treasurerSignerProgram.methods.closeTreasury(LATEST_IDL_FILE_VERSION)
       .accounts({
         payer: treasurer,
         treasurer: treasurer,
@@ -2073,7 +2082,7 @@ export class MspSetup {
 
     const treasurerTreasuryMintTokenAccount = await this.findTreasuryLpTokenAccountAddress(treasurer);
 
-    const txId = await this.program.methods.closeStream()
+    const txId = await this.program.methods.closeStream(LATEST_IDL_FILE_VERSION)
       .accounts({
         payer: treasurer,
         treasurer: treasurer,
@@ -2268,6 +2277,7 @@ export class MspSetup {
     signers = signers ?? [this.payer];
 
     const txId = await this.program.methods.updateTreasuryData(
+      LATEST_IDL_FILE_VERSION, 
       new BN(totalAllocationAssigned),
       new BN(totalWithdrawalsUnits),
       new BN(numberOfStreams),
@@ -2305,7 +2315,7 @@ export class MspSetup {
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
 
-    const txId = await this.program.methods.treasuryWithdraw(new BN(amount))
+    const txId = await this.program.methods.treasuryWithdraw(LATEST_IDL_FILE_VERSION, new BN(amount))
       .accounts({
         payer: treasurer,
         treasurer: treasurer,
@@ -2691,7 +2701,7 @@ async function logGetStreamTx(program: Program<Msp>,
   stream: PublicKey,
 ) {
 
-  const tx = program.transaction.getStream(
+  const tx = program.transaction.getStream(LATEST_IDL_FILE_VERSION,
     {
       accounts: {
         stream: stream,
