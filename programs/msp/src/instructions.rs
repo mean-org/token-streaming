@@ -1,13 +1,13 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::*;
 use anchor_spl::associated_token::*;
+use anchor_spl::token::*;
 
 use crate::constants::*;
+use crate::enums::*;
 use crate::errors::ErrorCode;
-use crate::treasury::*;
 use crate::stream::*;
 use crate::template::*;
-use crate::enums::*;
+use crate::treasury::*;
 
 pub mod fee_treasury {
     anchor_lang::declare_id!("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw");
@@ -56,7 +56,7 @@ pub struct CreateTreasuryAccounts<'info> {
     pub associated_token: Box<Account<'info, Mint>>,
 
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -116,7 +116,7 @@ pub struct CreateStreamAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -208,7 +208,7 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
     pub associated_token: Box<Account<'info, Mint>>,
     #[account(constraint = beneficiary.key() != treasurer.key() @ ErrorCode::InvalidBeneficiary)]
     pub beneficiary: SystemAccount<'info>,
-    
+
     #[account(
         seeds = [b"template", treasury.key().as_ref()],
         bump = template.bump,
@@ -225,7 +225,7 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
     )]
     pub stream: Box<Account<'info, Stream>>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -292,7 +292,7 @@ pub struct WithdrawAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -342,10 +342,8 @@ pub struct PauseOrResumeStreamAccounts<'info> {
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
         constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed
     )]
-    pub stream: Account<'info, Stream>
+    pub stream: Account<'info, Stream>,
 }
-
-
 
 /// Refresh Treasury Data
 #[derive(Accounts)]
@@ -369,7 +367,7 @@ pub struct RefreshTreasuryDataAccounts<'info> {
         associated_token::mint = associated_token,
         associated_token::authority = treasury
     )]
-    pub treasury_token: Account<'info, TokenAccount>
+    pub treasury_token: Account<'info, TokenAccount>,
 }
 
 /// Transfer Stream
@@ -389,7 +387,7 @@ pub struct TransferStreamAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -404,7 +402,7 @@ pub struct GetStreamAccounts<'info> {
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize
     )]
-    pub stream: Account<'info, Stream>
+    pub stream: Account<'info, Stream>,
 }
 
 #[derive(Accounts)]
@@ -512,7 +510,7 @@ pub struct AllocateAccounts<'info> {
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
         constraint = (
-            treasury.treasury_type != TREASURY_TYPE_LOCKED || 
+            treasury.treasury_type != TREASURY_TYPE_LOCKED ||
             stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused // TODO: Review
         ) @ ErrorCode::CloseLockedStreamNotAllowedWhileRunning,
 
@@ -546,7 +544,7 @@ pub struct CloseStreamAccounts<'info> {
     #[account(
         mut,
         constraint = (
-            treasurer.key() == stream.treasurer_address && 
+            treasurer.key() == stream.treasurer_address &&
             treasurer.key() == treasury.treasurer_address
         ) @ ErrorCode::InvalidTreasurer
     )]
@@ -597,7 +595,7 @@ pub struct CloseStreamAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -671,7 +669,7 @@ pub struct CloseTreasuryAccounts<'info> {
     )]
     pub treasury_mint: Box<Account<'info, Mint>>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -695,7 +693,7 @@ pub struct CloseTreasuryAccounts<'info> {
 // )]
 // pub struct UpdateTreasuryDataAccounts<'info> {
 //     #[account(
-//         mut, 
+//         mut,
 //         address = maintenance_authority::ID @ ErrorCode::NotAuthorized
 //     )]
 //     pub authority: Signer<'info>,
@@ -720,7 +718,6 @@ pub struct CloseTreasuryAccounts<'info> {
 //     )]
 //     pub treasury_token: Account<'info, TokenAccount>
 // }
-
 
 #[derive(Accounts)]
 #[instruction(amount: u64)]
@@ -763,7 +760,7 @@ pub struct TreasuryWithdrawAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,

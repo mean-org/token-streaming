@@ -67,7 +67,9 @@ pub enum ErrorCode {
     CloseLockedStreamNotAllowedWhileRunning,
     #[msg("Streams in a Locked treasury can not be paused or resumed")]
     PauseOrResumeLockedStreamNotAllowed,
-    #[msg("Can not pause a stream if the reserved allocation is greater than the withdrawable amount")]
+    #[msg(
+        "Can not pause a stream if the reserved allocation is greater than the withdrawable amount"
+    )]
     ReservedAllocationExceedWithdrawableAmount,
     #[msg("Can not allocate funds to a stream from a locked treasury")]
     AllocateNotAllowedOnLockedStreams,
@@ -91,5 +93,5 @@ pub enum ErrorCode {
     #[msg("Invalid template version")]
     InvalidTemplateVersion,
     #[msg("Invalid template size")]
-    InvalidTemplateSize
+    InvalidTemplateSize,
 }

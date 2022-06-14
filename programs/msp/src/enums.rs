@@ -2,7 +2,7 @@
 pub enum StreamStatus {
     Scheduled = 0,
     Running = 1,
-    Paused = 2
+    Paused = 2,
 }
 
 #[derive(Debug, PartialEq)]
