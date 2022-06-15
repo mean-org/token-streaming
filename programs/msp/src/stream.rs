@@ -14,11 +14,11 @@ pub struct Stream {
     pub rate_interval_in_seconds: u64,
     /// The start timestamp in seconds
     pub start_utc: u64,
-    /// The amount availaible to withdraw inmidiately (without streaming) 
+    /// The amount availaible to withdraw inmidiately (without streaming)
     /// once the money stream starts.
     /// If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the former will be used.
     pub cliff_vest_amount_units: u64,
-    /// The percent of the allocation assigned that is availaible to withdraw 
+    /// The percent of the allocation assigned that is availaible to withdraw
     /// inmidiately (without streaming) once the money stream starts.
     /// If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the second (this field) will be used.
     pub cliff_vest_percent: u64, // deprecated
@@ -27,9 +27,9 @@ pub struct Stream {
     pub treasury_address: Pubkey, // offset: 178
     /// Amount of tokens allocated to the stream on creation or top up. If the
     /// treasurer decides to close the stream, the vested amount will be sent
-    /// to the benefifiary and the unvested amount will be sent to the 
+    /// to the benefifiary and the unvested amount will be sent to the
     /// treasurer
-    /// 
+    ///
     /// The allocation assigned will be affected by the following instructions:
     /// `addFunds`
     pub allocation_assigned_units: u64,
@@ -49,11 +49,11 @@ pub struct Stream {
     /// The slot number when the last withdrawal was executed
     pub last_withdrawal_slot: u64,
     /// The blocktime value when the last withdrawal was executed
-    pub last_withdrawal_block_time: u64,    
-    /// How can a stream STOP? -> There are 2 ways: 
-    /// 1) by a Manual Action (recordable when it happens) or 
+    pub last_withdrawal_block_time: u64,
+    /// How can a stream STOP? -> There are 2 ways:
+    /// 1) by a Manual Action (recordable when it happens) or
     /// 2) by Running Out Of Funds (not recordable when it happens, needs to be calculated)
-    pub last_manual_stop_withdrawable_units_snap: u64, 
+    pub last_manual_stop_withdrawable_units_snap: u64,
     pub last_manual_stop_slot: u64,
     pub last_manual_stop_block_time: u64,
     /// The remaining allocation units at the moment of the last manual resume
@@ -61,18 +61,21 @@ pub struct Stream {
     pub last_manual_resume_remaining_allocation_units_snap: u64,
     pub last_manual_resume_slot: u64,
     pub last_manual_resume_block_time: u64,
-    /// The total seconds that have been paused since the start_utc 
+    /// The total seconds that have been paused since the start_utc
     /// increment when resume is called manually
     pub last_known_total_seconds_in_paused_status: u64,
-    /// The last blocktime when the stream was stopped 
+    /// The last blocktime when the stream was stopped
     /// either manually or automaticaly (run out of funds)
     pub last_auto_stop_block_time: u64,
     pub fee_payed_by_treasurer: bool,
     /// The start timestamp blocktime
     pub start_utc_in_seconds: u64,
     /// Unix timestamp (in seconds) when the stream was created
-    pub created_on_utc: u64
-    // total bytes: 339
+    pub created_on_utc: u64,
+    /// Indicates the main product category such as `Vesting(1)`
+    /// The default value is set to a `Default(0)` cateogry.
+    pub category: u8,
+    // total bytes: 340
 }
 
 impl Stream {
@@ -93,7 +96,7 @@ impl Stream {
         Ok(cliff_units)
     }
 
-    /// calculate effective cliff units as an absolute amount and store it in 
+    /// calculate effective cliff units as an absolute amount and store it in
     /// the stream since we will not store the cliff %
     pub fn save_effective_cliff<'info>(&mut self) {
         let cliff_units = if self.cliff_vest_percent > 0 {
@@ -123,9 +126,9 @@ impl Stream {
     }
 
     /// Calculates the amount of units streamed units during the given seconds
-    /// 
-    /// This takes into account if there are enough remaining allocated 
-    /// units to fully stream for this number of seconds. 
+    ///
+    /// This takes into account if there are enough remaining allocated
+    /// units to fully stream for this number of seconds.
     /// Also, the returned value does not include cliff.
     pub fn primitive_get_streamed_units<'info>(&self, seconds: u64) -> Result<u64> {
         if self.rate_interval_in_seconds == 0 {
@@ -150,7 +153,7 @@ impl Stream {
             .checked_mul(seconds).unwrap()
             .checked_div(self.rate_interval_in_seconds)
             .ok_or(ErrorCode::Overflow)?;
-        
+
         Ok(streamable_units_in_given_seconds)
     }
 
@@ -162,7 +165,7 @@ impl Stream {
         if start_utc_seconds > timestamp {
             return Ok(StreamStatus::Scheduled);
         }
-          
+
         // manually paused
         let is_manual_pause = self.primitive_is_manually_paused();
         if is_manual_pause {
@@ -191,7 +194,7 @@ impl Stream {
             .ok_or(ErrorCode::Overflow)?;
 
         assert!(
-            non_stop_earning_units >= missed_earning_units_while_paused, 
+            non_stop_earning_units >= missed_earning_units_while_paused,
             "earned vs missed units invariant violated"
         );
         // running
@@ -203,10 +206,10 @@ impl Stream {
         Ok(StreamStatus::Paused)
     }
 
-    /// Calculates the stream estimated depletion blocktime. The calculation 
-    /// has into account the periods of time in which the stream was in 
+    /// Calculates the stream estimated depletion blocktime. The calculation
+    /// has into account the periods of time in which the stream was in
     /// paused status.
-    pub fn get_est_depletion_blocktime(&self) -> Result<u64> {   
+    pub fn get_est_depletion_blocktime(&self) -> Result<u64> {
 
         let clock = Clock::get()?;
         msg!("clock: {0}", clock.unix_timestamp);
@@ -239,7 +242,7 @@ impl Stream {
         let withdrawable = self.get_beneficiary_withdrawable_amount(timestamp)?;
         let funds_sent = self.total_withdrawals_units
             .checked_add(withdrawable)
-            .ok_or(ErrorCode::Overflow)?;            
+            .ok_or(ErrorCode::Overflow)?;
         Ok(funds_sent)
     }
 
@@ -297,7 +300,7 @@ impl Stream {
             };
             return Ok(withdrawable_while_paused);
         }
-        
+
         // Check if RUNNING
         if self.rate_interval_in_seconds == 0 || self.rate_amount_units == 0 {
             return Err(ErrorCode::InvalidArgument.into());
@@ -316,7 +319,7 @@ impl Stream {
             .ok_or(ErrorCode::Overflow)?;
 
         #[cfg(feature="test")]
-        msg!("seconds_since_start: {0}, cliff_units: {1}, start_utc_seconds: {2}, actual_streamed_seconds: {3}, actual_earned_units: {4}, total_withdrawals_units: {5}", 
+        msg!("seconds_since_start: {0}, cliff_units: {1}, start_utc_seconds: {2}, actual_streamed_seconds: {3}, actual_earned_units: {4}, total_withdrawals_units: {5}",
         seconds_since_start, cliff_units, start_utc_seconds, actual_streamed_seconds, actual_earned_units, self.total_withdrawals_units);
 
         // assert!(
@@ -345,7 +348,7 @@ impl Stream {
 
         Ok(withdrawable)
     }
-    
+
     /// Gets the start utc seconds amount
     pub fn get_start_utc(&self) -> Result<u64> {
         if self.start_utc_in_seconds > 0 {

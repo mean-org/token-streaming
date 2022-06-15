@@ -15,7 +15,8 @@ import {
   TREASURY_TYPE_OPEN,
   TREASURY_TYPE_LOCKED,
   TREASURY_POOL_MINT_DECIMALS,
-  expectAnchorError
+  expectAnchorError,
+  Category
 } from './setup';
 
 describe('msp', () => {
@@ -416,5 +417,55 @@ describe('msp', () => {
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
+  });
+
+  it('create treasury with categories -> add funds -> create stream (fee payer = treasurer)', async () => {
+    const category = Category.vesting;
+
+    const treasurerKeypair = Keypair.generate();
+
+    const mspSetup = await createMspSetup({
+      fromTokenClient,
+      treasurerKeypair,
+      name: 'test_treasury',
+      treasuryType: TREASURY_TYPE_OPEN,
+      autoClose: false,
+      treasurerFromInitialBalance: 1000_000_000,
+      treasurerLamports: 1_000_000_000
+    });
+
+    await mspSetup.createTreasury({
+      category: category
+    });
+
+    await mspSetup.addFunds({ amount: 100_000_000 });
+
+    const nowTs = Date.now() / 1000;
+    const nowBn = new anchor.BN(nowTs);
+    console.log('nowTs:', nowTs);
+
+    const beneficiaryKeypair = Keypair.generate();
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      'confirmed'
+    );
+
+    const streamKeypair = Keypair.generate();
+
+    await mspSetup.createStream({
+      name: 'test_stream',
+      startTs: nowBn.toNumber(),
+      rateAmountUnits: 10,
+      rateIntervalInSeconds: 1,
+      allocationAssignedUnits: 1000,
+      cliffVestAmountUnits: 0,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair,
+      feePayedByTreasurer: true
+    });
+
+    await mspSetup.filterStreamByCategory(category, streamKeypair.publicKey);
   });
 });

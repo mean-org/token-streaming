@@ -236,7 +236,8 @@ export class MspSetup {
     treasuryLpMint,
     treasury,
     treasuryBump,
-    solFeePayedByTreasury
+    solFeePayedByTreasury,
+    category
   }: {
     treasurer?: PublicKey;
     signers?: Keypair[];
@@ -247,6 +248,7 @@ export class MspSetup {
     treasury?: PublicKey;
     treasuryBump?: number;
     solFeePayedByTreasury?: boolean;
+    category?: Category;
   }) {
     console.log('\n\n********** CREATE TREASURY STARTED! **********');
 
@@ -259,6 +261,7 @@ export class MspSetup {
     treasury = treasury ?? this.treasury;
     treasuryBump = treasuryBump ?? this.treasuryBump;
     solFeePayedByTreasury = solFeePayedByTreasury ?? false;
+    category = category ?? Category.default;
 
     const clusterNowTs = await this.program.provider.connection.getBlockTime(this.slot.toNumber());
     const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
@@ -271,7 +274,8 @@ export class MspSetup {
         this.name,
         this.treasuryType,
         this.autoClose,
-        solFeePayedByTreasury
+        solFeePayedByTreasury,
+        { [Category[category]]: {} }
       )
       .accounts({
         payer: treasurer,
@@ -2589,6 +2593,32 @@ export class MspSetup {
     console.log(mapped);
   }
 
+  public async filterStreamByCategory(category: Category, stream: PublicKey) {
+    const num: number = category;
+    const memcmpFilters = [
+      {
+        memcmp: {
+          offset: 339,
+          bytes: bs58.encode(new anchor.BN(num).toBuffer())
+        }
+      }
+    ];
+
+    const configOrCommitment = {
+      filters: [{ dataSize: 500 }, ...memcmpFilters]
+    };
+
+    const accounts = await this.program.provider.connection.getProgramAccounts(
+      this.program.programId,
+      configOrCommitment
+    );
+    const filtered_account = accounts[0];
+    expect(filtered_account.pubkey.equals(stream));
+    const { category: streamCategory } = await this.program.account.stream.fetch(stream);
+
+    expect(streamCategory === (category as number));
+  }
+
   //#endregion
 }
 
@@ -2768,4 +2798,9 @@ export function expectAnchorError(
   if (errorDescription) {
     expect(error.error.errorMessage).eq(errorDescription);
   }
+}
+
+export enum Category {
+  default = 0,
+  vesting = 1
 }

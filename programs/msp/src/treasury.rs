@@ -20,7 +20,7 @@ pub struct Treasury {
     pub last_known_balance_units: u64,
     /// The slot of the last time the treasury balance was updated
     pub last_known_balance_slot: u64,
-    /// The blocktime when the treasury balance was updated  
+    /// The blocktime when the treasury balance was updated
     pub last_known_balance_block_time: u64,
     /// Treasury allocation tracking
     /// The allocation assigned accross all the streams that belong to this treasury
@@ -47,11 +47,14 @@ pub struct Treasury {
     /// lamports balance (when true) or by the `payer` account in the
     /// transaction (when false)
     pub sol_fee_payed_by_treasury: bool,
+    /// Indicates the main product category such as `Vesting(1)`
+    /// The default value is set to a `Default(0)` cateogry.
+    pub category: u8,
 }
 
 impl Treasury {
-    
-    /// Gets the last known unallocated balance as 
+
+    /// Gets the last known unallocated balance as
     /// `last_known_balance_units` - `allocation_assigned_units`
     pub fn last_known_unallocated_balance(&self) -> Result<u64> {
         let result = self.last_known_balance_units

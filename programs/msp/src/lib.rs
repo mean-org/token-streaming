@@ -10,6 +10,7 @@ pub mod instructions;
 pub mod utils;
 pub mod extensions;
 pub mod events;
+pub mod categories;
 
 use crate::enums::*;
 use crate::utils::*;
@@ -17,6 +18,7 @@ use crate::instructions::*;
 use crate::constants::*;
 use crate::errors::ErrorCode;
 use crate::extensions::*;
+pub use categories::*;
 
 declare_id!("MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu");
 
@@ -34,6 +36,7 @@ pub mod msp {
         treasury_type: u8,
         auto_close: bool,
         sol_fee_payed_by_treasury: bool,
+        category: Category,
     ) -> Result<()> {
 
         // Initialize Treasury
@@ -58,6 +61,7 @@ pub mod msp {
         treasury.auto_close = auto_close;
         treasury.initialized = true;
         treasury.sol_fee_payed_by_treasury = sol_fee_payed_by_treasury;
+        treasury.category = category as u8;
 
         // Fee
         transfer_sol_amount(
@@ -99,7 +103,7 @@ pub mod msp {
         let now_ts = clock.unix_timestamp as u64;
 
         let treasury = &mut ctx.accounts.treasury;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, crt_alloc: {4}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, crt_alloc: {4}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, allocation_assigned_units);
 
         let mut treasurer_fee_amount = 0u64;
@@ -152,7 +156,7 @@ pub mod msp {
         stream.last_withdrawal_units = 0;
         stream.last_withdrawal_slot = 0;
         stream.last_withdrawal_block_time = 0;
-        stream.last_manual_stop_withdrawable_units_snap = 0; 
+        stream.last_manual_stop_withdrawable_units_snap = 0;
         stream.last_manual_stop_slot = 0;
         stream.last_manual_stop_block_time = 0;
         stream.last_manual_resume_remaining_allocation_units_snap = 0;
@@ -166,6 +170,9 @@ pub mod msp {
         stream.fee_payed_by_treasurer = fee_payed_by_treasurer;
         stream.initialized = true;
         stream.created_on_utc = now_ts;
+
+        // set categories
+        stream.category = treasury.category;
 
         if start_utc < now_ts {
             stream.start_utc = now_ts;
@@ -183,7 +190,7 @@ pub mod msp {
 
         treasury.total_streams = treasury.total_streams.checked_add(1u64).ok_or(ErrorCode::Overflow)?;
 
-        if treasurer_fee_amount > 0 {           
+        if treasurer_fee_amount > 0 {
             // beneficiary withdraw fee payed by the treasurer
             msg!("tsy{0}tfa", treasurer_fee_amount);
             treasury_transfer(
@@ -220,9 +227,9 @@ pub mod msp {
         }
 
         ctx.accounts.treasury_token.reload()?;
-        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units, 
+        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units,
             "treasury balance units invariant violated");
-        assert!(treasury.allocation_assigned_units >= stream.allocation_assigned_units, 
+        assert!(treasury.allocation_assigned_units >= stream.allocation_assigned_units,
             "treasury vs stream assigned units invariant violated");
 
         Ok(())
@@ -239,14 +246,14 @@ pub mod msp {
 
         let treasury = &mut ctx.accounts.treasury;
         let stream = &mut ctx.accounts.stream;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, stm_alloc: {4}, stm_wdths: {5}, wdth_a: {6}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, stm_alloc: {4}, stm_wdths: {5}, wdth_a: {6}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, stream.allocation_assigned_units, stream.total_withdrawals_units, amount);
-        
+
         let start_utc_seconds = stream.get_start_utc()?;
         if start_utc_seconds > now_ts {
             return Err(ErrorCode::StreamIsScheduled.into());
         }
-                
+
         stream.save_effective_cliff();
 
         let withdrawable_amount = stream.get_beneficiary_withdrawable_amount(now_ts)?;
@@ -261,7 +268,7 @@ pub mod msp {
             user_requested_amount = withdrawable_amount;
         }
 
-        let fee_amount = if stream.fee_payed_by_treasurer 
+        let fee_amount = if stream.fee_payed_by_treasurer
         { 0u64 }
         else {
             WITHDRAW_PERCENT_FEE
@@ -274,7 +281,7 @@ pub mod msp {
             user_requested_amount
                 .checked_sub(fee_amount).ok_or(ErrorCode::Overflow)?
         };
-        
+
         // Transfer from treasury to beneficiary
         msg!("tsy{0}bfy", transfer_amount);
         treasury_transfer(
@@ -304,14 +311,14 @@ pub mod msp {
             .checked_add(user_requested_amount).ok_or(ErrorCode::Overflow)?;
 
         // if the stream was manually paused then deduct the user requested amount
-        // from the `last_manual_stop_withdrawable_units_snap` to update the 
+        // from the `last_manual_stop_withdrawable_units_snap` to update the
         // beneficiary withdrawable amount
         if stream.primitive_is_manually_paused() {
             stream.last_manual_stop_withdrawable_units_snap = stream.last_manual_stop_withdrawable_units_snap
                 .checked_sub(user_requested_amount)
                 .ok_or(ErrorCode::Overflow)?;
         }
-    
+
         // update the start UTC to seconds if it's necesary
         stream.update_start_utc()?;
 
@@ -332,7 +339,7 @@ pub mod msp {
 
         // invariants
         ctx.accounts.treasury_token.reload()?;
-        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units, 
+        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units,
             "treasury balance units invariant violated");
 
         Ok(())
@@ -348,7 +355,7 @@ pub mod msp {
         msg!("clock: {0}", now_ts);
 
         let stream = &mut ctx.accounts.stream;
-                
+
         stream.save_effective_cliff();
 
         let withdrawable_amount = stream.get_beneficiary_withdrawable_amount(now_ts)?;
@@ -363,7 +370,7 @@ pub mod msp {
         stream.last_manual_stop_slot = clock.slot as u64;
         stream.last_manual_stop_block_time = now_ts;
         // update the start UTC to seconds if it's necesary
-        stream.update_start_utc()?;  
+        stream.update_start_utc()?;
 
         Ok(())
     }
@@ -378,7 +385,7 @@ pub mod msp {
         msg!("clock: {0}", now_ts);
 
         let stream = &mut ctx.accounts.stream;
-                
+
         stream.save_effective_cliff();
 
         let stream_status = stream.get_status(now_ts)?;
@@ -394,13 +401,13 @@ pub mod msp {
         }
 
         let last_known_stop_block_time = stream.primitive_get_last_known_stop_block_time();
-        
+
         // the reasoning here is, if the stream was manual-PAUSED, then last_known_stop_block_time
         // must be after stream.last_manual_resume_block_time. Otherwise it was auto-PAUSED.
 
         // MP2 - MR2
         if last_known_stop_block_time <= stream.last_manual_resume_block_time {
-            // This means the last running leg of the money stream was auto-paused because it ran out of money. 
+            // This means the last running leg of the money stream was auto-paused because it ran out of money.
             // We need to find out the moment it ran out of money
 
             // resuming auto-paused stream is not allowed. the way of resuming
@@ -416,8 +423,8 @@ pub mod msp {
 
         // SecondsPaused += S3
         stream.last_known_total_seconds_in_paused_status = stream.last_known_total_seconds_in_paused_status
-            .checked_add(seconds_paused_since_last_stop).ok_or(ErrorCode::Overflow)?; 
-        
+            .checked_add(seconds_paused_since_last_stop).ok_or(ErrorCode::Overflow)?;
+
         // Update stream data (Resume the stream)
         stream.last_manual_resume_remaining_allocation_units_snap = remaining_allocation;
         stream.last_manual_resume_slot = clock.slot as u64;
@@ -443,7 +450,7 @@ pub mod msp {
         treasury.last_known_balance_slot = clock.slot as u64;
         treasury.last_known_balance_block_time = clock.unix_timestamp as u64;
         treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
-            
+
         if treasury.associated_token_address.eq(&Pubkey::default()) {
             treasury.associated_token_address = ctx.accounts.associated_token.key();
         }
@@ -459,7 +466,7 @@ pub mod msp {
     ) -> Result<()> {
 
         let stream = &mut ctx.accounts.stream;
-                
+
         stream.save_effective_cliff();
 
         stream.beneficiary_address = new_beneficiary;
@@ -488,7 +495,7 @@ pub mod msp {
     }
 
     // SPLITTING INSTRUCTIONS
-    
+
     /// Adds funds the treasury
     pub fn add_funds<'info>(
         ctx: Context<AddFundsAccounts>,
@@ -498,9 +505,9 @@ pub mod msp {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         let now_slot = clock.slot as u64;
-        
+
         let treasury = &mut ctx.accounts.treasury;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, add_a: {4}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, add_a: {4}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, amount);
 
         // sol fee
@@ -542,7 +549,7 @@ pub mod msp {
             .checked_add(amount).ok_or(ErrorCode::Overflow)?;
 
         ctx.accounts.treasury_token.reload()?;
-        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units, 
+        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units,
             "treasury balance units invariant violated");
 
         Ok(())
@@ -557,15 +564,15 @@ pub mod msp {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         let now_slot = clock.slot as u64;
-        
+
         let treasury = &mut ctx.accounts.treasury;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, alloc_a: {4}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, alloc_a: {4}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, amount);
-            
+
         let stream = &mut ctx.accounts.stream;
-                
+
         stream.save_effective_cliff();
-        
+
         let fee_amount = if stream.fee_payed_by_treasurer {
            WITHDRAW_PERCENT_FEE
                 .checked_mul(amount).unwrap()
@@ -623,38 +630,38 @@ pub mod msp {
                 .checked_sub(stream.last_auto_stop_block_time).ok_or(ErrorCode::Overflow)?;
 
             // SecondsPaused += S3
-            stream.last_known_total_seconds_in_paused_status = 
+            stream.last_known_total_seconds_in_paused_status =
                 stream.last_known_total_seconds_in_paused_status
                     .checked_add(seconds_paused_since_last_auto_stop)
                     .ok_or(ErrorCode::Overflow)?;
-            
+
             // Update stream data (Resume the stream)
             stream.last_manual_resume_remaining_allocation_units_snap = remaining_allocation;
             stream.last_manual_resume_slot = now_slot;
             stream.last_manual_resume_block_time = now_ts;
 
             #[cfg(feature="test")]
-            msg!("allocate status: auto-paused, est_depletion_time: {0}, remaining_allocation: {1}, last_auto_stop_block_time: {2}, seconds_paused_since_last_auto_stop: {3}, last_known_total_seconds_in_paused_status: {4}", 
+            msg!("allocate status: auto-paused, est_depletion_time: {0}, remaining_allocation: {1}, last_auto_stop_block_time: {2}, seconds_paused_since_last_auto_stop: {3}, last_known_total_seconds_in_paused_status: {4}",
                 est_depletion_time, remaining_allocation, stream.last_auto_stop_block_time, seconds_paused_since_last_auto_stop, stream.last_known_total_seconds_in_paused_status);
         }
 
         stream.allocation_assigned_units = stream.allocation_assigned_units
             .checked_add(amount).ok_or(ErrorCode::Overflow)?;
-        
+
         // update the start UTC to seconds if it's necesary
         stream.update_start_utc()?;
 
         // update treasury
         treasury.allocation_assigned_units = treasury.allocation_assigned_units
             .checked_add(amount).ok_or(ErrorCode::Overflow)?;
-    
+
         treasury.last_known_balance_slot = now_slot;
         treasury.last_known_balance_block_time = now_ts;
         treasury.last_known_balance_units = treasury.last_known_balance_units
             .checked_sub(fee_amount).ok_or(ErrorCode::Overflow)?;
 
         ctx.accounts.treasury_token.reload()?;
-        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units, 
+        assert!(ctx.accounts.treasury_token.amount >= treasury.last_known_balance_units,
             "treasury balance units invariant violated");
 
         Ok(())
@@ -671,14 +678,14 @@ pub mod msp {
 
         let treasury = &mut ctx.accounts.treasury;
         let stream = &mut ctx.accounts.stream;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, stm_alloc: {4}, stm_wdths: {5}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, stm_alloc: {4}, stm_wdths: {5}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, stream.allocation_assigned_units, stream.total_withdrawals_units);
-        
+
         if treasury.last_known_balance_units != ctx.accounts.treasury_token.amount {
             msg!("tsy_bal upd: {0}", ctx.accounts.treasury_token.amount);
         }
         treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
-                
+
         stream.save_effective_cliff();
 
         let beneficiary_closing_amount = stream.get_beneficiary_withdrawable_amount(now_ts)?;
@@ -719,7 +726,7 @@ pub mod msp {
             )?;
 
             if fee_amount > 0 {
-                // Fee 
+                // Fee
                 msg!("try{0}tfa", fee_amount);
                 treasury_transfer(
                     &treasury,
@@ -736,10 +743,10 @@ pub mod msp {
             .checked_add(closing_amount_kept_in_treasury)
             .ok_or(ErrorCode::Overflow)?;
         close_stream_update_treasury(
-            treasury, 
-            beneficiary_closing_amount, 
+            treasury,
+            beneficiary_closing_amount,
             deallocated_units,
-            now_ts, 
+            now_ts,
             now_slot
         )?;
 
@@ -843,7 +850,7 @@ pub mod msp {
             //         is_signer: false,
             //         is_writable: false,
             //     });
-    
+
             // anchor_lang::solana_program::program::invoke_signed(
             //     &transfer_account_ix,
             //     &[
@@ -867,13 +874,13 @@ pub mod msp {
         // Close treasury token account
         let close_cpi_accounts = CloseAccount {
             account: ctx.accounts.treasury_token.to_account_info(),
-            destination: ctx.accounts.destination_authority.to_account_info(), 
+            destination: ctx.accounts.destination_authority.to_account_info(),
             authority: treasury.to_account_info().clone()
         };
 
         let close_cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(), 
-            close_cpi_accounts, 
+            ctx.accounts.token_program.to_account_info(),
+            close_cpi_accounts,
             treasury_signer_seed
         );
 
@@ -888,7 +895,7 @@ pub mod msp {
         //     &treasury.key(),
         //     &[],
         // )?;
-        // // adding the missing account here as a crazy hack to avoid 
+        // // adding the missing account here as a crazy hack to avoid
         // // issues with Solanas weird pre-cpi imbalance check
         // close_account_ix
         //     .accounts
@@ -944,12 +951,12 @@ pub mod msp {
     //     msg!("clock: {0}, new_allocated_amount: {1}, new_withdrawals_amount: {2}", clock.unix_timestamp, new_allocated_amount, new_withdrawals_amount);
     //     let treasury = &mut ctx.accounts.treasury;
 
-    //     // Update `last_known_balance_units` in case 
+    //     // Update `last_known_balance_units` in case
     //     // funds were added externally during the process
     //     treasury.last_known_balance_slot = clock.slot as u64;
     //     treasury.last_known_balance_block_time = clock.unix_timestamp as u64;
     //     treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
-            
+
     //     if treasury.associated_token_address.eq(&Pubkey::default()) {
     //         treasury.associated_token_address = ctx.accounts.associated_token.key();
     //     }
@@ -959,7 +966,7 @@ pub mod msp {
     //     treasury.total_withdrawals_units = new_withdrawals_amount;
     //     treasury.total_streams = new_number_of_streams;
     //     #[cfg(feature = "test")]
-    //     msg!("alloc: {0}, withdr: {1}, n_streams: {2}", 
+    //     msg!("alloc: {0}, withdr: {1}, n_streams: {2}",
     //         treasury.allocation_assigned_units, treasury.total_withdrawals_units, treasury.total_streams);
 
     //     // Validate the values
@@ -981,7 +988,7 @@ pub mod msp {
         let now_ts = clock.unix_timestamp as u64;
 
         let treasury = &mut ctx.accounts.treasury;
-        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_withds: {3}, withd_a: {4}", 
+        msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_withds: {3}, withd_a: {4}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, amount);
 
         let fee_amount = TREASURY_WITHDRAW_PERCENT_FEE
