@@ -127,7 +127,7 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
 
     if StreamStatus::Paused == status {
         let is_manual_pause = stream.primitive_is_manually_paused();
-        if !is_manual_pause {
+        if is_manual_pause {
             withdrawable_while_paused = stream.last_manual_stop_withdrawable_units_snap;
         } else {
             if stream.allocation_assigned_units >= stream.total_withdrawals_units {
