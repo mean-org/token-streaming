@@ -9,8 +9,7 @@ pub struct StreamTemplate {
     /// The amount availaible to withdraw inmidiately (without streaming)
     /// once the money stream starts.
     pub cliff_vest_amount_units: u64,
-    pub rate_amount_units: u64,
     pub rate_interval_in_seconds: u64,
     pub fee_payed_by_treasurer: bool,
-    // total bytes: 43
+    // total bytes: 35
 }

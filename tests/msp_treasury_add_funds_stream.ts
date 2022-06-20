@@ -505,7 +505,6 @@ describe('msp', () => {
       template,
       templateBump,
       startTs: nowTs,
-      rateAmountUnits: 10,
       rateIntervalInSeconds: 1,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0
@@ -516,6 +515,7 @@ describe('msp', () => {
       name: 'test_stream',
       template,
       allocationAssignedUnits: 100,
+      rateAmountUnits: 10,
       initializerKeypair: beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
@@ -557,7 +557,6 @@ describe('msp', () => {
 
     await mspSetup.createTemplate({
       startTs: nowBn.toNumber(),
-      rateAmountUnits: 10,
       rateIntervalInSeconds: 1,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
@@ -571,6 +570,7 @@ describe('msp', () => {
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 1000,
+      rateAmountUnits: 10,
       initializerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair,
@@ -618,7 +618,6 @@ describe('msp', () => {
 
     await mspSetup.createTemplate({
       startTs: nowBn.toNumber(),
-      rateAmountUnits: 2_875_000,
       rateIntervalInSeconds: 2_629_750,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 100_000, // 10%
@@ -632,6 +631,7 @@ describe('msp', () => {
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 50_000_000, //5 0 UI tokens
+      rateAmountUnits: 2_875_000,
       initializerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair,
@@ -669,7 +669,6 @@ describe('msp', () => {
 
     await mspSetup.createTemplate({
       startTs: nowTs,
-      rateAmountUnits: 10,
       rateIntervalInSeconds: 1,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
@@ -683,6 +682,7 @@ describe('msp', () => {
 
     await mspSetup.createStreamWithTemplate({
       allocationAssignedUnits: 1000,
+      rateAmountUnits: 10,
       beneficiary: beneficiaryKeypair.publicKey,
       initializerKeypair: treasurerKeypair,
       name: 'test_stream',

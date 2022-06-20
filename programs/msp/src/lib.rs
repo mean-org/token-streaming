@@ -136,7 +136,6 @@ pub mod msp {
         ctx: Context<CreateStreamTemplateAccounts>,
         _idl_file_version: u8,
         start_utc: u64,
-        rate_amount_units: u64,
         rate_interval_in_seconds: u64,
         cliff_vest_amount_units: u64,
         cliff_vest_percent: u64,
@@ -150,7 +149,6 @@ pub mod msp {
 
         template.version = 2;
         template.bump = ctx.bumps["template"];
-        template.rate_amount_units = rate_amount_units;
         template.rate_interval_in_seconds = rate_interval_in_seconds;
         template.fee_payed_by_treasurer = fee_payed_by_treasurer;
 
@@ -180,13 +178,14 @@ pub mod msp {
         ctx: Context<CreateStreamWithTemplateAccounts>,
         _idl_file_version: u8,
         name: String,
+        rate_amount_units: u64,
         allocation_assigned_units: u64,
     ) -> Result<()> {
         let template = &ctx.accounts.template;
         construct_stream_account(
             name,
             template.start_utc_in_seconds,
-            template.rate_amount_units,
+            rate_amount_units,
             template.rate_interval_in_seconds,
             allocation_assigned_units,
             template.fee_payed_by_treasurer,
