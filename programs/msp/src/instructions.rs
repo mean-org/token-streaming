@@ -142,9 +142,9 @@ pub struct CreateStreamAccounts<'info> {
     idl_file_version: u8,
     start_utc: u64,
     rate_interval_in_seconds: u64,
-    cliff_vest_amount_units: u64,
+    duration_number_of_units: u64,
     cliff_vest_percent: u64,
-    fee_payed_by_treasurer: bool
+    fee_payed_by_treasurer: bool,
 )]
 pub struct CreateStreamTemplateAccounts<'info> {
     #[account(mut)]
@@ -171,7 +171,6 @@ pub struct CreateStreamTemplateAccounts<'info> {
         payer = payer,
         space = 200,
         constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
-        constraint = treasury.allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
     )]
     pub template: Box<Account<'info, StreamTemplate>>,
@@ -228,7 +227,6 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
         init,
         payer = payer,
         space = 500,
-        constraint = allocation_assigned_units >= template.cliff_vest_amount_units @ ErrorCode::InvalidCliff,
         constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate,
     )]
     pub stream: Box<Account<'info, Stream>>,

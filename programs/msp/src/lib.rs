@@ -137,33 +137,20 @@ pub mod msp {
         _idl_file_version: u8,
         start_utc: u64,
         rate_interval_in_seconds: u64,
-        cliff_vest_amount_units: u64,
+        duration_number_of_units: u64,
         cliff_vest_percent: u64,
         fee_payed_by_treasurer: bool,
     ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
-
-        let treasury = &ctx.accounts.treasury;
         let template = &mut ctx.accounts.template;
 
         template.version = 2;
         template.bump = ctx.bumps["template"];
         template.rate_interval_in_seconds = rate_interval_in_seconds;
         template.fee_payed_by_treasurer = fee_payed_by_treasurer;
-
-        // calculate effective cliff units as an absolute amount. We will not store %
-        let effective_cliff_units = if cliff_vest_percent > 0 {
-            cliff_vest_percent
-                .checked_mul(treasury.allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
-        } else {
-            cliff_vest_amount_units
-        };
-
-        template.cliff_vest_amount_units = effective_cliff_units;
+        template.duration_number_of_units = duration_number_of_units;
+        template.cliff_vest_percent = cliff_vest_percent;
 
         if start_utc < now_ts {
             template.start_utc_in_seconds = now_ts;
@@ -182,6 +169,18 @@ pub mod msp {
         allocation_assigned_units: u64,
     ) -> Result<()> {
         let template = &ctx.accounts.template;
+
+        let effective_cliff_units = if template.cliff_vest_percent > 0 {
+            template
+                .cliff_vest_percent
+                .checked_mul(allocation_assigned_units)
+                .unwrap()
+                .checked_div(PERCENT_DENOMINATOR)
+                .ok_or(ErrorCode::Overflow)?
+        } else {
+            0
+        };
+
         construct_stream_account(
             name,
             template.start_utc_in_seconds,
@@ -189,7 +188,7 @@ pub mod msp {
             template.rate_interval_in_seconds,
             allocation_assigned_units,
             template.fee_payed_by_treasurer,
-            template.cliff_vest_amount_units,
+            effective_cliff_units,
             &mut ctx.accounts.stream,
             &mut ctx.accounts.treasury,
             &mut ctx.accounts.treasury_token,

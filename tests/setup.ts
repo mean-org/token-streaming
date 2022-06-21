@@ -838,7 +838,7 @@ export class MspSetup {
   public async createTemplate({
     startTs,
     rateIntervalInSeconds,
-    cliffVestAmountUnits,
+    durationNumberOfUnits,
     cliffVestPercent,
     initializerKeypair,
     template,
@@ -849,7 +849,7 @@ export class MspSetup {
   }: {
     startTs: number;
     rateIntervalInSeconds: number;
-    cliffVestAmountUnits: number;
+    durationNumberOfUnits: number;
     cliffVestPercent: number;
     initializerKeypair: Keypair;
     template: PublicKey;
@@ -869,7 +869,6 @@ export class MspSetup {
     console.log();
     console.log(`startTs:                 ${startTs}`);
     console.log(`rateIntervalInSeconds:   ${rateIntervalInSeconds}`);
-    console.log(`cliffVestAmountUnits:    ${cliffVestAmountUnits}`);
     console.log(`cliffVestPercent:        ${cliffVestPercent}`);
     console.log(`initializer:             ${initializerKeypair.publicKey}`);
     console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
@@ -885,7 +884,7 @@ export class MspSetup {
         LATEST_IDL_FILE_VERSION,
         new BN(startTs),
         new BN(rateIntervalInSeconds),
-        new BN(cliffVestAmountUnits),
+        new BN(durationNumberOfUnits),
         new BN(cliffVestPercent),
         feePayedByTreasurer ?? false
       )
@@ -907,12 +906,9 @@ export class MspSetup {
     expect(postTemplate!.bump).eq(templateBump);
     expect(postTemplate!.version).eq(2);
     expect(postTemplate!.startUtcInSeconds.toNumber()).gte(startTs);
-    const expectedEffectiveCliffUnits =
-      cliffVestPercent > 0
-        ? new BN(cliffVestPercent).mul(preTreasury.allocationAssignedUnits).divn(1_000_000).toNumber()
-        : cliffVestAmountUnits;
-    expect(postTemplate!.cliffVestAmountUnits.toNumber()).eq(expectedEffectiveCliffUnits);
+    expect(postTemplate!.cliffVestPercent.toNumber()).gte(cliffVestPercent);
     expect(postTemplate!.rateIntervalInSeconds.toNumber()).eq(rateIntervalInSeconds);
+    expect(postTemplate!.durationNumberOfUnits.toNumber()).eq(durationNumberOfUnits);
 
     if (feePayedByTreasurer === true) {
       expect(postTemplate!.feePayedByTreasurer).eq(true);
@@ -939,7 +935,6 @@ export class MspSetup {
   public async createStreamWithTemplate({
     name,
     allocationAssignedUnits,
-    rateAmountUnits,
     template,
     initializerKeypair,
     beneficiary,
@@ -949,7 +944,6 @@ export class MspSetup {
     signers
   }: {
     name: string;
-    rateAmountUnits: number;
     allocationAssignedUnits: number;
     template: PublicKey;
     initializerKeypair: Keypair;
@@ -976,9 +970,7 @@ export class MspSetup {
     console.log(`name:                    ${name}`);
     console.log(`startTs:                 ${preTemplate.startUtcInSeconds.toNumber()}`);
     console.log(`rateIntervalInSeconds:   ${preTemplate.rateIntervalInSeconds.toNumber()}`);
-    console.log(`rateAmountUnits:         ${rateAmountUnits}`);
     console.log(`allocationAssignedUnits: ${allocationAssignedUnits}`);
-    console.log(`cliffVestAmountUnits:    ${preTemplate.cliffVestAmountUnits.toNumber()}`);
     console.log(`initializer:             ${initializerKeypair.publicKey}`);
     console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
     console.log(`beneficiary:             ${beneficiary}`);
@@ -986,11 +978,15 @@ export class MspSetup {
     console.log(`stream:                  ${streamKeypair.publicKey}`);
     console.log(`treasury:                ${treasury.toBase58()}`);
 
+    const rateAmount =
+      (allocationAssignedUnits * (1 - preTemplate!.cliffVestPercent.toNumber() / 1_000_000)) /
+      preTemplate!.durationNumberOfUnits.toNumber();
+
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
     );
     const txId = await this.program.methods
-      .createStreamWithTemplate(LATEST_IDL_FILE_VERSION, name, new BN(rateAmountUnits), new BN(allocationAssignedUnits))
+      .createStreamWithTemplate(LATEST_IDL_FILE_VERSION, name, new BN(rateAmount), new BN(allocationAssignedUnits))
       .accounts({
         payer: initializerKeypair.publicKey,
         initializer: initializerKeypair.publicKey,
@@ -1017,15 +1013,20 @@ export class MspSetup {
     const postStream = await this.program.account.stream.fetchNullable(streamKeypair.publicKey);
     assert.isNotNull(postStream);
 
+    const expectedEffectiveCliffUnits =
+      preTemplate.cliffVestPercent.toNumber() > 0
+        ? preTemplate.cliffVestPercent.mul(new BN(allocationAssignedUnits)).divn(1_000_000).toNumber()
+        : 0;
+
     expect(postStream!.version).eq(2);
     expect(postStream!.initialized).eq(true);
     expect(postStream!.treasurerAddress.toBase58()).eq(this.treasurerKeypair.publicKey.toBase58());
-    expect(postStream!.rateAmountUnits.toNumber()).eq(rateAmountUnits);
+    expect(postStream!.rateAmountUnits.toNumber()).eq(Math.floor(rateAmount));
     expect(postStream!.rateIntervalInSeconds.toNumber()).eq(preTemplate.rateIntervalInSeconds.toNumber());
     expect(postStream!.startUtc.toNumber()).gte(preTemplate.startUtcInSeconds.toNumber());
     expect(postStream!.startUtcInSeconds.toNumber()).gte(preTemplate.startUtcInSeconds.toNumber());
-    expect(postStream!.cliffVestAmountUnits.toNumber()).eq(preTemplate.cliffVestAmountUnits.toNumber());
     expect(postStream!.cliffVestPercent.toNumber()).eq(0);
+    expect(postStream!.cliffVestAmountUnits.toNumber()).eq(expectedEffectiveCliffUnits);
     expect(postStream!.beneficiaryAddress.toBase58()).eq(beneficiary.toBase58());
     expect(postStream!.beneficiaryAssociatedToken.toBase58()).eq(this.fromTokenClient.publicKey.toBase58());
     expect(postStream!.treasuryAddress.toBase58()).eq(treasury.toBase58());
