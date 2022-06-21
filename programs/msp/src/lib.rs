@@ -823,7 +823,7 @@ pub mod msp {
                 &ctx.accounts.treasury_token.to_account_info(),
                 &ctx.accounts.destination_token_account.to_account_info(),
                 &ctx.accounts.token_program.to_account_info(),
-                treasury.last_known_balance_units
+                ctx.accounts.treasury_token.amount
             )?;
 
             // // Approach 2. using directly the spl token program
@@ -834,7 +834,7 @@ pub mod msp {
             //     &ctx.accounts.destination_token_account.key(),
             //     &treasury.key(),
             //     &[],
-            //     treasury.last_known_balance_units,
+            //     ctx.accounts.treasury_token.amount,
             // )?;
             // transfer_account_ix
             //     .accounts
