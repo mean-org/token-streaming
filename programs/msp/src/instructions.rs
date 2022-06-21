@@ -116,6 +116,8 @@ pub struct CreateStreamAccounts<'info> {
         // constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate, // This is sent equals to zero for OTP
         constraint = allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+        // passing both, cliff amount and cliff percent is not allowed
+        constraint = (cliff_vest_amount_units == 0 || cliff_vest_percent == 0) @ ErrorCode::InvalidCliff,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
