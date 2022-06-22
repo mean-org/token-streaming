@@ -92,6 +92,8 @@ pub enum ErrorCode {
     InvalidTreasuryRequestedAllocation,
     #[msg("Invalid IDL file version")]
     InvalidIdlFileVersion,
+    #[msg("Invalid total streams in treasury")]
+    InvalidTotalStreamsInTreasury,
     #[msg("Invalid template version")]
     InvalidTemplateVersion,
     #[msg("Invalid template size")]

@@ -11,12 +11,13 @@ import {
   payer,
   createMspSetup,
   TREASURY_TYPE_OPEN,
-  TREASURY_POOL_MINT_DECIMALS,
+  TREASURY_ASSOCIATED_MINT_DECIMALS,
   ONE_SOL,
   MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES,
   SOLANA_MINT_ACCOUNT_SIZE_IN_BYTES,
   MSP_CREATE_TREASURY_FEE_IN_LAMPORTS,
-  expectAnchorError
+  expectAnchorError,
+  SOLANA_TOKEN_ACCOUNT_SIZE_IN_BYTES
 } from './setup';
 
 describe('msp', () => {
@@ -45,7 +46,7 @@ describe('msp', () => {
       payer,
       payer.publicKey,
       null,
-      TREASURY_POOL_MINT_DECIMALS,
+      TREASURY_ASSOCIATED_MINT_DECIMALS,
       TOKEN_PROGRAM_ID
     );
   });
@@ -71,8 +72,7 @@ describe('msp', () => {
 
     const treasurerLamports =
       (await connection.getMinimumBalanceForRentExemption(MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES)) +
-      (await connection.getMinimumBalanceForRentExemption(SOLANA_MINT_ACCOUNT_SIZE_IN_BYTES)) +
-      2_039_280;
+      (await connection.getMinimumBalanceForRentExemption(SOLANA_TOKEN_ACCOUNT_SIZE_IN_BYTES));
     // intentionally excluding the lamports needed to pay creation fees
 
     const mspSetup = await createMspSetup({

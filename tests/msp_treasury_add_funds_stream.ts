@@ -14,7 +14,7 @@ import {
   createMspSetup,
   TREASURY_TYPE_OPEN,
   TREASURY_TYPE_LOCKED,
-  TREASURY_POOL_MINT_DECIMALS,
+  TREASURY_ASSOCIATED_MINT_DECIMALS,
   expectAnchorError,
   Category
 } from './setup';
@@ -45,7 +45,7 @@ describe('msp', () => {
       payer,
       payer.publicKey,
       null,
-      TREASURY_POOL_MINT_DECIMALS,
+      TREASURY_ASSOCIATED_MINT_DECIMALS,
       TOKEN_PROGRAM_ID
     );
   });

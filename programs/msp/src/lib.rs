@@ -45,7 +45,6 @@ pub mod msp {
         treasury.bump = ctx.bumps["treasury"];
         treasury.slot = slot;
         treasury.treasurer_address = ctx.accounts.treasurer.key();
-        treasury.mint_address = ctx.accounts.treasury_mint.key();
         treasury.associated_token_address = ctx.accounts.associated_token.key();
         treasury.name = string_to_bytes(name)?;
         treasury.labels = Vec::new();
@@ -426,14 +425,12 @@ pub mod msp {
     pub fn refresh_treasury_data(
         ctx: Context<RefreshTreasuryDataAccounts>,
         _idl_file_version: u8,
-        total_streams: u64,
     ) -> Result<()> {
         let clock = Clock::get()?;
         msg!("clock: {0}", clock.unix_timestamp);
 
         let treasury = &mut ctx.accounts.treasury;
 
-        treasury.total_streams = total_streams;
         treasury.last_known_balance_slot = clock.slot as u64;
         treasury.last_known_balance_block_time = clock.unix_timestamp as u64;
         treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
@@ -832,15 +829,6 @@ pub mod msp {
             treasury.total_withdrawals_units
         );
 
-        // Close treasury pool token
-        close_treasury_pool_token_account(
-            &ctx.accounts.treasurer.to_account_info(),
-            &ctx.accounts.treasurer_treasury_token.to_account_info(),
-            &ctx.accounts.treasury_mint.to_account_info(),
-            &ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.treasurer_treasury_token.amount,
-        )?;
-
         // if treasury.total_streams > 0 {
         //     return Err(ErrorCode::TreasuryContainsStreams.into());
         // }
@@ -857,7 +845,7 @@ pub mod msp {
                 &ctx.accounts.treasury_token.to_account_info(),
                 &ctx.accounts.destination_token_account.to_account_info(),
                 &ctx.accounts.token_program.to_account_info(),
-                treasury.last_known_balance_units,
+                ctx.accounts.treasury_token.amount
             )?;
 
             // // Approach 2. using directly the spl token program
@@ -868,7 +856,7 @@ pub mod msp {
             //     &ctx.accounts.destination_token_account.key(),
             //     &treasury.key(),
             //     &[],
-            //     treasury.last_known_balance_units,
+            //     ctx.accounts.treasury_token.amount,
             // )?;
             // transfer_account_ix
             //     .accounts

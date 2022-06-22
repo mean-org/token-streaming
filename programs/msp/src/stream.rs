@@ -55,12 +55,12 @@ pub struct Stream {
     /// 2) by Running Out Of Funds (not recordable when it happens, needs to be calculated)
     pub last_manual_stop_withdrawable_units_snap: u64,
     pub last_manual_stop_slot: u64,
-    pub last_manual_stop_block_time: u64,
+    pub last_manual_stop_block_time: u64, // offset: 274
     /// The remaining allocation units at the moment of the last manual resume
     /// must be set when calling the Resume Stream
     pub last_manual_resume_remaining_allocation_units_snap: u64,
     pub last_manual_resume_slot: u64,
-    pub last_manual_resume_block_time: u64,
+    pub last_manual_resume_block_time: u64, // offset: 298
     /// The total seconds that have been paused since the start_utc
     /// increment when resume is called manually
     pub last_known_total_seconds_in_paused_status: u64,
@@ -198,14 +198,11 @@ impl Stream {
             .checked_add(actual_streamed_units)
             .ok_or(ErrorCode::Overflow)?;
 
-        let missed_earning_units_while_paused = non_stop_earning_units
-            .checked_sub(actual_earned_units)
-            .ok_or(ErrorCode::Overflow)?;
-
         assert!(
-            non_stop_earning_units >= missed_earning_units_while_paused,
-            "earned vs missed units invariant violated"
+            non_stop_earning_units >= actual_earned_units, 
+            "non_stop vs actual earned units invariant violated"
         );
+
         // running
         if self.allocation_assigned_units > actual_earned_units {
             return Ok(StreamStatus::Running);

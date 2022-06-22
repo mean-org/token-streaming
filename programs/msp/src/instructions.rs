@@ -37,16 +37,6 @@ pub struct CreateTreasuryAccounts<'info> {
         constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
-    #[account(
-        init,
-        payer = payer,
-        seeds = [treasurer.key().as_ref(), treasury.key().as_ref(), &slot.to_le_bytes()],
-        bump,
-        mint::decimals = TREASURY_POOL_MINT_DECIMALS,
-        mint::authority = treasury,
-        mint::freeze_authority = treasury,
-    )]
-    pub treasury_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init,
@@ -117,6 +107,8 @@ pub struct CreateStreamAccounts<'info> {
         // constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate, // This is sent equals to zero for OTP
         constraint = allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+        // passing both, cliff amount and cliff percent is not allowed
+        constraint = (cliff_vest_amount_units == 0 || cliff_vest_percent == 0) @ ErrorCode::InvalidCliff,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -340,19 +332,13 @@ pub struct PauseOrResumeStreamAccounts<'info> {
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
-        constraint = (
-            associated_token.key() == stream.beneficiary_associated_token &&
-            associated_token.key() == treasury.associated_token_address
-        ) @ ErrorCode::InvalidAssociatedToken,
-    )]
-    pub associated_token: Box<Account<'info, Mint>>,
-    #[account(
         mut,
         constraint = stream.treasury_address == treasury.key() @ ErrorCode::InvalidTreasury,
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
-        constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed
+        constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed,
+        constraint = stream.beneficiary_associated_token == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken,
     )]
     pub stream: Account<'info, Stream>,
 }
@@ -369,7 +355,6 @@ pub struct RefreshTreasuryDataAccounts<'info> {
         mut,
         seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
         bump = treasury.bump,
-        constraint = treasury.treasurer_address == treasurer.key() @ ErrorCode::NotAuthorized,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
@@ -444,13 +429,6 @@ pub struct AddFundsAccounts<'info> {
     )]
     pub contributor_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = treasury_mint,
-        associated_token::authority = contributor
-    )]
-    pub contributor_treasury_token: Box<Account<'info, TokenAccount>>,
-    #[account(
         mut,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
@@ -470,12 +448,6 @@ pub struct AddFundsAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     pub associated_token: Box<Account<'info, Mint>>,
-    #[account(
-        mut,
-        constraint = treasury_mint.decimals == TREASURY_POOL_MINT_DECIMALS @ ErrorCode::InvalidTreasuryMintDecimals,
-        constraint = treasury_mint.key() == treasury.mint_address @ ErrorCode::InvalidTreasuryMint
-    )]
-    pub treasury_mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
@@ -646,13 +618,6 @@ pub struct CloseTreasuryAccounts<'info> {
         constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::InvalidTreasurer
     )]
     pub treasurer: Signer<'info>,
-    #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = treasury_mint,
-        associated_token::authority = treasurer
-    )]
-    pub treasurer_treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub destination_authority: SystemAccount<'info>,
     #[account(
@@ -689,13 +654,7 @@ pub struct CloseTreasuryAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut,
-        constraint = treasury_mint.decimals == TREASURY_POOL_MINT_DECIMALS @ ErrorCode::InvalidTreasuryMintDecimals,
-        constraint = treasury_mint.key() == treasury.mint_address @ ErrorCode::InvalidTreasuryMint
-    )]
-    pub treasury_mint: Box<Account<'info, Mint>>,
-    #[account(
-        mut,
+        mut, 
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
