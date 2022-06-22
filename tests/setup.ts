@@ -1473,7 +1473,6 @@ export class MspSetup {
       .accounts({
         initializer: initializer,
         treasury: preStateStream.treasuryAddress,
-        associatedToken: preStateStream.beneficiaryAssociatedToken,
         stream: stream
       })
       .signers([initializerKeypair])
@@ -1626,7 +1625,6 @@ export class MspSetup {
       .accounts({
         initializer: initializer,
         treasury: preStateStream.treasuryAddress,
-        associatedToken: preStateStream.beneficiaryAssociatedToken,
         stream: stream
       })
       .signers([initializerKeypair])

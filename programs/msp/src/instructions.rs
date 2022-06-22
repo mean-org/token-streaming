@@ -220,19 +220,13 @@ pub struct PauseOrResumeStreamAccounts<'info> {
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
-        constraint = (
-            associated_token.key() == stream.beneficiary_associated_token &&
-            associated_token.key() == treasury.associated_token_address
-        ) @ ErrorCode::InvalidAssociatedToken,
-    )]
-    pub associated_token: Box<Account<'info, Mint>>,
-    #[account(
         mut,
         constraint = stream.treasury_address == treasury.key() @ ErrorCode::InvalidTreasury,
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
-        constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed
+        constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed,
+        constraint = stream.beneficiary_associated_token == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken,
     )]
     pub stream: Account<'info, Stream>
 }
