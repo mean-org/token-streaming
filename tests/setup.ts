@@ -1720,14 +1720,12 @@ export class MspSetup {
   }
 
   public async refreshTreasuryData({
-    totalStreams,
     treasury,
     treasuryFrom,
     treasurer,
     treasurerFrom,
     signers
   }: {
-    totalStreams: number;
     treasurer?: PublicKey;
     treasurerFrom?: PublicKey;
     treasury?: PublicKey;
@@ -1744,7 +1742,7 @@ export class MspSetup {
     signers = signers ?? [this.treasurerKeypair];
 
     const txId = await this.program.methods
-      .refreshTreasuryData(LATEST_IDL_FILE_VERSION, new BN(totalStreams))
+      .refreshTreasuryData(LATEST_IDL_FILE_VERSION)
       .accounts({
         treasurer: treasurer,
         associatedToken: this.fromMint,

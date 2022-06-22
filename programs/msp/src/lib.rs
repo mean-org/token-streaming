@@ -431,14 +431,12 @@ pub mod msp {
     pub fn refresh_treasury_data(
         ctx: Context<RefreshTreasuryDataAccounts>,
         _idl_file_version: u8,
-        total_streams: u64,
     ) -> Result<()> {
         let clock = Clock::get()?;
         msg!("clock: {0}", clock.unix_timestamp);
 
         let treasury = &mut ctx.accounts.treasury;
 
-        treasury.total_streams = total_streams;
         treasury.last_known_balance_slot = clock.slot as u64;
         treasury.last_known_balance_block_time = clock.unix_timestamp as u64;
         treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
