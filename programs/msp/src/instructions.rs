@@ -245,7 +245,6 @@ pub struct RefreshTreasuryDataAccounts<'info> {
         mut,
         seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
         bump = treasury.bump,
-        constraint = treasury.treasurer_address == treasurer.key() @ ErrorCode::NotAuthorized,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
