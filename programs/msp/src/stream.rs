@@ -186,14 +186,11 @@ impl Stream {
             .checked_add(actual_streamed_units)
             .ok_or(ErrorCode::Overflow)?;
 
-        let missed_earning_units_while_paused = non_stop_earning_units
-            .checked_sub(actual_earned_units)
-            .ok_or(ErrorCode::Overflow)?;
-
         assert!(
-            non_stop_earning_units >= missed_earning_units_while_paused, 
-            "earned vs missed units invariant violated"
+            non_stop_earning_units >= actual_earned_units, 
+            "non_stop vs actual earned units invariant violated"
         );
+
         // running
         if self.allocation_assigned_units > actual_earned_units {
             return Ok(StreamStatus::Running);
