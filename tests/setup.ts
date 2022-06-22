@@ -18,7 +18,7 @@ type StreamAccount = IdlAccounts<Msp>['stream'];
 export const TREASURY_TYPE_OPEN = 0;
 export const TREASURY_TYPE_LOCKED = 1;
 
-export const TREASURY_POOL_MINT_DECIMALS = 6;
+export const TREASURY_ASSOCIATED_MINT_DECIMALS = 6;
 export const MSP_FEES_PUBKEY = new PublicKey('3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw');
 export const MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES = 300;
 export const MSP_CREATE_TREASURY_FEE_IN_LAMPORTS = 10_000;
@@ -33,7 +33,7 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
-export const LATEST_IDL_FILE_VERSION = 1;
+export const LATEST_IDL_FILE_VERSION = 2;
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error('ANCHOR_PROVIDER_URL is not defined');
@@ -233,7 +233,6 @@ export class MspSetup {
     tokenProgram,
     systemProgram,
     rent,
-    treasuryLpMint,
     treasury,
     treasuryBump,
     solFeePayedByTreasury
@@ -255,7 +254,6 @@ export class MspSetup {
     tokenProgram = tokenProgram ?? TOKEN_PROGRAM_ID;
     systemProgram = systemProgram ?? SYSTEM_PROGRAM_ID;
     rent = rent ?? SYSVAR_RENT_PUBKEY;
-    treasuryLpMint = treasuryLpMint ?? this.treasuryLpMint;
     treasury = treasury ?? this.treasury;
     treasuryBump = treasuryBump ?? this.treasuryBump;
     solFeePayedByTreasury = solFeePayedByTreasury ?? false;
@@ -277,7 +275,6 @@ export class MspSetup {
         payer: treasurer,
         treasurer: treasurer,
         treasury: treasury,
-        treasuryMint: treasuryLpMint,
         treasuryToken: this.treasuryFrom,
         associatedToken: this.fromMint,
         feeTreasury: MSP_FEES_PUBKEY,
@@ -306,7 +303,6 @@ export class MspSetup {
     const minNameLength = Math.min(actualName.length, this.name.length);
     expect(actualName.substring(0, minNameLength)).eq(this.name.substring(0, minNameLength));
     expect(postState.treasuryAccount!.bump).eq(treasuryBump);
-    expect(postState.treasuryAccount!.mintAddress.toBase58()).eq(treasuryLpMint.toBase58());
     expect(postState.treasuryAccount!.slot.toNumber()).eq(this.slot.toNumber());
     expect(postState.treasuryAccount!.lastKnownBalanceBlockTime.toNumber()).eq(0);
     expect(postState.treasuryAccount!.lastKnownBalanceSlot.toNumber()).eq(0);
@@ -324,15 +320,14 @@ export class MspSetup {
     const treasuryRentExemptLamports = new BN(
       await this.connection.getMinimumBalanceForRentExemption(MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES)
     );
-    const treasuryMintRentExemptLamports = new BN(
-      await this.connection.getMinimumBalanceForRentExemption(SOLANA_MINT_ACCOUNT_SIZE_IN_BYTES)
+    const treasuryAssociatedMintRentExemptLamports = new BN(
+      await this.connection.getMinimumBalanceForRentExemption(SOLANA_TOKEN_ACCOUNT_SIZE_IN_BYTES)
     );
 
     let expectedPostTreasurerLamport = new BN(preTreasurerLamports)
       .sub(treasuryRentExemptLamports)
-      .sub(treasuryMintRentExemptLamports)
+      .sub(treasuryAssociatedMintRentExemptLamports)
       .sub(new BN(MSP_CREATE_TREASURY_FEE_IN_LAMPORTS))
-      .sub(new BN(2_039_280)); // rent payed for the treasury associated token account
     if (solFeePayedByTreasury) {
       expectedPostTreasurerLamport = expectedPostTreasurerLamport.sub(
         new BN(MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES)
@@ -1769,7 +1764,6 @@ export class MspSetup {
     amount,
     contributorKeypair,
     contributorTokenAccount,
-    contributorLpTokenAccount
   }: {
     amount: number;
     contributorKeypair?: Keypair;
@@ -1781,9 +1775,6 @@ export class MspSetup {
 
     contributorKeypair = contributorKeypair ?? this.treasurerKeypair;
     contributorTokenAccount = contributorTokenAccount ?? this.treasurerFrom;
-    if (!contributorLpTokenAccount) {
-      contributorLpTokenAccount = await this.findTreasuryLpTokenAccountAddress(contributorKeypair.publicKey);
-    }
 
     const preState = await this.getMspWorldState();
 
@@ -1811,11 +1802,9 @@ export class MspSetup {
         payer: contributorKeypair.publicKey,
         contributor: contributorKeypair.publicKey,
         contributorToken: contributorTokenAccount,
-        contributorTreasuryToken: contributorLpTokenAccount,
         treasury: this.treasury,
         treasuryToken: this.treasuryFrom,
         associatedToken: this.fromMint,
-        treasuryMint: this.treasuryLpMint,
         feeTreasury: MSP_FEES_PUBKEY,
         feeTreasuryToken: this.feesFrom,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1858,8 +1847,6 @@ export class MspSetup {
   public async allocate({ amount, stream }: { amount: number; stream: PublicKey }) {
     const ixName = 'ALLOCATE';
     logStart(ixName);
-
-    const treasurerLpTokenAccount = await this.findTreasuryLpTokenAccountAddress(this.treasurerKeypair.publicKey);
 
     const preState = await this.getMspWorldState();
 
@@ -1970,7 +1957,6 @@ export class MspSetup {
     treasury,
     treasuryFrom,
     treasurerFrom,
-    treasurerTreasuryLp,
     treasurer,
     destinationAuthority,
     destinationTokenAccount
@@ -1990,7 +1976,6 @@ export class MspSetup {
     treasurerSigner = treasurerSigner ?? this.treasurerKeypair;
     treasurer = treasurer ?? this.treasurerKeypair.publicKey;
     treasurerFrom = treasurerFrom ?? this.treasurerFrom;
-    treasurerTreasuryLp = treasurerTreasuryLp ?? (await this.findTreasuryLpTokenAccountAddress(treasurer));
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
     // signers ?? [treasurerSigner];
@@ -2013,13 +1998,11 @@ export class MspSetup {
       .accounts({
         payer: treasurer,
         treasurer: treasurer,
-        treasurerTreasuryToken: treasurerTreasuryLp,
         destinationAuthority: destinationAuthority,
         destinationTokenAccount: destinationTokenAccount,
         associatedToken: this.fromMint,
         treasury: treasury,
         treasuryToken: treasuryFrom,
-        treasuryMint: this.treasuryLpMint,
         feeTreasury: MSP_FEES_PUBKEY,
         feeTreasuryToken: this.feesFrom,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -2107,8 +2090,6 @@ export class MspSetup {
     assert.isNotNull(preState.treasuryAccount, 'pre-treasuryAccount was not found');
     assert.isNotNull(preState.treasuryAccountInfo, 'pre-treasuryAccountInfo was not found');
     assert.isNotNull(preState.treasurerAccountInfo, 'pre-treasurerAccountInfo was not found');
-
-    const treasurerTreasuryMintTokenAccount = await this.findTreasuryLpTokenAccountAddress(treasurer);
 
     const txId = await this.program.methods
       .closeStream(LATEST_IDL_FILE_VERSION)
@@ -2399,16 +2380,6 @@ export class MspSetup {
     return await anchor.web3.PublicKey.findProgramAddress(
       [this.treasurerKeypair.publicKey.toBuffer(), this.slotBuffer],
       this.program.programId
-    );
-  }
-
-  public async findTreasuryLpTokenAccountAddress(owner: PublicKey): Promise<PublicKey> {
-    return await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID, // associatedProgramId
-      TOKEN_PROGRAM_ID, // programId
-      this.treasuryLpMint, // mint
-      owner, // owner
-      false // allowOwnerOffCurve
     );
   }
 

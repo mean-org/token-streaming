@@ -12,7 +12,7 @@ import {
   createMspSetup,
   TREASURY_TYPE_OPEN,
   TREASURY_TYPE_LOCKED,
-  TREASURY_POOL_MINT_DECIMALS,
+  TREASURY_ASSOCIATED_MINT_DECIMALS,
   sleep,
   ONE_SOL,
   MSP_WITHDRAW_FEE_PCT_NUMERATOR,
@@ -48,7 +48,7 @@ describe('msp', () => {
       payer,
       payer.publicKey,
       null,
-      TREASURY_POOL_MINT_DECIMALS,
+      TREASURY_ASSOCIATED_MINT_DECIMALS,
       TOKEN_PROGRAM_ID
     );
   });

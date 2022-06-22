@@ -11,7 +11,8 @@ pub struct Treasury {
     pub name: [u8; 32],
     pub treasurer_address: Pubkey,
     pub associated_token_address: Pubkey,
-    /// The address of the Mint of the treasury pool
+    /// [deprecated] The address of the Mint of the treasury pool
+    // #[deprecated]
     pub mint_address: Pubkey,
     /// Max 5 labels per treasury
     pub labels: Vec<String>,

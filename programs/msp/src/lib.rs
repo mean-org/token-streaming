@@ -42,7 +42,6 @@ pub mod msp {
         treasury.bump = ctx.bumps["treasury"];
         treasury.slot = slot;
         treasury.treasurer_address = ctx.accounts.treasurer.key();
-        treasury.mint_address = ctx.accounts.treasury_mint.key();
         treasury.associated_token_address = ctx.accounts.associated_token.key();
         treasury.name = string_to_bytes(name)?;
         treasury.labels = Vec::new();
@@ -796,15 +795,6 @@ pub mod msp {
         let treasury = &mut ctx.accounts.treasury;
         msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units);
-
-        // Close treasury pool token
-        close_treasury_pool_token_account(
-            &ctx.accounts.treasurer.to_account_info(),
-            &ctx.accounts.treasurer_treasury_token.to_account_info(),
-            &ctx.accounts.treasury_mint.to_account_info(),
-            &ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.treasurer_treasury_token.amount,
-        )?;
 
         // if treasury.total_streams > 0 {
         //     return Err(ErrorCode::TreasuryContainsStreams.into());
