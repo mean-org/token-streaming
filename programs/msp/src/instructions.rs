@@ -72,8 +72,6 @@ pub struct CreateTreasuryAccounts<'info> {
 pub struct CreateStreamAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub initializer: Signer<'info>,
     #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
     pub treasurer: Signer<'info>,
     #[account(

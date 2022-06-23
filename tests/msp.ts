@@ -89,7 +89,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -143,7 +143,7 @@ describe('msp', () => {
       allocationAssignedUnits: 50_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -246,7 +246,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -374,7 +374,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -433,7 +433,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -498,7 +498,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -585,7 +585,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -652,7 +652,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -728,7 +728,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -808,7 +808,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: beneficiaryKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -884,7 +884,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
       streamKeypair
     });
@@ -957,7 +957,7 @@ describe('msp', () => {
       allocationAssignedUnits: 500_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary,
       streamKeypair: streamKeypair1
     });
@@ -1015,7 +1015,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1068,7 +1068,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1205,7 +1205,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1271,7 +1271,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1348,7 +1348,7 @@ describe('msp', () => {
       allocationAssignedUnits: 5_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1424,7 +1424,7 @@ describe('msp', () => {
           allocationAssignedUnits: 500_000,
           cliffVestAmountUnits: 0,
           cliffVestPercent: 0,
-          initializerKeypair: treasurerKeypair,
+          payerKeypair: treasurerKeypair,
           beneficiary: beneficiary2Keypair.publicKey,
           streamKeypair: stream2Keypair,
           feePayedByTreasurer: true
@@ -1486,7 +1486,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1546,7 +1546,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1614,7 +1614,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
       streamKeypair
     });
@@ -1688,7 +1688,7 @@ describe('msp', () => {
       allocationAssignedUnits: 20,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
       streamKeypair
     });
@@ -1749,7 +1749,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1840,7 +1840,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
       streamKeypair,
       feePayedByTreasurer: true
@@ -1928,7 +1928,7 @@ describe('msp', () => {
       allocationAssignedUnits: 0,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -1970,7 +1970,7 @@ describe('msp', () => {
       allocationAssignedUnits: 50_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -2030,7 +2030,7 @@ describe('msp', () => {
       allocationAssignedUnits: 5,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
       streamKeypair,
       feePayedByTreasurer: true
@@ -2216,7 +2216,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary,
       streamKeypair,
       feePayedByTreasurer: true
@@ -2325,7 +2325,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary,
       streamKeypair,
       feePayedByTreasurer: false
@@ -2414,7 +2414,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary, // beneficiary
       streamKeypair,
       feePayedByTreasurer: true

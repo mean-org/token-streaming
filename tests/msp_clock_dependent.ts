@@ -88,7 +88,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -190,7 +190,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -367,7 +367,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -467,7 +467,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -516,7 +516,7 @@ describe('msp', () => {
       allocationAssignedUnits: 100_000_000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 100_000, // 10 % (need to mult 1-100% times 10_000)
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair: streamKeypair
     });
@@ -596,7 +596,7 @@ describe('msp', () => {
       allocationAssignedUnits: 20,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -669,7 +669,7 @@ describe('msp', () => {
       allocationAssignedUnits: 5,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
       streamKeypair: streamKeypair,
       feePayedByTreasurer: true
