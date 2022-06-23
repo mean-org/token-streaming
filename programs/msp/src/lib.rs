@@ -38,6 +38,7 @@ pub mod msp {
         auto_close: bool,
         sol_fee_payed_by_treasury: bool,
         category: Category,
+        sub_category: SubCategory,
     ) -> Result<()> {
         // Initialize Treasury
         let treasury = &mut ctx.accounts.treasury;
@@ -61,6 +62,7 @@ pub mod msp {
         treasury.initialized = true;
         treasury.sol_fee_payed_by_treasury = sol_fee_payed_by_treasury;
         treasury.category = category as u8;
+        treasury.sub_category = sub_category as u8;
 
         // Fee
         transfer_sol_amount(
@@ -845,7 +847,7 @@ pub mod msp {
                 &ctx.accounts.treasury_token.to_account_info(),
                 &ctx.accounts.destination_token_account.to_account_info(),
                 &ctx.accounts.token_program.to_account_info(),
-                ctx.accounts.treasury_token.amount
+                ctx.accounts.treasury_token.amount,
             )?;
 
             // // Approach 2. using directly the spl token program

@@ -1323,7 +1323,7 @@ describe('msp', () => {
     const nowBn = new anchor.BN(Date.now() / 1000);
     console.log('nowTs:', nowBn.toNumber());
 
-    await mspSetup.refreshTreasuryData({ });
+    await mspSetup.refreshTreasuryData({});
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
@@ -1353,7 +1353,7 @@ describe('msp', () => {
       streamKeypair
     });
 
-    await mspSetup.refreshTreasuryData({ });
+    await mspSetup.refreshTreasuryData({});
 
     await mspSetup.addFunds({
       amount: 250_000
@@ -1364,7 +1364,7 @@ describe('msp', () => {
       stream: streamKeypair.publicKey
     });
 
-    await mspSetup.refreshTreasuryData({ });
+    await mspSetup.refreshTreasuryData({});
 
     // await mspSetup.addFunds(
     //   1_000_000,

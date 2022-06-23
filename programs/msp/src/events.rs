@@ -51,4 +51,6 @@ pub struct StreamEvent {
     pub last_known_stop_block_time: u64,
     /// Unix timestamp (in seconds) when the stream was created
     pub created_on_utc: u64,
+    pub category: u8,
+    pub sub_category: u8,
 }

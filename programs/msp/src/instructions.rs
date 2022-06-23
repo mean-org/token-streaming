@@ -654,7 +654,7 @@ pub struct CloseTreasuryAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,

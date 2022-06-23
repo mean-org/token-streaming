@@ -236,7 +236,8 @@ export class MspSetup {
     treasury,
     treasuryBump,
     solFeePayedByTreasury,
-    category
+    category,
+    subCategory
   }: {
     treasurer?: PublicKey;
     signers?: Keypair[];
@@ -248,6 +249,7 @@ export class MspSetup {
     treasuryBump?: number;
     solFeePayedByTreasury?: boolean;
     category?: Category;
+    subCategory?: SubCategory;
   }) {
     console.log('\n\n********** CREATE TREASURY STARTED! **********');
 
@@ -260,6 +262,7 @@ export class MspSetup {
     treasuryBump = treasuryBump ?? this.treasuryBump;
     solFeePayedByTreasury = solFeePayedByTreasury ?? false;
     category = category ?? Category.default;
+    subCategory = subCategory ?? SubCategory.default;
 
     const clusterNowTs = await this.program.provider.connection.getBlockTime(this.slot.toNumber());
     const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
@@ -273,7 +276,8 @@ export class MspSetup {
         this.treasuryType,
         this.autoClose,
         solFeePayedByTreasury,
-        { [Category[category]]: {} }
+        { [Category[category]]: {} },
+        { [SubCategory[subCategory]]: {} }
       )
       .accounts({
         payer: treasurer,
@@ -331,7 +335,7 @@ export class MspSetup {
     let expectedPostTreasurerLamport = new BN(preTreasurerLamports)
       .sub(treasuryRentExemptLamports)
       .sub(treasuryAssociatedMintRentExemptLamports)
-      .sub(new BN(MSP_CREATE_TREASURY_FEE_IN_LAMPORTS))
+      .sub(new BN(MSP_CREATE_TREASURY_FEE_IN_LAMPORTS));
     if (solFeePayedByTreasury) {
       expectedPostTreasurerLamport = expectedPostTreasurerLamport.sub(
         new BN(MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES)
@@ -2006,7 +2010,7 @@ export class MspSetup {
   public async addFunds({
     amount,
     contributorKeypair,
-    contributorTokenAccount,
+    contributorTokenAccount
   }: {
     amount: number;
     contributorKeypair?: Keypair;
@@ -2829,6 +2833,32 @@ export class MspSetup {
     expect(streamCategory === (category as number));
   }
 
+  public async filterStreamBySubCateogry(subCategory: SubCategory, stream: PublicKey) {
+    const num: number = subCategory;
+    const memcmpFilters = [
+      {
+        memcmp: {
+          offset: 340,
+          bytes: bs58.encode(new anchor.BN(num).toBuffer())
+        }
+      }
+    ];
+
+    const configOrCommitment = {
+      filters: [{ dataSize: 500 }, ...memcmpFilters]
+    };
+
+    const accounts = await this.program.provider.connection.getProgramAccounts(
+      this.program.programId,
+      configOrCommitment
+    );
+    const filtered_account = accounts[0];
+    expect(filtered_account.pubkey.equals(stream));
+    const { category: streamCategory } = await this.program.account.stream.fetch(stream);
+
+    expect(streamCategory === (subCategory as number));
+  }
+
   //#endregion
 }
 
@@ -3013,4 +3043,15 @@ export function expectAnchorError(
 export enum Category {
   default = 0,
   vesting = 1
+}
+
+export enum SubCategory {
+  default = 0,
+  advisor = 1,
+  development = 2,
+  foundation = 3,
+  marketing = 5,
+  partnership = 6,
+  seed = 7,
+  team = 8
 }

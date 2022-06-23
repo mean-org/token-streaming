@@ -16,7 +16,8 @@ import {
   TREASURY_TYPE_LOCKED,
   TREASURY_ASSOCIATED_MINT_DECIMALS,
   expectAnchorError,
-  Category
+  Category,
+  SubCategory
 } from './setup';
 
 describe('msp', () => {
@@ -432,8 +433,10 @@ describe('msp', () => {
       treasurerLamports: 1_000_000_000
     });
     const category = Category.vesting;
+    const subCategory = SubCategory.seed;
     await mspSetup.createTreasury({
-      category: category
+      category,
+      subCategory
     });
 
     await mspSetup.addFunds({ amount: 100_000_000 });
@@ -465,6 +468,7 @@ describe('msp', () => {
     });
 
     await mspSetup.filterStreamByCategory(category, streamKeypair.publicKey);
+    await mspSetup.filterStreamBySubCateogry(subCategory, streamKeypair.publicKey);
   });
 
   it('create treasury -> add funds -> create teamplate -> create stream (initializer = beneficiary)', async () => {

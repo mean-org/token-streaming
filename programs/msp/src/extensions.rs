@@ -62,8 +62,7 @@ pub fn close_stream_update_treasury<'info>(
 
     if treasury.total_streams > 0 {
         treasury.total_streams = treasury.total_streams.checked_sub(1).unwrap();
-    }
-    else {
+    } else {
         return Err(ErrorCode::InvalidTotalStreamsInTreasury.into());
     }
 

@@ -231,6 +231,8 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
         beneficiary_withdrawable_amount: stream.get_beneficiary_withdrawable_amount(now_ts)?,
         last_known_stop_block_time: stream.primitive_get_last_known_stop_block_time(),
         created_on_utc: stream.created_on_utc,
+        category: stream.category,
+        sub_category: stream.sub_category,
     };
 
     Ok(data)
@@ -322,6 +324,7 @@ pub fn construct_stream_account<'info>(
     stream.initialized = true;
     stream.created_on_utc = now_ts;
     stream.category = treasury.category;
+    stream.sub_category = treasury.sub_category;
 
     if start_utc < now_ts {
         stream.start_utc = now_ts;

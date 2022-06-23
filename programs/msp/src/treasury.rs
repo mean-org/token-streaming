@@ -51,6 +51,9 @@ pub struct Treasury {
     /// Indicates the main product category such as `Vesting(1)`
     /// The default value is set to a `Default(0)` cateogry.
     pub category: u8,
+    /// Indicates the sub product category such as `Advisor(1)`, Development(2)
+    /// The default value is set to a `Default(0)` sub_cateogry.
+    pub sub_category: u8,
 }
 
 impl Treasury {

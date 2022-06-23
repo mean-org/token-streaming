@@ -75,7 +75,10 @@ pub struct Stream {
     /// Indicates the main product category such as `Vesting(1)`
     /// The default value is set to a `Default(0)` cateogry.
     pub category: u8,
-    // total bytes: 340
+    /// Indicates the sub product category such as `Advisor(1)`, Development(2)
+    /// The default value is set to a `Default(0)` sub_cateogry.
+    pub sub_category: u8,
+    // total bytes: 341
 }
 
 impl Stream {
@@ -199,7 +202,7 @@ impl Stream {
             .ok_or(ErrorCode::Overflow)?;
 
         assert!(
-            non_stop_earning_units >= actual_earned_units, 
+            non_stop_earning_units >= actual_earned_units,
             "non_stop vs actual earned units invariant violated"
         );
 
