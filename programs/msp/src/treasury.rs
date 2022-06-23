@@ -14,7 +14,9 @@ pub struct Treasury {
     /// [deprecated] The address of the Mint of the treasury pool
     // #[deprecated]
     pub mint_address: Pubkey,
-    /// Max 5 labels per treasury
+    /// This field should not be used in its current form because it has a dynamic size
+    /// 
+    /// The 4-bytes header can be repurposed in the future
     pub labels: Vec<String>,
     /// Treasury balance tracking
     /// The last known treasury balance (will be updated in the `refreshTreasuryData` instruction)
