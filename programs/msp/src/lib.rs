@@ -48,7 +48,7 @@ pub mod msp {
         treasury.treasurer_address = ctx.accounts.treasurer.key();
         treasury.associated_token_address = ctx.accounts.associated_token.key();
         treasury.name = string_to_bytes(name)?;
-        treasury.labels = Vec::new();
+        treasury.labels = Vec::new(); // Do not change
         treasury.last_known_balance_units = 0;
         treasury.last_known_balance_slot = 0;
         treasury.last_known_balance_block_time = 0;

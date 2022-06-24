@@ -73,8 +73,6 @@ pub struct CreateTreasuryAccounts<'info> {
 pub struct CreateStreamAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub initializer: Signer<'info>,
     #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
     pub treasurer: Signer<'info>,
     #[account(
@@ -180,8 +178,6 @@ pub struct CreateStreamTemplateAccounts<'info> {
 pub struct CreateStreamWithTemplateAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub initializer: Signer<'info>,
     #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
     pub treasurer: Signer<'info>,
     #[account(
@@ -503,13 +499,8 @@ pub struct AllocateAccounts<'info> {
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
-        constraint = (
-            treasury.treasury_type != TREASURY_TYPE_LOCKED ||
-            stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused // TODO: Review
-        ) @ ErrorCode::CloseLockedStreamNotAllowedWhileRunning,
-
         constraint = stream.treasurer_address == treasurer.key() @ ErrorCode::InvalidTreasurer,
-        constraint = stream.beneficiary_associated_token == associated_token.key() @ ErrorCode::InvalidTreasury, // Probably redundant check
+        constraint = stream.beneficiary_associated_token == associated_token.key() @ ErrorCode::InvalidAssociatedToken,
         constraint = amount > 0 @ ErrorCode::ZeroContributionAmount
     )]
     pub stream: Account<'info, Stream>,

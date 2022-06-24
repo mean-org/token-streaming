@@ -51,52 +51,6 @@ describe('msp', () => {
     );
   });
 
-  // TODO: why should we support this use case?
-  it('create treasury -> add funds -> create stream (initializer is not the treasurer, nor the beneficiary)', async () => {
-    const treasurerKeypair = Keypair.generate();
-
-    const mspSetup = await createMspSetup({
-      fromTokenClient,
-      treasurerKeypair,
-      name: 'test_treasury',
-      treasuryType: TREASURY_TYPE_OPEN,
-      autoClose: false,
-      treasurerFromInitialBalance: 1000_000_000,
-      treasurerLamports: 1_000_000_000
-    });
-
-    await mspSetup.createTreasury({});
-
-    await mspSetup.addFunds({ amount: 100_000_000 });
-
-    const nowTs = Date.now() / 1000;
-    const nowBn = new anchor.BN(Date.now() / 1000);
-    const startTs = nowBn.addn(10).toNumber();
-    console.log('nowTs:', nowTs);
-
-    const initializerKeypair = Keypair.generate();
-    await mspSetup.connection.confirmTransaction(
-      await connection.requestAirdrop(initializerKeypair.publicKey, 1_000_000_000),
-      'confirmed'
-    );
-
-    const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
-      name: 'test_stream',
-      startTs,
-      rateAmountUnits: 10,
-      rateIntervalInSeconds: 1,
-      allocationAssignedUnits: 1000,
-      cliffVestAmountUnits: 0,
-      cliffVestPercent: 0,
-      initializerKeypair: initializerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
-    });
-  });
-
   it('create treasury -> add funds -> create stream (should fail because assigned units > available in the treasury)', async () => {
     const treasurerKeypair = Keypair.generate();
 
@@ -130,7 +84,7 @@ describe('msp', () => {
           allocationAssignedUnits: 101_000_000, // (passing more than available)
           cliffVestAmountUnits: 0,
           cliffVestPercent: 0,
-          initializerKeypair: treasurerKeypair,
+          payerKeypair: treasurerKeypair,
           beneficiary: beneficiaryKeypair.publicKey,
           streamKeypair
         });
@@ -140,92 +94,6 @@ describe('msp', () => {
         return true;
       }
     );
-  });
-
-  it('create treasury -> add funds -> create stream (initializer = beneficiary)', async () => {
-    const treasurerKeypair = Keypair.generate();
-
-    const mspSetup = await createMspSetup({
-      fromTokenClient,
-      treasurerKeypair,
-      name: 'test_treasury',
-      treasuryType: TREASURY_TYPE_OPEN,
-      autoClose: false,
-      treasurerFromInitialBalance: 100_000_000,
-      treasurerLamports: 1_000_000_000
-    });
-
-    await mspSetup.createTreasury({});
-
-    await mspSetup.addFunds({ amount: 100_000_000 });
-
-    const slot = await mspSetup.connection.getSlot('finalized');
-    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
-    const nowBn = new anchor.BN(nowTs);
-
-    const beneficiaryKeypair = Keypair.generate();
-    await mspSetup.connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      'confirmed'
-    );
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
-      name: 'test_stream',
-      startTs: nowBn.toNumber(),
-      rateAmountUnits: 10,
-      rateIntervalInSeconds: 1,
-      allocationAssignedUnits: 100,
-      cliffVestAmountUnits: 0,
-      cliffVestPercent: 0,
-      initializerKeypair: beneficiaryKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
-    });
-  });
-
-  it('create treasury -> add funds -> create stream (initializer = treasurer)', async () => {
-    const treasurerKeypair = Keypair.generate();
-
-    const mspSetup = await createMspSetup({
-      fromTokenClient,
-      treasurerKeypair,
-      name: 'test_treasury',
-      treasuryType: TREASURY_TYPE_OPEN,
-      autoClose: false,
-      treasurerFromInitialBalance: 1000_000_000,
-      treasurerLamports: 1_000_000_000
-    });
-
-    await mspSetup.createTreasury({});
-
-    await mspSetup.addFunds({ amount: 100_000_000 });
-
-    const slot = await mspSetup.connection.getSlot('finalized');
-    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
-    // const nowTs = Date.now() / 1000;
-    const nowBn = new anchor.BN(nowTs);
-    console.log('nowTs:', nowTs);
-
-    const beneficiaryKeypair = Keypair.generate();
-    await mspSetup.connection.confirmTransaction(
-      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
-      'confirmed'
-    );
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
-      name: 'test_stream',
-      startTs: nowBn.toNumber(),
-      rateAmountUnits: 10,
-      rateIntervalInSeconds: 1,
-      allocationAssignedUnits: 1000,
-      cliffVestAmountUnits: 0,
-      cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
-    });
   });
 
   it('create treasury -> add funds -> create stream (fee payer = treasurer)', async () => {
@@ -265,7 +133,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair,
       feePayedByTreasurer: true
@@ -319,7 +187,7 @@ describe('msp', () => {
           allocationAssignedUnits: 100_000_000,
           cliffVestAmountUnits: 0,
           cliffVestPercent: 0,
-          initializerKeypair: treasurerKeypair,
+          payerKeypair: treasurerKeypair,
           beneficiary: beneficiary,
           streamKeypair,
           feePayedByTreasurer: true
@@ -367,7 +235,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -414,7 +282,7 @@ describe('msp', () => {
       allocationAssignedUnits: 50_000_000, // 50 UI tokens
       cliffVestAmountUnits: 0,
       cliffVestPercent: 100_000, // 10%
-      initializerKeypair: beneficiaryKeypair,
+      payerKeypair: beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -461,7 +329,7 @@ describe('msp', () => {
       allocationAssignedUnits: 1000,
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair,
       feePayedByTreasurer: true
@@ -519,7 +387,7 @@ describe('msp', () => {
       name: 'test_stream',
       template,
       allocationAssignedUnits: 50_000_000,
-      initializerKeypair: beneficiaryKeypair,
+      payerKeypair: beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair
     });
@@ -573,7 +441,7 @@ describe('msp', () => {
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 1000,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair,
       template,
@@ -633,7 +501,7 @@ describe('msp', () => {
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 50_000_000, //5 0 UI tokens
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       streamKeypair,
       template,
@@ -684,7 +552,7 @@ describe('msp', () => {
     await mspSetup.createStreamWithTemplate({
       allocationAssignedUnits: 1000,
       beneficiary: beneficiaryKeypair.publicKey,
-      initializerKeypair: treasurerKeypair,
+      payerKeypair: treasurerKeypair,
       name: 'test_stream',
       streamKeypair,
       template

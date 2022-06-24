@@ -33,7 +33,7 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
-export const LATEST_IDL_FILE_VERSION = 2;
+export const LATEST_IDL_FILE_VERSION = 3;
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error('ANCHOR_PROVIDER_URL is not defined');
@@ -650,7 +650,7 @@ export class MspSetup {
     allocationAssignedUnits,
     cliffVestAmountUnits,
     cliffVestPercent,
-    initializerKeypair,
+    payerKeypair,
     beneficiary,
     streamKeypair,
     treasury,
@@ -665,7 +665,7 @@ export class MspSetup {
     allocationAssignedUnits: number;
     cliffVestAmountUnits: number;
     cliffVestPercent: number;
-    initializerKeypair: Keypair;
+    payerKeypair: Keypair;
     beneficiary: PublicKey;
     streamKeypair: Keypair;
     treasury?: PublicKey;
@@ -678,7 +678,7 @@ export class MspSetup {
 
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
-    signers = signers ?? [initializerKeypair, this.treasurerKeypair, streamKeypair];
+    signers = signers ?? [payerKeypair, this.treasurerKeypair, streamKeypair];
 
     const preTreasury = await this.program.account.treasury.fetchNullable(treasury);
     assert.isNotNull(preTreasury);
@@ -691,44 +691,10 @@ export class MspSetup {
     console.log(`allocationAssignedUnits: ${allocationAssignedUnits}`);
     console.log(`cliffVestAmountUnits:    ${cliffVestAmountUnits}`);
     console.log(`cliffVestPercent:        ${cliffVestPercent}`);
-    console.log(`initializer:             ${initializerKeypair.publicKey}`);
-    console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
+    console.log(`payer:                   ${payerKeypair.publicKey}`);
+    console.log(`payer key:         ${bs58.encode(payerKeypair.secretKey)}`);
     console.log(`beneficiary:             ${beneficiary}`);
     console.log(`stream:                  ${streamKeypair.publicKey}`);
-
-    // let createStreamTx = this.program.transaction.createStream(
-    //   name,
-    //   new BN(startTs),
-    //   new BN(rateAmountUnits),
-    //   new BN(rateIntervalInSeconds),
-    //   new BN(allocationAssignedUnits),
-    //   new BN(allocationReservedUnits),
-    //   new BN(cliffVestAmountUnits),
-    //   new BN(cliffVestPercent),
-    //   {
-    //     accounts: {
-    //       initializer: initializerKeypair.publicKey,
-    //       treasurer: this.treasurerKeypair.publicKey,
-    //       treasury: treasury,
-    //       associatedToken: this.fromTokenClient.publicKey,
-    //       beneficiary: beneficiary,
-    //       stream: streamKeypair.publicKey,
-    //       feeTreasury: MSP_FEES_PUBKEY,
-    //       msp: this.program.programId,
-    //       systemProgram: SYSTEM_PROGRAM_ID,
-    //       rent: SYSVAR_RENT_PUBKEY,
-    //     },
-    //     // signers: [initializerKeypair, streamKeypair]
-    //   }
-    // );
-    // createStreamTx.feePayer = initializerKeypair.publicKey;
-    // createStreamTx.recentBlockhash = (await this.connection.getRecentBlockhash()).blockhash;
-    // createStreamTx.partialSign(initializerKeypair);
-    // createStreamTx.partialSign(streamKeypair);
-    // const createStreamTxBase64 = createStreamTx.serialize({ verifySignatures: true, requireAllSignatures: false }).toString("base64");
-    // console.log();
-    // console.log("createStreamTxBase64");
-    // console.log(createStreamTxBase64);
 
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
@@ -747,8 +713,7 @@ export class MspSetup {
         feePayedByTreasurer ?? false
       )
       .accounts({
-        payer: initializerKeypair.publicKey,
-        initializer: initializerKeypair.publicKey,
+        payer: payerKeypair.publicKey,
         treasurer: this.treasurerKeypair.publicKey,
         treasury: treasury,
         treasuryToken: treasuryFrom,
@@ -935,7 +900,7 @@ export class MspSetup {
     name,
     allocationAssignedUnits,
     template,
-    initializerKeypair,
+    payerKeypair,
     beneficiary,
     streamKeypair,
     treasury,
@@ -945,7 +910,7 @@ export class MspSetup {
     name: string;
     allocationAssignedUnits: number;
     template: PublicKey;
-    initializerKeypair: Keypair;
+    payerKeypair: Keypair;
     beneficiary: PublicKey;
     streamKeypair: Keypair;
     treasury?: PublicKey;
@@ -958,7 +923,7 @@ export class MspSetup {
 
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
-    signers = signers ?? [initializerKeypair, this.treasurerKeypair, streamKeypair];
+    signers = signers ?? [payerKeypair, this.treasurerKeypair, streamKeypair];
 
     const preTreasury = await this.program.account.treasury.fetchNullable(treasury);
     assert.isNotNull(preTreasury);
@@ -970,8 +935,8 @@ export class MspSetup {
     console.log(`startTs:                 ${preTemplate.startUtcInSeconds.toNumber()}`);
     console.log(`rateIntervalInSeconds:   ${preTemplate.rateIntervalInSeconds.toNumber()}`);
     console.log(`allocationAssignedUnits: ${allocationAssignedUnits}`);
-    console.log(`initializer:             ${initializerKeypair.publicKey}`);
-    console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
+    console.log(`payerKeypair:            ${payerKeypair.publicKey}`);
+    console.log(`payerKeypair key:        ${bs58.encode(payerKeypair.secretKey)}`);
     console.log(`beneficiary:             ${beneficiary}`);
     console.log(`template:                ${template}`);
     console.log(`stream:                  ${streamKeypair.publicKey}`);
@@ -987,8 +952,7 @@ export class MspSetup {
     const txId = await this.program.methods
       .createStreamWithTemplate(LATEST_IDL_FILE_VERSION, name, new BN(rateAmount), new BN(allocationAssignedUnits))
       .accounts({
-        payer: initializerKeypair.publicKey,
-        initializer: initializerKeypair.publicKey,
+        payer: payerKeypair.publicKey,
         treasurer: this.treasurerKeypair.publicKey,
         treasury: treasury,
         treasuryToken: treasuryFrom,
@@ -1118,7 +1082,6 @@ export class MspSetup {
       {
         accounts: {
           payer: initializerKeypair.publicKey,
-          initializer: initializerKeypair.publicKey,
           treasurer: this.treasurerKeypair.publicKey,
           treasury: this.treasury,
           treasuryToken: this.treasuryFrom,
