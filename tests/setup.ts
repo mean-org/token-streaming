@@ -33,7 +33,7 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
-export const LATEST_IDL_FILE_VERSION = 2;
+export const LATEST_IDL_FILE_VERSION = 3;
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error('ANCHOR_PROVIDER_URL is not defined');
