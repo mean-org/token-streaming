@@ -3,6 +3,7 @@ use std::cmp;
 use crate::constants::*;
 use crate::errors::ErrorCode;
 use crate::enums::*;
+use std::convert::TryFrom;
 
 #[account]
 pub struct Stream {
@@ -136,20 +137,24 @@ impl Stream {
         let streamable_units = self.allocation_assigned_units
             .checked_sub(cliff_units)
             .ok_or(ErrorCode::Overflow)?;
-        let streaming_seconds = streamable_units
-            .checked_mul(self.rate_interval_in_seconds)
-            .ok_or(ErrorCode::Overflow)?
-            .checked_div(self.rate_amount_units)
-            .ok_or(ErrorCode::Overflow)?;
+        let streaming_seconds = u64::try_from(
+            (streamable_units as u128)
+                .checked_mul(self.rate_interval_in_seconds as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(self.rate_amount_units as u128)
+                .ok_or(ErrorCode::Overflow)?
+        ).unwrap();
 
         if seconds >= streaming_seconds {
             return Ok(streamable_units);
         }
 
-        let streamable_units_in_given_seconds = self.rate_amount_units
-            .checked_mul(seconds).unwrap()
-            .checked_div(self.rate_interval_in_seconds)
-            .ok_or(ErrorCode::Overflow)?;
+        let streamable_units_in_given_seconds = u64::try_from(
+            (self.rate_amount_units as u128)
+                .checked_mul(seconds as u128).unwrap()
+                .checked_div(self.rate_interval_in_seconds as u128)
+                .ok_or(ErrorCode::Overflow)?
+        ).unwrap();
         
         Ok(streamable_units_in_given_seconds)
     }
@@ -219,11 +224,13 @@ impl Stream {
             .checked_sub(cliff_units)
             .ok_or(ErrorCode::Overflow)?;
 
-        let streaming_seconds = streamable_units
-            .checked_mul(self.rate_interval_in_seconds)
-            .ok_or(ErrorCode::Overflow)?
-            .checked_div(self.rate_amount_units)
-            .ok_or(ErrorCode::Overflow)?;
+        let streaming_seconds = u64::try_from(
+            (streamable_units as u128)
+                .checked_mul(self.rate_interval_in_seconds as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(self.rate_amount_units as u128)
+                .ok_or(ErrorCode::Overflow)?
+        ).unwrap();
 
         let duration_span_seconds = streaming_seconds
             .checked_add(self.last_known_total_seconds_in_paused_status)
