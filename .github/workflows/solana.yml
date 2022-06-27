@@ -213,7 +213,13 @@ jobs:
       - name: Cache build
         uses: Swatinem/rust-cache@v1
       - name: Deploy program
-        run: sh ./deploy.sh
+        uses: nick-fields/retry@v2
+        with:
+          retry_wait_seconds: 2
+          timeout_minutes: 10
+          retry_on: error
+          max_attempts: 3
+          command: sh ./deploy.sh
       - name: Print account
         run: echo ${{ env.BUFFER_ACCOUNT_ADDRESS }}
 
