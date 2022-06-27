@@ -4,7 +4,7 @@ on:
   push:
     branches:
     - develop
-    - main
+    # - main
   pull_request:
 
 env:
@@ -96,15 +96,12 @@ jobs:
             mkdir -p ~/.config/solana/
             echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
             export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
-            solana config set --url localnet
+            solana config set --url http://localhost:8899
             solana config get
 
       # Copy secrets
       - name: Copy secrets
-        run: |
-            echo ${{ secrets.ID }} > ~/.config/solana/id.json
-      #      echo ${{ secrets.MANAGER_KEY }} > ~/.config/solana/local-random-manager-key.json   
-      #      echo ${{ secrets.GATEKEEPER_NETWORK }} > ~/.config/solana/local-random-gatekeeper-network.json
+        run: echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
 
       # Install Yarn
       - name: Get yarn cache directory path
@@ -117,6 +114,8 @@ jobs:
             key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
             restore-keys: |
                 ${{ runner.os }}-modules-
+      - name: Install Packages
+        run: yarn install
 
       # Install Node
       - name: Setup Node
@@ -127,10 +126,10 @@ jobs:
         run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
 
       # Run tests
-      # - name: Cache build
-      #   uses: Swatinem/rust-cache@v1
-      # - name: Run Tests
-      #   run: anchor test
+      - name: Cache build
+        uses: Swatinem/rust-cache@v1
+      - name: Run Tests
+        run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json --detach -- --features test
 
   cd-devnet:
     runs-on: ubuntu-latest
@@ -141,7 +140,7 @@ jobs:
     env:
       CLUSTER: mainnet
       RPC_URL: ${{ secrets.DEVNET_RPC_URL }}
-      MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.DEVNET_AUTHORITY }}
+      MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.DEVNET_MULTISIG_AUTHORITY }}
     steps:
       - uses: actions/checkout@v2
 
@@ -191,7 +190,7 @@ jobs:
       # Copy secrets
       - name: Copy secrets
         run: |
-            echo ${{ secrets.DEVNET_ID }} > ~/.config/solana/id.json
+            echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
 
       # Install Yarn
       - name: Get yarn cache directory path
@@ -224,7 +223,7 @@ jobs:
     env:
       CLUSTER: mainnet
       RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
-      MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.MAINNET_AUTHORITY }}
+      MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.MAINNET_MULTISIG_AUTHORITY }}
     steps:
       - uses: actions/checkout@v2
 
@@ -273,8 +272,7 @@ jobs:
 
       # Copy secrets
       - name: Copy secrets
-        run: |
-            echo ${{ secrets.MAINNET_ID }} > ~/.config/solana/id.json
+        run: echo ${{ secrets.MAINNET_PAYER_KEY }} > ~/.config/solana/id.json
 
       # Install Yarn
       - name: Get yarn cache directory path
@@ -298,5 +296,5 @@ jobs:
       - name: Deploy program
         run: sh ./deploy.sh
       - name: Print account
-        run: echo ${{env.BUFFER_ACCOUNT_ADDRESS}}
+        run: echo ${{ env.BUFFER_ACCOUNT_ADDRESS }}
         
