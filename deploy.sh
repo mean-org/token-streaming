@@ -34,7 +34,7 @@ then
 fi
 
 # anchor cli
-SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" -- --features "$RPC_URL" --no-default-features | grep '$ solana program deploy')"
+SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" | grep '$ solana program deploy')"
 echo "Program binary(SO) path: $SO_FILE"
 
 BUFFER_ACCOUNT_ADDRESS="$(solana program write-buffer target/deploy/$PROGRAM_NAME.so --output json-compact | jq .buffer -r)"
