@@ -11,6 +11,7 @@ env:
   SOLANA_VERSION: "1.10.5"
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
+  NODE_VERSION: "17"
   PROGRAM_NAME: "msp"
   MINIMUM_SOL_NEEDED: 6
   BUILD_NUMBER: $GITHUB_RUN_NUMBER
@@ -107,7 +108,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: 17
+          node-version: ${{ env.NODE_VERSION }}
 
       # Install Yarn
       - name: Get yarn cache directory path
