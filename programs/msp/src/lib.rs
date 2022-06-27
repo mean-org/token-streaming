@@ -17,6 +17,7 @@ use crate::instructions::*;
 use crate::constants::*;
 use crate::errors::ErrorCode;
 use crate::extensions::*;
+use std::convert::TryFrom;
 
 declare_id!("MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu");
 
@@ -107,9 +108,14 @@ pub mod msp {
 
         if fee_payed_by_treasurer {
             // beneficiary fee payed by the treasurer
-            treasurer_fee_amount = WITHDRAW_PERCENT_FEE
-                .checked_mul(allocation_assigned_units).unwrap()
-                .checked_div(PERCENT_DENOMINATOR).ok_or(ErrorCode::Overflow)?;
+
+            treasurer_fee_amount = u64::try_from(
+                (WITHDRAW_PERCENT_FEE as u128)
+                    .checked_mul(allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?
+            ).unwrap();
 
             total_treasury_allocation_amount = allocation_assigned_units
                 .checked_add(treasurer_fee_amount).ok_or(ErrorCode::Overflow)?;
@@ -127,11 +133,13 @@ pub mod msp {
 
         // calculate effective cliff units as an absolute amount. We will not store %
         let effective_cliff_units = if cliff_vest_percent > 0 {
-            cliff_vest_percent
-                .checked_mul(allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (cliff_vest_percent as u128)
+                    .checked_mul(allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?
+            ).unwrap()
         } else {
             cliff_vest_amount_units
         };
@@ -264,9 +272,13 @@ pub mod msp {
         let fee_amount = if stream.fee_payed_by_treasurer 
         { 0u64 }
         else {
-            WITHDRAW_PERCENT_FEE
-                .checked_mul(user_requested_amount).unwrap()
-                .checked_div(PERCENT_DENOMINATOR).ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (WITHDRAW_PERCENT_FEE as u128)
+                    .checked_mul(user_requested_amount as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?
+            ).unwrap()
         };
 
         let transfer_amount = if fee_amount == 0 { user_requested_amount }
@@ -567,9 +579,13 @@ pub mod msp {
         stream.save_effective_cliff();
         
         let fee_amount = if stream.fee_payed_by_treasurer {
-           WITHDRAW_PERCENT_FEE
-                .checked_mul(amount).unwrap()
-                .checked_div(PERCENT_DENOMINATOR).ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (WITHDRAW_PERCENT_FEE as u128)
+                    .checked_mul(amount as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?
+            ).unwrap()
         } else {
             0_u64
         };
@@ -697,9 +713,13 @@ pub mod msp {
         let mut beneficiary_closing_amount_after_deducting_fees = beneficiary_closing_amount;
 
         if !stream.fee_payed_by_treasurer && beneficiary_closing_amount > 0 {
-            fee_amount = CLOSE_STREAM_PERCENT_FEE
-                .checked_mul(beneficiary_closing_amount).unwrap()
-                .checked_div(PERCENT_DENOMINATOR).ok_or(ErrorCode::Overflow)?;
+            fee_amount = u64::try_from(
+                (CLOSE_STREAM_PERCENT_FEE as u128)
+                    .checked_mul(beneficiary_closing_amount as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?
+            ).unwrap();
 
             beneficiary_closing_amount_after_deducting_fees = beneficiary_closing_amount
                 .checked_sub(fee_amount)
@@ -984,9 +1004,13 @@ pub mod msp {
         msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_withds: {3}, withd_a: {4}", 
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units, amount);
 
-        let fee_amount = TREASURY_WITHDRAW_PERCENT_FEE
-            .checked_mul(amount).unwrap()
-            .checked_div(PERCENT_DENOMINATOR).ok_or(ErrorCode::Overflow)?;
+        let fee_amount = u64::try_from(
+            (TREASURY_WITHDRAW_PERCENT_FEE as u128)
+                .checked_mul(amount as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(PERCENT_DENOMINATOR as u128)
+                .ok_or(ErrorCode::Overflow)?
+        ).unwrap();
 
         let destination_amount = amount
             .checked_sub(fee_amount).ok_or(ErrorCode::Overflow)?;
