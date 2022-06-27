@@ -920,12 +920,32 @@ pub mod msp {
         // sol fee
         // this is done at the end to avoid pre-CPI imbalance check error
         if treasury.sol_fee_payed_by_treasury {
+            // Since the treasury is being closed, there is no need to check if
+            // the treasury is rent exempt after transferring the fee amount.
+            // Also it can inconvenience users as they may have to fund the
+            // treasury with lamports in order to close it.
+            // Warning! We DO NEED this check in any other operation that
+            // transfers lamports out of the treasury.
+
             msg!("tsy{0}sfa", CLOSE_TREASURY_FLAT_FEE);
-            treasury_transfer_sol_amount(
-                &treasury.to_account_info(),
-                &ctx.accounts.fee_treasury.to_account_info(),
-                CLOSE_TREASURY_FLAT_FEE
-            )?;
+            let treasury_account_info = &treasury.to_account_info();
+            msg!("treasury_lamports: {0}", treasury_account_info.lamports());
+            let fee_account_info = &ctx.accounts.fee_treasury.to_account_info();
+
+            if CLOSE_TREASURY_FLAT_FEE > treasury_account_info.lamports() {
+                return Err(ErrorCode::InsufficientLamports.into());
+            }
+
+            **treasury_account_info.try_borrow_mut_lamports()? = treasury_account_info
+                .lamports()
+                .checked_sub(CLOSE_TREASURY_FLAT_FEE)
+                .ok_or(ErrorCode::Overflow)?;
+
+            **fee_account_info.try_borrow_mut_lamports()? = fee_account_info
+                .lamports()
+                .checked_add(CLOSE_TREASURY_FLAT_FEE)
+                .ok_or(ErrorCode::Overflow)?;
+
         } else {
             msg!("itr{0}sfa", CLOSE_TREASURY_FLAT_FEE);
             transfer_sol_amount(
