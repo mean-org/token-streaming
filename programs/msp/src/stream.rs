@@ -82,11 +82,13 @@ impl Stream {
     pub fn primitive_get_cliff_units<'info>(&self) -> Result<u64> {
         // calculate effective cliff units as an absolute amount. We will not store %
         let cliff_units = if self.cliff_vest_percent > 0 {
-            self.cliff_vest_percent
-                .checked_mul(self.allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (self.cliff_vest_percent as u128)
+                    .checked_mul(self.allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?
+            ).unwrap()
         } else {
             self.cliff_vest_amount_units
         };
@@ -98,11 +100,13 @@ impl Stream {
     /// the stream since we will not store the cliff %
     pub fn save_effective_cliff<'info>(&mut self) {
         let cliff_units = if self.cliff_vest_percent > 0 {
-            self.cliff_vest_percent
-                .checked_mul(self.allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .unwrap()
+                u64::try_from(
+                    (self.cliff_vest_percent as u128)
+                        .checked_mul(self.allocation_assigned_units as u128)
+                        .unwrap()
+                        .checked_div(PERCENT_DENOMINATOR as u128)
+                        .unwrap()
+                ).unwrap()
         } else {
             self.cliff_vest_amount_units
         };
