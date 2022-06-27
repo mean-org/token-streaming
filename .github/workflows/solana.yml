@@ -23,7 +23,7 @@ jobs:
       
       # Install Rust
       - name: Cache Cargo registry + index
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-cargo
         with:
             path: |
@@ -58,7 +58,7 @@ jobs:
 
       # Install Rust
       - name: Cache Cargo registry + index
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-cargo
         with:
             path: |
@@ -81,7 +81,7 @@ jobs:
       # Install Solana
       - name: Cache Solana binaries
         id: solana-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: |
                 ~/.cache/solana
@@ -103,12 +103,18 @@ jobs:
       - name: Copy secrets
         run: echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
 
+      # Install Node
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 17
+
       # Install Yarn
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
       - name: Yarn Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
             key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
@@ -116,10 +122,6 @@ jobs:
                 ${{ runner.os }}-modules-
       - name: Install Packages
         run: yarn install
-
-      # Install Node
-      - name: Setup Node
-        uses: actions/setup-node@v2
 
       # Install Anchor
       - name: Install Anchor
@@ -138,7 +140,7 @@ jobs:
     environment:
       name: devnet
     env:
-      CLUSTER: mainnet
+      CLUSTER: devnet
       RPC_URL: ${{ secrets.DEVNET_RPC_URL }}
       MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.DEVNET_MULTISIG_AUTHORITY }}
     steps:
@@ -146,7 +148,7 @@ jobs:
 
       # Install Rust
       - name: Cache Cargo registry + index
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-cargo
         with:
             path: |
@@ -169,7 +171,7 @@ jobs:
       # Install Solana
       - name: Cache Solana binaries
         id: solana-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: |
                 ~/.cache/solana
@@ -189,15 +191,14 @@ jobs:
 
       # Copy secrets
       - name: Copy secrets
-        run: |
-            echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
+        run: echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
 
       # Install Yarn
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
       - name: Yarn Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
             key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
@@ -213,6 +214,8 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - name: Deploy program
         run: sh ./deploy.sh
+      - name: Print account
+        run: echo ${{ env.BUFFER_ACCOUNT_ADDRESS }}
 
   cd-mainnet:
     runs-on: ubuntu-latest
@@ -229,7 +232,7 @@ jobs:
 
       # Install Rust
       - name: Cache Cargo registry + index
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-cargo
         with:
             path: |
@@ -252,7 +255,7 @@ jobs:
       # Install Solana
       - name: Cache Solana binaries
         id: solana-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: |
                 ~/.cache/solana
@@ -279,7 +282,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
       - name: Yarn Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
             path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
             key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
