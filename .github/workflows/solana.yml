@@ -214,6 +214,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - name: Deploy program
         uses: nick-fields/retry@v2
+        with:
           retry_wait_seconds: 2
           timeout_minutes: 10
           retry_on: error
