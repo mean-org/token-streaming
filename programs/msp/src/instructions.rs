@@ -100,8 +100,17 @@ pub struct CreateStreamAccounts<'info> {
         init,
         payer = payer,
         space = 500,
-        // constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate, // This is sent equals to zero for OTP
-        // constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate, // This is sent equals to zero for OTP
+        // rate_amount_units and rate_interval_in_seconds are allowed to be
+        // equal to zero to support one time payments (OTP)
+        // Here, because we are forcing cliff_vest_amount_units to be positive,
+        // we are also forcing allocation_assigned_units to be positive
+        constraint = (
+                rate_amount_units == 0 &&
+                rate_interval_in_seconds == 0 &&
+                cliff_vest_amount_units > 0 &&
+                cliff_vest_amount_units == allocation_assigned_units) ||
+            (rate_amount_units > 0 && rate_interval_in_seconds > 0)
+            @ ErrorCode::InvalidStreamRate,
         constraint = allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
         // passing both, cliff amount and cliff percent is not allowed
@@ -393,7 +402,8 @@ pub struct AllocateAccounts<'info> {
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
         constraint = stream.treasurer_address == treasurer.key() @ ErrorCode::InvalidTreasurer,
         constraint = stream.beneficiary_associated_token == associated_token.key() @ ErrorCode::InvalidAssociatedToken,
-        constraint = amount > 0 @ ErrorCode::ZeroContributionAmount
+        constraint = amount > 0 @ ErrorCode::ZeroContributionAmount,
+        constraint = stream.rate_amount_units > 0 && stream.rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
