@@ -4,8 +4,7 @@ on:
   push:
     branches:
     - develop
-    # - main
-  pull_request:
+  
 
 env:
   SOLANA_VERSION: "1.10.5"
@@ -133,6 +132,12 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - name: Run Tests
         run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
+
+      - name: Sec3 Pro Audit
+        continue-on-error: false    # set to true if you don't want to fail jobs
+        uses: sec3dev/pro-action@v1
+        with:
+          sec3-token: ${{ secrets.SEC3_AUTO_AUDITOR_TOKEN }}
 
   cd-devnet:
     runs-on: ubuntu-latest
