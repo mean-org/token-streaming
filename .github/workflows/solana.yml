@@ -137,6 +137,7 @@ jobs:
         continue-on-error: false    # set to true if you don't want to fail jobs
         uses: sec3dev/pro-action@v1
         with:
+          path: programs/msp
           sec3-token: ${{ secrets.SEC3_AUTO_AUDITOR_TOKEN }}
 
   cd-devnet:
