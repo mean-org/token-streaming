@@ -221,8 +221,10 @@ jobs:
           retry_on: error
           max_attempts: 3
           command: sh ./deploy.sh
+      
+      # Print outputs
       - name: Print account
-        run: echo ${{ env.BUFFER_ACCOUNT_ADDRESS }}
+        run: echo ${{ env.EXPLORER_URL }}
 
   cd-mainnet:
     runs-on: ubuntu-latest
