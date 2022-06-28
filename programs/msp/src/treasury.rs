@@ -15,7 +15,7 @@ pub struct Treasury {
     // #[deprecated]
     pub mint_address: Pubkey,
     /// This field should not be used in its current form because it has a dynamic size
-    /// 
+    ///
     /// The 4-bytes header can be repurposed in the future
     pub labels: Vec<String>,
     /// Treasury balance tracking

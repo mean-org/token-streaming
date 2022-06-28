@@ -8,6 +8,7 @@ use crate::stream::*;
 use crate::treasury::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
+use std::convert::TryFrom;
 
 pub fn transfer_sol_amount<'info>(
     from: &AccountInfo<'info>,
@@ -275,11 +276,14 @@ pub fn construct_stream_account<'info>(
 
     if fee_payed_by_treasurer {
         // beneficiary fee payed by the treasurer
-        treasurer_fee_amount = WITHDRAW_PERCENT_FEE
-            .checked_mul(allocation_assigned_units)
-            .unwrap()
-            .checked_div(PERCENT_DENOMINATOR)
-            .ok_or(ErrorCode::Overflow)?;
+        treasurer_fee_amount = u64::try_from(
+            (WITHDRAW_PERCENT_FEE as u128)
+                .checked_mul(allocation_assigned_units as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(PERCENT_DENOMINATOR as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        )
+        .unwrap();
 
         total_treasury_allocation_amount = allocation_assigned_units
             .checked_add(treasurer_fee_amount)

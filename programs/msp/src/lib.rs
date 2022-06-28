@@ -20,6 +20,7 @@ use crate::extensions::*;
 use crate::instructions::*;
 use crate::utils::*;
 pub use categories::*;
+use std::convert::TryFrom;
 
 declare_id!("MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu");
 
@@ -100,11 +101,14 @@ pub mod msp {
     ) -> Result<()> {
         // calculate effective cliff units as an absolute amount. We will not store %
         let effective_cliff_units = if cliff_vest_percent > 0 {
-            cliff_vest_percent
-                .checked_mul(allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (cliff_vest_percent as u128)
+                    .checked_mul(allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
         } else {
             cliff_vest_amount_units
         };
@@ -241,11 +245,14 @@ pub mod msp {
         let fee_amount = if stream.fee_payed_by_treasurer {
             0u64
         } else {
-            WITHDRAW_PERCENT_FEE
-                .checked_mul(user_requested_amount)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (WITHDRAW_PERCENT_FEE as u128)
+                    .checked_mul(user_requested_amount as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
         };
 
         let transfer_amount = if fee_amount == 0 {
@@ -570,11 +577,14 @@ pub mod msp {
         stream.save_effective_cliff();
 
         let fee_amount = if stream.fee_payed_by_treasurer {
-            WITHDRAW_PERCENT_FEE
-                .checked_mul(amount)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (WITHDRAW_PERCENT_FEE as u128)
+                    .checked_mul(amount as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
         } else {
             0_u64
         };
@@ -714,11 +724,14 @@ pub mod msp {
         let mut beneficiary_closing_amount_after_deducting_fees = beneficiary_closing_amount;
 
         if !stream.fee_payed_by_treasurer && beneficiary_closing_amount > 0 {
-            fee_amount = CLOSE_STREAM_PERCENT_FEE
-                .checked_mul(beneficiary_closing_amount)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?;
+            fee_amount = u64::try_from(
+                (CLOSE_STREAM_PERCENT_FEE as u128)
+                    .checked_mul(beneficiary_closing_amount as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap();
 
             beneficiary_closing_amount_after_deducting_fees = beneficiary_closing_amount
                 .checked_sub(fee_amount)
@@ -936,12 +949,31 @@ pub mod msp {
         // sol fee
         // this is done at the end to avoid pre-CPI imbalance check error
         if treasury.sol_fee_payed_by_treasury {
+            // Since the treasury is being closed, there is no need to check if
+            // the treasury is rent exempt after transferring the fee amount.
+            // Also it can inconvenience users as they may have to fund the
+            // treasury with lamports in order to close it.
+            // Warning! We DO NEED this check in any other operation that
+            // transfers lamports out of the treasury.
+
             msg!("tsy{0}sfa", CLOSE_TREASURY_FLAT_FEE);
-            treasury_transfer_sol_amount(
-                &treasury.to_account_info(),
-                &ctx.accounts.fee_treasury.to_account_info(),
-                CLOSE_TREASURY_FLAT_FEE,
-            )?;
+            let treasury_account_info = &treasury.to_account_info();
+            msg!("treasury_lamports: {0}", treasury_account_info.lamports());
+            let fee_account_info = &ctx.accounts.fee_treasury.to_account_info();
+
+            if CLOSE_TREASURY_FLAT_FEE > treasury_account_info.lamports() {
+                return Err(ErrorCode::InsufficientLamports.into());
+            }
+
+            **treasury_account_info.try_borrow_mut_lamports()? = treasury_account_info
+                .lamports()
+                .checked_sub(CLOSE_TREASURY_FLAT_FEE)
+                .ok_or(ErrorCode::Overflow)?;
+
+            **fee_account_info.try_borrow_mut_lamports()? = fee_account_info
+                .lamports()
+                .checked_add(CLOSE_TREASURY_FLAT_FEE)
+                .ok_or(ErrorCode::Overflow)?;
         } else {
             msg!("itr{0}sfa", CLOSE_TREASURY_FLAT_FEE);
             transfer_sol_amount(
@@ -1014,11 +1046,14 @@ pub mod msp {
             amount
         );
 
-        let fee_amount = TREASURY_WITHDRAW_PERCENT_FEE
-            .checked_mul(amount)
-            .unwrap()
-            .checked_div(PERCENT_DENOMINATOR)
-            .ok_or(ErrorCode::Overflow)?;
+        let fee_amount = u64::try_from(
+            (TREASURY_WITHDRAW_PERCENT_FEE as u128)
+                .checked_mul(amount as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(PERCENT_DENOMINATOR as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        )
+        .unwrap();
 
         let destination_amount = amount.checked_sub(fee_amount).ok_or(ErrorCode::Overflow)?;
 

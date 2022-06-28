@@ -3,6 +3,7 @@ use crate::enums::*;
 use crate::errors::ErrorCode;
 use anchor_lang::prelude::*;
 use std::cmp;
+use std::convert::TryFrom;
 
 #[account]
 pub struct Stream {
@@ -86,11 +87,14 @@ impl Stream {
     pub fn primitive_get_cliff_units<'info>(&self) -> Result<u64> {
         // calculate effective cliff units as an absolute amount. We will not store %
         let cliff_units = if self.cliff_vest_percent > 0 {
-            self.cliff_vest_percent
-                .checked_mul(self.allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (self.cliff_vest_percent as u128)
+                    .checked_mul(self.allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
         } else {
             self.cliff_vest_amount_units
         };
@@ -102,11 +106,14 @@ impl Stream {
     /// the stream since we will not store the cliff %
     pub fn save_effective_cliff<'info>(&mut self) {
         let cliff_units = if self.cliff_vest_percent > 0 {
-            self.cliff_vest_percent
-                .checked_mul(self.allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .unwrap()
+            u64::try_from(
+                (self.cliff_vest_percent as u128)
+                    .checked_mul(self.allocation_assigned_units as u128)
+                    .unwrap()
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .unwrap(),
+            )
+            .unwrap()
         } else {
             self.cliff_vest_amount_units
         };
@@ -146,22 +153,27 @@ impl Stream {
             .allocation_assigned_units
             .checked_sub(cliff_units)
             .ok_or(ErrorCode::Overflow)?;
-        let streaming_seconds = streamable_units
-            .checked_mul(self.rate_interval_in_seconds)
-            .ok_or(ErrorCode::Overflow)?
-            .checked_div(self.rate_amount_units)
-            .ok_or(ErrorCode::Overflow)?;
+        let streaming_seconds = u64::try_from(
+            (streamable_units as u128)
+                .checked_mul(self.rate_interval_in_seconds as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(self.rate_amount_units as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        )
+        .unwrap();
 
         if seconds >= streaming_seconds {
             return Ok(streamable_units);
         }
 
-        let streamable_units_in_given_seconds = self
-            .rate_amount_units
-            .checked_mul(seconds)
-            .unwrap()
-            .checked_div(self.rate_interval_in_seconds)
-            .ok_or(ErrorCode::Overflow)?;
+        let streamable_units_in_given_seconds = u64::try_from(
+            (self.rate_amount_units as u128)
+                .checked_mul(seconds as u128)
+                .unwrap()
+                .checked_div(self.rate_interval_in_seconds as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        )
+        .unwrap();
 
         Ok(streamable_units_in_given_seconds)
     }
@@ -231,11 +243,14 @@ impl Stream {
             .checked_sub(cliff_units)
             .ok_or(ErrorCode::Overflow)?;
 
-        let streaming_seconds = streamable_units
-            .checked_mul(self.rate_interval_in_seconds)
-            .ok_or(ErrorCode::Overflow)?
-            .checked_div(self.rate_amount_units)
-            .ok_or(ErrorCode::Overflow)?;
+        let streaming_seconds = u64::try_from(
+            (streamable_units as u128)
+                .checked_mul(self.rate_interval_in_seconds as u128)
+                .ok_or(ErrorCode::Overflow)?
+                .checked_div(self.rate_amount_units as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        )
+        .unwrap();
 
         let duration_span_seconds = streaming_seconds
             .checked_add(self.last_known_total_seconds_in_paused_status)
