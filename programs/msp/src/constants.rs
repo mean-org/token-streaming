@@ -15,7 +15,6 @@ pub const PERCENT_DENOMINATOR: u64 = 1_000_000;
 
 // General
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
-pub const TREASURY_POOL_MINT_DECIMALS: u8 = 6;
 
 // Stream Allocation Types
 // pub const ALLOCATION_TYPE_ASSIGN_TO_ALL_STREAMS: u8 = 0; // NOT IMPLEMENTED YET
@@ -28,4 +27,4 @@ pub const TREASURY_TYPE_LOCKED: u8 = 1;
 /// written into the IDL file. Every time a new breaking change is done to
 /// the IDL (i.e. added or removed instruction argument or account, argument 
 /// type changed, etc.), then this value is increased.
-pub const IDL_FILE_VERSION: u8 = 1;
+pub const IDL_FILE_VERSION: u8 = 3;
