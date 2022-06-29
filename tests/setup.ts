@@ -1545,7 +1545,7 @@ export class MspSetup {
     const mappedEvent = {
       version: event.version,
       initialized: event.initialized,
-      name: String.fromCharCode(...event.name),
+      name: event.name,
       treasurerAddress: event.treasurerAddress,
       rateAmountUnits: event.rateAmountUnits,
       rateIntervalInSeconds: event.rateIntervalInSeconds,

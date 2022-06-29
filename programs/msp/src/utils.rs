@@ -186,8 +186,7 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
         // state data
         version: stream.version,
         initialized: stream.initialized,
-        // name: stream.name.as_ref().trim_ascii_whitespace(),
-        name: stream.name,
+        name: String::from_utf8(stream.name.to_vec()).unwrap().trim().to_string(),
         treasurer_address: stream.treasurer_address,
         rate_amount_units: stream.rate_amount_units,
         rate_interval_in_seconds: stream.rate_interval_in_seconds,
