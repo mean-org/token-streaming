@@ -4,8 +4,7 @@ on:
   push:
     branches:
     - develop
-    # - main
-  pull_request:
+  
 
 env:
   SOLANA_VERSION: "1.10.5"
@@ -20,7 +19,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       # Install Rust
       - name: Cache Cargo registry + index
@@ -55,7 +54,7 @@ jobs:
     environment:
         name: localnet
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Install Rust
       - name: Cache Cargo registry + index
@@ -134,10 +133,32 @@ jobs:
       - name: Run Tests
         run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
 
+  audit:
+    runs-on: ubuntu-latest
+    needs: [ci]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v3
+      - name: Sec3 Pro Audit
+        id: sec3-scan
+        continue-on-error: true    # set to true if you don't want to fail jobs
+        uses: sec3dev/pro-action@v1
+        with:
+          path: programs/msp
+          sec3-token: ${{ secrets.SEC3_AUTO_AUDITOR_TOKEN }}
+          soteria-token: ${{ secrets.SEC3_AUTO_AUDITOR_TOKEN }}
+      - name: Upload Sarif Report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: sec3-report.sarif
+      - name: Check on failures
+        if: steps.sec3-scan.outcome != 'success'
+        run: exit 1
+
   cd-devnet:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
-    needs: [ci]
+    needs: [audit]
     environment:
       name: devnet
     env:
@@ -145,7 +166,7 @@ jobs:
       RPC_URL: ${{ secrets.DEVNET_RPC_URL }}
       MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.DEVNET_MULTISIG_AUTHORITY }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Install Rust
       - name: Cache Cargo registry + index
@@ -221,13 +242,15 @@ jobs:
           retry_on: error
           max_attempts: 3
           command: sh ./deploy.sh
+      
+      # Print outputs
       - name: Print account
-        run: echo ${{ env.BUFFER_ACCOUNT_ADDRESS }}
+        run: echo ${{ env.EXPLORER_URL }}
 
   cd-mainnet:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    needs: [ci]
+    needs: [audit]
     environment:
       name: mainnet
     env:
@@ -235,7 +258,7 @@ jobs:
       RPC_URL: ${{ secrets.MAINNET_RPC_URL }}
       MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.MAINNET_MULTISIG_AUTHORITY }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       # Install Rust
       - name: Cache Cargo registry + index

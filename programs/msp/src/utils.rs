@@ -126,8 +126,7 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
     let mut withdrawable_while_paused = 0u64;
 
     if StreamStatus::Paused == status {
-        let is_manual_pause = stream.primitive_is_manually_paused();
-        if !is_manual_pause {
+        if is_manual_pause {
             withdrawable_while_paused = stream.last_manual_stop_withdrawable_units_snap;
         } else {
             if stream.allocation_assigned_units >= stream.total_withdrawals_units {
@@ -180,8 +179,7 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
         // state data
         version: stream.version,
         initialized: stream.initialized,
-        // name: stream.name.as_ref().trim_ascii_whitespace(),
-        name: stream.name,
+        name: String::from_utf8(stream.name.to_vec()).unwrap().trim().to_string(),
         treasurer_address: stream.treasurer_address,
         rate_amount_units: stream.rate_amount_units,
         rate_interval_in_seconds: stream.rate_interval_in_seconds,

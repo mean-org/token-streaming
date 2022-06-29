@@ -19,6 +19,7 @@ pub mod maintenance_authority {
 /// Create Treasury
 #[derive(Accounts, Clone)]
 #[instruction(
+    idl_file_version: u8,
     slot: u64,
 )]
 pub struct CreateTreasuryAccounts<'info> {
@@ -31,19 +32,10 @@ pub struct CreateTreasuryAccounts<'info> {
         payer = payer,
         seeds = [treasurer.key().as_ref(), &slot.to_le_bytes()],
         bump,
-        space = 300
+        space = 300,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
-    #[account(
-        init,
-        payer = payer,
-        seeds = [treasurer.key().as_ref(), treasury.key().as_ref(), &slot.to_le_bytes()],
-        bump,
-        mint::decimals = TREASURY_POOL_MINT_DECIMALS,
-        mint::authority = treasury,
-        mint::freeze_authority = treasury,
-    )]
-    pub treasury_mint: Box<Account<'info, Mint>>,
 
     #[account(
         init,
@@ -68,6 +60,7 @@ pub struct CreateTreasuryAccounts<'info> {
 /// Create Stream
 #[derive(Accounts, Clone)]
 #[instruction(
+    idl_file_version: u8,
     name: String,
     start_utc: u64,
     rate_amount_units: u64,
@@ -79,8 +72,6 @@ pub struct CreateTreasuryAccounts<'info> {
 pub struct CreateStreamAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    #[account(mut)]
-    pub initializer: Signer<'info>,
     #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
     pub treasurer: Signer<'info>,
     #[account(
@@ -89,7 +80,8 @@ pub struct CreateStreamAccounts<'info> {
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
-        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -108,10 +100,21 @@ pub struct CreateStreamAccounts<'info> {
         init,
         payer = payer,
         space = 500,
-        // constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate, // This is sent equals to zero for OTP
-        // constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate, // This is sent equals to zero for OTP
+        // rate_amount_units and rate_interval_in_seconds are allowed to be
+        // equal to zero to support one time payments (OTP)
+        // Here, because we are forcing cliff_vest_amount_units to be positive,
+        // we are also forcing allocation_assigned_units to be positive
+        constraint = (
+                rate_amount_units == 0 &&
+                rate_interval_in_seconds == 0 &&
+                cliff_vest_amount_units > 0 &&
+                cliff_vest_amount_units == allocation_assigned_units) ||
+            (rate_amount_units > 0 && rate_interval_in_seconds > 0)
+            @ ErrorCode::InvalidStreamRate,
         constraint = allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+        // passing both, cliff amount and cliff percent is not allowed
+        constraint = (cliff_vest_amount_units == 0 || cliff_vest_percent == 0) @ ErrorCode::InvalidCliff,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -134,14 +137,17 @@ pub struct CreateStreamAccounts<'info> {
 
 /// Withdraw
 #[derive(Accounts)]
-#[instruction(amount: u64)]
+#[instruction(
+    idl_file_version: u8,
+    amount: u64,
+)]
 pub struct WithdrawAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
         mut,
         constraint = amount > 0 @ ErrorCode::ZeroWithdrawalAmount,
-        constraint = beneficiary.key() == stream.beneficiary_address @ ErrorCode::InvalidBeneficiary
+        constraint = beneficiary.key() == stream.beneficiary_address @ ErrorCode::InvalidBeneficiary,
     )]
     pub beneficiary: Signer<'info>,
     #[account(
@@ -179,6 +185,7 @@ pub struct WithdrawAccounts<'info> {
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -201,6 +208,7 @@ pub struct WithdrawAccounts<'info> {
 
 /// Pause or Resume Stream
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct PauseOrResumeStreamAccounts<'info> {
     #[account(
         constraint = (
@@ -214,23 +222,18 @@ pub struct PauseOrResumeStreamAccounts<'info> {
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
-        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
-    #[account(
-        constraint = (
-            associated_token.key() == stream.beneficiary_associated_token &&
-            associated_token.key() == treasury.associated_token_address
-        ) @ ErrorCode::InvalidAssociatedToken,
-    )]
-    pub associated_token: Box<Account<'info, Mint>>,
     #[account(
         mut,
         constraint = stream.treasury_address == treasury.key() @ ErrorCode::InvalidTreasury,
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
-        constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed
+        constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed,
+        constraint = stream.beneficiary_associated_token == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken,
     )]
     pub stream: Account<'info, Stream>
 }
@@ -239,6 +242,7 @@ pub struct PauseOrResumeStreamAccounts<'info> {
 
 /// Refresh Treasury Data
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct RefreshTreasuryDataAccounts<'info> {
     #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::InvalidTreasurer)]
     pub treasurer: Signer<'info>,
@@ -248,10 +252,10 @@ pub struct RefreshTreasuryDataAccounts<'info> {
         mut,
         seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
         bump = treasury.bump,
-        constraint = treasury.treasurer_address == treasurer.key() @ ErrorCode::NotAuthorized,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -264,7 +268,10 @@ pub struct RefreshTreasuryDataAccounts<'info> {
 
 /// Transfer Stream
 #[derive(Accounts)]
-#[instruction(new_beneficiary: Pubkey)]
+#[instruction(
+    idl_file_version: u8,
+    new_beneficiary: Pubkey,
+)]
 pub struct TransferStreamAccounts<'info> {
     #[account(
         mut,
@@ -275,7 +282,8 @@ pub struct TransferStreamAccounts<'info> {
         mut,
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
-        constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize
+        constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -299,6 +307,7 @@ pub struct GetStreamAccounts<'info> {
 
 #[derive(Accounts)]
 #[instruction(
+    idl_file_version: u8,
     amount: u64,
 )]
 pub struct AddFundsAccounts<'info> {
@@ -317,13 +326,6 @@ pub struct AddFundsAccounts<'info> {
     )]
     pub contributor_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = treasury_mint,
-        associated_token::authority = contributor
-    )]
-    pub contributor_treasury_token: Box<Account<'info, TokenAccount>>,
-    #[account(
         mut,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
@@ -332,6 +334,7 @@ pub struct AddFundsAccounts<'info> {
             treasury.associated_token_address == Pubkey::default() ||
             treasury.associated_token_address == associated_token.key()
         ) @ ErrorCode::InvalidAssociatedToken,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -342,12 +345,6 @@ pub struct AddFundsAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     pub associated_token: Box<Account<'info, Mint>>,
-    #[account(
-        mut,
-        constraint = treasury_mint.decimals == TREASURY_POOL_MINT_DECIMALS @ ErrorCode::InvalidTreasuryMintDecimals,
-        constraint = treasury_mint.key() == treasury.mint_address @ ErrorCode::InvalidTreasuryMint
-    )]
-    pub treasury_mint: Box<Account<'info, Mint>>,
     #[account(
         mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
@@ -368,6 +365,7 @@ pub struct AddFundsAccounts<'info> {
 
 #[derive(Accounts)]
 #[instruction(
+    idl_file_version: u8,
     amount: u64,
 )]
 pub struct AllocateAccounts<'info> {
@@ -386,6 +384,7 @@ pub struct AllocateAccounts<'info> {
         constraint = treasury.associated_token_address == associated_token.key() @ ErrorCode::InvalidAssociatedToken,
         constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::AllocateNotAllowedOnLockedStreams,
         constraint = treasury.treasurer_address == treasurer.key() @ ErrorCode::InvalidTreasurer,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -401,14 +400,10 @@ pub struct AllocateAccounts<'info> {
         constraint = stream.version == 2 @ ErrorCode::InvalidStreamVersion,
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
-        constraint = (
-            treasury.treasury_type != TREASURY_TYPE_LOCKED || 
-            stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused // TODO: Review
-        ) @ ErrorCode::CloseLockedStreamNotAllowedWhileRunning,
-
         constraint = stream.treasurer_address == treasurer.key() @ ErrorCode::InvalidTreasurer,
-        constraint = stream.beneficiary_associated_token == associated_token.key() @ ErrorCode::InvalidTreasury, // Probably redundant check
-        constraint = amount > 0 @ ErrorCode::ZeroContributionAmount
+        constraint = stream.beneficiary_associated_token == associated_token.key() @ ErrorCode::InvalidAssociatedToken,
+        constraint = amount > 0 @ ErrorCode::ZeroContributionAmount,
+        constraint = stream.rate_amount_units > 0 && stream.rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -430,6 +425,7 @@ pub struct AllocateAccounts<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct CloseStreamAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -465,7 +461,8 @@ pub struct CloseStreamAccounts<'info> {
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
-        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -505,6 +502,7 @@ pub struct CloseStreamAccounts<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(idl_file_version: u8)]
 pub struct CloseTreasuryAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -513,13 +511,6 @@ pub struct CloseTreasuryAccounts<'info> {
         constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::InvalidTreasurer
     )]
     pub treasurer: Signer<'info>,
-    #[account(
-        init_if_needed,
-        payer = payer,
-        associated_token::mint = treasury_mint,
-        associated_token::authority = treasurer
-    )]
-    pub treasurer_treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub destination_authority: SystemAccount<'info>,
     #[account(
@@ -545,6 +536,7 @@ pub struct CloseTreasuryAccounts<'info> {
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
         constraint = treasury.total_streams == 0 @ ErrorCode::TreasuryContainsStreams,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(
@@ -554,12 +546,6 @@ pub struct CloseTreasuryAccounts<'info> {
         associated_token::authority = treasury
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
-    #[account(
-        mut,
-        constraint = treasury_mint.decimals == TREASURY_POOL_MINT_DECIMALS @ ErrorCode::InvalidTreasuryMintDecimals,
-        constraint = treasury_mint.key() == treasury.mint_address @ ErrorCode::InvalidTreasuryMint
-    )]
-    pub treasury_mint: Box<Account<'info, Mint>>,
     #[account(
         mut, 
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
@@ -613,7 +599,10 @@ pub struct CloseTreasuryAccounts<'info> {
 
 
 #[derive(Accounts)]
-#[instruction(amount: u64)]
+#[instruction(
+    idl_file_version: u8,
+    amount: u64,
+)]
 pub struct TreasuryWithdrawAccounts<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -644,6 +633,7 @@ pub struct TreasuryWithdrawAccounts<'info> {
         constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
         constraint = amount > 0 @ ErrorCode::InvalidWithdrawalAmount,
         constraint = treasury.last_known_unallocated_balance()? >= amount @ ErrorCode::InsufficientTreasuryBalance,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
     )]
     pub treasury: Account<'info, Treasury>,
     #[account(

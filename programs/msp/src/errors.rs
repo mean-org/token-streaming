@@ -88,4 +88,8 @@ pub enum ErrorCode {
     // UPDATE TREASURY ERROR
     #[msg("Treasury allocation can not be greater than treasury balance")]
     InvalidTreasuryRequestedAllocation,
+    #[msg("Invalid IDL file version")]
+    InvalidIdlFileVersion,
+    #[msg("Invalid total streams in treasury")]
+    InvalidTotalStreamsInTreasury,
 }

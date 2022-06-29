@@ -5,7 +5,7 @@ pub struct StreamEvent {
     // state data
     pub version: u8,
     pub initialized: bool,
-    pub name: [u8; 32],
+    pub name: String,
     pub treasurer_address: Pubkey,
     pub rate_amount_units: u64,
     pub rate_interval_in_seconds: u64,

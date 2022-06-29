@@ -29,6 +29,7 @@ pub mod msp {
     /// Create Treasury
     pub fn create_treasury(
         ctx: Context<CreateTreasuryAccounts>,
+        _idl_file_version: u8,
         slot: u64,
         name: String,
         treasury_type: u8,
@@ -42,10 +43,9 @@ pub mod msp {
         treasury.bump = ctx.bumps["treasury"];
         treasury.slot = slot;
         treasury.treasurer_address = ctx.accounts.treasurer.key();
-        treasury.mint_address = ctx.accounts.treasury_mint.key();
         treasury.associated_token_address = ctx.accounts.associated_token.key();
         treasury.name = string_to_bytes(name)?;
-        treasury.labels = Vec::new();
+        treasury.labels = Vec::new(); // Do not change
         treasury.last_known_balance_units = 0;
         treasury.last_known_balance_slot = 0;
         treasury.last_known_balance_block_time = 0;
@@ -83,6 +83,7 @@ pub mod msp {
     /// Create Stream
     pub fn create_stream(
         ctx: Context<CreateStreamAccounts>,
+        _idl_file_version: u8,
         name: String,
         start_utc: u64,
         rate_amount_units: u64,
@@ -237,8 +238,8 @@ pub mod msp {
     /// Withdraw
     pub fn withdraw(
         ctx: Context<WithdrawAccounts>,
+        _idl_file_version: u8,
         amount: u64
-
     ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
@@ -349,7 +350,10 @@ pub mod msp {
     }
 
     /// Pause Stream
-    pub fn pause_stream(ctx: Context<PauseOrResumeStreamAccounts>) -> Result<()> {
+    pub fn pause_stream(
+        ctx: Context<PauseOrResumeStreamAccounts>,
+        _idl_file_version: u8,
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         msg!("clock: {0}", now_ts);
@@ -376,7 +380,10 @@ pub mod msp {
     }
 
     /// Resume Stream
-    pub fn resume_stream(ctx: Context<PauseOrResumeStreamAccounts>) -> Result<()> {
+    pub fn resume_stream(
+        ctx: Context<PauseOrResumeStreamAccounts>,
+        _idl_file_version: u8,
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
         msg!("clock: {0}", now_ts);
@@ -435,15 +442,13 @@ pub mod msp {
     /// Refresh Treasury Balance
     pub fn refresh_treasury_data(
         ctx: Context<RefreshTreasuryDataAccounts>,
-        total_streams: u64
-
+        _idl_file_version: u8,
     ) -> Result<()> {
         let clock = Clock::get()?;
         msg!("clock: {0}", clock.unix_timestamp);
 
         let treasury = &mut ctx.accounts.treasury;
 
-        treasury.total_streams = total_streams;
         treasury.last_known_balance_slot = clock.slot as u64;
         treasury.last_known_balance_block_time = clock.unix_timestamp as u64;
         treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
@@ -458,8 +463,8 @@ pub mod msp {
     /// Transfer Stream
     pub fn transfer_stream(
         ctx: Context<TransferStreamAccounts>,
-        new_beneficiary: Pubkey
-
+        _idl_file_version: u8,
+        new_beneficiary: Pubkey,
     ) -> Result<()> {
 
         let stream = &mut ctx.accounts.stream;
@@ -479,7 +484,10 @@ pub mod msp {
     }
 
     /// Get Stream
-    pub fn get_stream(ctx: Context<GetStreamAccounts>) -> Result<()> {
+    pub fn get_stream(
+        ctx: Context<GetStreamAccounts>,
+        _idl_file_version: u8,
+    ) -> Result<()> {
 
         emit!(
             get_stream_data_event(&ctx.accounts.stream)?
@@ -493,6 +501,7 @@ pub mod msp {
     /// Adds funds the treasury
     pub fn add_funds<'info>(
         ctx: Context<AddFundsAccounts>,
+        _idl_file_version: u8,
         amount: u64,
     ) -> Result<()> {
         let clock = Clock::get()?;
@@ -551,6 +560,7 @@ pub mod msp {
     /// Allocate units to a stream
     pub fn allocate<'info>(
         ctx: Context<AllocateAccounts>,
+        _idl_file_version: u8,
         amount: u64,
     ) -> Result<()> {
         let clock = Clock::get()?;
@@ -666,7 +676,7 @@ pub mod msp {
     /// Close Stream
     pub fn close_stream(
         ctx: Context<CloseStreamAccounts>,
-
+        _idl_file_version: u8,
     ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
@@ -793,22 +803,16 @@ pub mod msp {
     }
 
     /// Close Treasury
-    pub fn close_treasury(ctx: Context<CloseTreasuryAccounts>) -> Result<()> {
+    pub fn close_treasury(
+        ctx: Context<CloseTreasuryAccounts>,
+        _idl_file_version: u8,
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
 
         let treasury = &mut ctx.accounts.treasury;
         msg!("clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}",
             now_ts, treasury.last_known_balance_units, treasury.allocation_assigned_units, treasury.total_withdrawals_units);
-
-        // Close treasury pool token
-        close_treasury_pool_token_account(
-            &ctx.accounts.treasurer.to_account_info(),
-            &ctx.accounts.treasurer_treasury_token.to_account_info(),
-            &ctx.accounts.treasury_mint.to_account_info(),
-            &ctx.accounts.token_program.to_account_info(),
-            ctx.accounts.treasurer_treasury_token.amount,
-        )?;
 
         // if treasury.total_streams > 0 {
         //     return Err(ErrorCode::TreasuryContainsStreams.into());
@@ -827,7 +831,7 @@ pub mod msp {
                 &ctx.accounts.treasury_token.to_account_info(),
                 &ctx.accounts.destination_token_account.to_account_info(),
                 &ctx.accounts.token_program.to_account_info(),
-                treasury.last_known_balance_units
+                ctx.accounts.treasury_token.amount
             )?;
 
             // // Approach 2. using directly the spl token program
@@ -838,7 +842,7 @@ pub mod msp {
             //     &ctx.accounts.destination_token_account.key(),
             //     &treasury.key(),
             //     &[],
-            //     treasury.last_known_balance_units,
+            //     ctx.accounts.treasury_token.amount,
             // )?;
             // transfer_account_ix
             //     .accounts
@@ -916,12 +920,32 @@ pub mod msp {
         // sol fee
         // this is done at the end to avoid pre-CPI imbalance check error
         if treasury.sol_fee_payed_by_treasury {
+            // Since the treasury is being closed, there is no need to check if
+            // the treasury is rent exempt after transferring the fee amount.
+            // Also it can inconvenience users as they may have to fund the
+            // treasury with lamports in order to close it.
+            // Warning! We DO NEED this check in any other operation that
+            // transfers lamports out of the treasury.
+
             msg!("tsy{0}sfa", CLOSE_TREASURY_FLAT_FEE);
-            treasury_transfer_sol_amount(
-                &treasury.to_account_info(),
-                &ctx.accounts.fee_treasury.to_account_info(),
-                CLOSE_TREASURY_FLAT_FEE
-            )?;
+            let treasury_account_info = &treasury.to_account_info();
+            msg!("treasury_lamports: {0}", treasury_account_info.lamports());
+            let fee_account_info = &ctx.accounts.fee_treasury.to_account_info();
+
+            if CLOSE_TREASURY_FLAT_FEE > treasury_account_info.lamports() {
+                return Err(ErrorCode::InsufficientLamports.into());
+            }
+
+            **treasury_account_info.try_borrow_mut_lamports()? = treasury_account_info
+                .lamports()
+                .checked_sub(CLOSE_TREASURY_FLAT_FEE)
+                .ok_or(ErrorCode::Overflow)?;
+
+            **fee_account_info.try_borrow_mut_lamports()? = fee_account_info
+                .lamports()
+                .checked_add(CLOSE_TREASURY_FLAT_FEE)
+                .ok_or(ErrorCode::Overflow)?;
+
         } else {
             msg!("itr{0}sfa", CLOSE_TREASURY_FLAT_FEE);
             transfer_sol_amount(
@@ -976,7 +1000,11 @@ pub mod msp {
     // }
 
     /// Withdraw undallocated funds from treasury
-    pub fn treasury_withdraw(ctx: Context<TreasuryWithdrawAccounts>, amount: u64) -> Result<()> {
+    pub fn treasury_withdraw(
+        ctx: Context<TreasuryWithdrawAccounts>,
+        _idl_file_version: u8,
+        amount: u64,
+    ) -> Result<()> {
         let clock = Clock::get()?;
         let now_ts = clock.unix_timestamp as u64;
 
