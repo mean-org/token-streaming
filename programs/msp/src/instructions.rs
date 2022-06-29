@@ -224,6 +224,7 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
         init,
         payer = payer,
         space = 500,
+        // rate_interval_in_seconds > 0 is checked when creating stream template (create_stream_template)
         constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate,
     )]
     pub stream: Box<Account<'info, Stream>>,
