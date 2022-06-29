@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
 use crate::treasury::*;
@@ -181,8 +179,7 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
         // state data
         version: stream.version,
         initialized: stream.initialized,
-        // name: stream.name.as_ref().trim_ascii_whitespace(),
-        name: String::from_utf8(stream.name.as_ref().trim_ascii_whitespace().to_vec()).unwrap(),
+        name: String::from_utf8(stream.name.to_vec()).unwrap().trim().to_string(),
         treasurer_address: stream.treasurer_address,
         rate_amount_units: stream.rate_amount_units,
         rate_interval_in_seconds: stream.rate_interval_in_seconds,
@@ -229,21 +226,4 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
     };
 
     Ok(data)
-}
-
-pub trait TrimAsciiWhitespace {
-    /// Trim ascii whitespace (based on `is_ascii_whitespace()`) from the
-    /// start and end of a slice.
-    fn trim_ascii_whitespace(&self) -> &[u8];
-}
-
-impl<T: Deref<Target = [u8]>> TrimAsciiWhitespace for T {
-    fn trim_ascii_whitespace(&self) -> &[u8] {
-        let from = match self.iter().position(|x| !x.is_ascii_whitespace()) {
-            Some(i) => i,
-            None => return &self[0..0],
-        };
-        let to = self.iter().rposition(|x| !x.is_ascii_whitespace()).unwrap();
-        &self[from..=to]
-    }
 }

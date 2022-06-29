@@ -1035,7 +1035,7 @@ describe('msp', () => {
     });
   });
 
-  it('get stream (event)', async () => {
+  it('qqq get stream (event)', async () => {
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup({
