@@ -52,3 +52,181 @@ pub struct StreamEvent {
     /// Unix timestamp (in seconds) when the stream was created
     pub created_on_utc: u64
 }
+
+#[event]
+pub struct CreateTreasuryEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub sol_deposited_for_fees: u64,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_type: u8,
+    pub treasury_is_auto_close: bool,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct CreateStreamEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub stream_start_ts: u64,
+    pub stream_rate_amount: u64,
+    pub stream_rate_interval: u64,
+    pub stream_allocation: u64,
+    pub stream_cliff: u64,
+    pub stream_is_token_withdraw_fee_payed_by_treasury: bool,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_allocation_after: u64,
+    pub treasury_balance_after: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct StreamWithdrawEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub amount: u64,
+    pub token_amount_sent_to_beneficiary: u64,
+    pub stream_withdrawable_before: u64,
+    pub stream_is_manually_paused: bool,
+    pub stream_allocation_after: u64,
+    pub stream_total_withdrawals_after: u64,
+    pub stream_is_token_withdraw_fee_payed_by_treasury: bool,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_allocation_after: u64,
+    pub treasury_balance_after: u64,
+    pub treasury_total_withdrawals_after: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct StreamPauseEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub stream_last_manual_stop_withdrawable_after: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct StreamResumeEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub stream_total_seconds_in_paused_status_after: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct TreasuryRefreshEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub treasury_balance_after: u64,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct StreamTransferEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+    pub previous_beneficiary: Pubkey,
+    pub new_beneficiary: Pubkey,
+}
+
+#[event]
+pub struct TreasuryAddFundsEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub amount: u64,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_balance_after: u64,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct StreamAllocateEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub amount: u64,
+    pub stream_status_before: u32,
+    pub stream_was_manually_paused_before: bool,
+    pub stream_last_auto_stop_block_time: u64,
+    pub stream_total_seconds_in_paused_status_after: u64,
+    pub stream_is_token_withdraw_fee_payed_by_treasury: bool,
+    pub stream_allocation_after: u64,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_allocation_after: u64,
+    pub treasury_balance_after: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct CloseStreamEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub token_amount_sent_to_beneficiary: u64,
+    pub stream_is_token_withdraw_fee_payed_by_treasury: bool,
+    pub stream_allocation_before: u64,
+    pub stream_total_withdrawals_before: u64,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_allocation_after: u64,
+    pub treasury_balance_after: u64,
+    pub treasury_total_streams_after: u64,
+    #[index]
+    pub stream: Pubkey,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct CloseTreasuryEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub token_amount_sent_to_destination: u64,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    #[index]
+    pub treasury: Pubkey,
+}
+
+#[event]
+pub struct TreasuryWithdrawEvent {
+    pub timestamp: u64,
+    pub sol_fee_charged: u64,
+    pub token_fee_charged: u64,
+    pub amount: u64,
+    pub token_amount_sent_to_destination: u64,
+    pub treasury_is_sol_fee_payed_by_treasury: bool,
+    pub treasury_balance_after: u64,
+    #[index]
+    pub treasury: Pubkey,
+}
