@@ -1,11 +1,13 @@
 use crate::constants::{
-    CREATE_STREAM_FLAT_FEE, PERCENT_DENOMINATOR, TREASURY_TYPE_LOCKED, WITHDRAW_PERCENT_FEE,
+    CREATE_STREAM_FLAT_FEE, PERCENT_DENOMINATOR, TREASURY_TYPE_LOCKED, WITHDRAW_PERCENT_FEE, CREATE_TREASURY_FLAT_FEE, CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES,
 };
 use crate::enums::*;
 use crate::errors::ErrorCode;
 use crate::events::*;
 use crate::stream::*;
+use crate::template::*;
 use crate::treasury::*;
+use crate::categories::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::*;
 use std::convert::TryFrom;
@@ -236,6 +238,90 @@ pub fn get_stream_data_event<'info>(stream: &Stream) -> Result<StreamEvent> {
     };
 
     Ok(data)
+}
+
+pub fn construct_treasury_account<'info>(
+    name: String,
+    treasury_type: u8,
+    auto_close: bool,
+    sol_fee_payed_by_treasury: bool,
+    category: Category,
+    sub_category: SubCategory,
+    treasury: &mut Account<'info, Treasury>,
+    treasury_bump: u8,
+    payer: &AccountInfo<'info>,
+    treasurer: &AccountInfo<'info>,
+    fee_treasury: &AccountInfo<'info>,
+    associated_token: &AccountInfo<'info>,
+    system_program: &AccountInfo<'info>,
+    slot: u64,
+) -> Result<()> {
+        treasury.version = 2;
+        treasury.bump = treasury_bump;
+        treasury.slot = slot;
+        treasury.treasurer_address = treasurer.key();
+        treasury.associated_token_address = associated_token.key();
+        treasury.name = string_to_bytes(name)?;
+        treasury.labels = Vec::new(); // Do not change
+        treasury.last_known_balance_units = 0;
+        treasury.last_known_balance_slot = 0;
+        treasury.last_known_balance_block_time = 0;
+        treasury.allocation_reserved_units = 0; // deprecated
+        treasury.allocation_assigned_units = 0;
+        treasury.total_withdrawals_units = 0;
+        treasury.total_streams = 0;
+        treasury.created_on_utc = Clock::get()?.unix_timestamp as u64;
+        treasury.treasury_type = treasury_type;
+        treasury.auto_close = auto_close;
+        treasury.initialized = true;
+        treasury.sol_fee_payed_by_treasury = sol_fee_payed_by_treasury;
+        treasury.category = category as u8;
+        treasury.sub_category = sub_category as u8;
+
+        // Fee
+        transfer_sol_amount(
+            &payer,
+            &fee_treasury,
+            &system_program,
+            CREATE_TREASURY_FLAT_FEE,
+        )?;
+
+        if sol_fee_payed_by_treasury {
+            transfer_sol_amount(
+                &payer,
+                &treasury.to_account_info(),
+                &system_program,
+                CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES,
+            )?;
+        }
+        Ok(())
+}
+
+pub fn construct_stream_template <'info>(
+    start_utc: u64,
+    rate_interval_in_seconds: u64,
+    duration_number_of_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool,
+    template: &mut Account<'info, StreamTemplate>,
+    template_bump: u8,
+) -> Result<()> {
+    let clock = Clock::get()?;
+    let now_ts = clock.unix_timestamp as u64;
+
+    template.version = 2;
+    template.bump = template_bump;
+    template.rate_interval_in_seconds = rate_interval_in_seconds;
+    template.fee_payed_by_treasurer = fee_payed_by_treasurer;
+    template.duration_number_of_units = duration_number_of_units;
+    template.cliff_vest_percent = cliff_vest_percent;
+
+    if start_utc < now_ts {
+        template.start_utc_in_seconds = now_ts;
+    } else {
+        template.start_utc_in_seconds = start_utc;
+    }
+    Ok(())
 }
 
 pub fn construct_stream_account<'info>(

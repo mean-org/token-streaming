@@ -8,6 +8,7 @@ use crate::errors::ErrorCode;
 use crate::stream::*;
 use crate::template::*;
 use crate::treasury::*;
+use crate::categories::*;
 
 pub mod fee_treasury {
     anchor_lang::declare_id!("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw");
@@ -130,6 +131,70 @@ pub struct CreateStreamAccounts<'info> {
         associated_token::authority = fee_treasury
     )]
     pub fee_treasury_token: Box<Account<'info, TokenAccount>>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+/// Create Treasury And Template
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    name: String,
+    treasury_type: u8,
+    auto_close: bool,
+    sol_fee_payed_by_treasury: bool,
+    category: Category,
+    sub_category: SubCategory,
+    start_utc: u64,
+    rate_interval_in_seconds: u64,
+    duration_number_of_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool,
+    slot: u64,
+)]
+pub struct CreateTreasuryAndTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub treasurer: Signer<'info>,
+    #[account(
+        init,
+        payer = payer,
+        seeds = [treasurer.key().as_ref(), &slot.to_le_bytes()],
+        bump,
+        space = 300,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
+    )]
+    pub treasury: Account<'info, Treasury>,
+
+    #[account(
+        init,
+        payer = payer,
+        associated_token::mint = associated_token,
+        associated_token::authority = treasury
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        init,
+        seeds = [b"template", treasury.key().as_ref()],
+        bump,
+        payer = payer,
+        space = 200,
+        constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+
+    pub associated_token: Box<Account<'info, Mint>>,
+
+    #[account(
+        mut,
+        constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
+    )]
+    pub fee_treasury: SystemAccount<'info>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,

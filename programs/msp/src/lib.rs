@@ -42,46 +42,22 @@ pub mod msp {
         sub_category: SubCategory,
     ) -> Result<()> {
         // Initialize Treasury
-        let treasury = &mut ctx.accounts.treasury;
-        treasury.version = 2;
-        treasury.bump = ctx.bumps["treasury"];
-        treasury.slot = slot;
-        treasury.treasurer_address = ctx.accounts.treasurer.key();
-        treasury.associated_token_address = ctx.accounts.associated_token.key();
-        treasury.name = string_to_bytes(name)?;
-        treasury.labels = Vec::new(); // Do not change
-        treasury.last_known_balance_units = 0;
-        treasury.last_known_balance_slot = 0;
-        treasury.last_known_balance_block_time = 0;
-        treasury.allocation_reserved_units = 0; // deprecated
-        treasury.allocation_assigned_units = 0;
-        treasury.total_withdrawals_units = 0;
-        treasury.total_streams = 0;
-        treasury.created_on_utc = Clock::get()?.unix_timestamp as u64;
-        treasury.treasury_type = treasury_type;
-        treasury.auto_close = auto_close;
-        treasury.initialized = true;
-        treasury.sol_fee_payed_by_treasury = sol_fee_payed_by_treasury;
-        treasury.category = category as u8;
-        treasury.sub_category = sub_category as u8;
-
-        // Fee
-        transfer_sol_amount(
+        construct_treasury_account(
+            name,
+            treasury_type,
+            auto_close,
+            sol_fee_payed_by_treasury,
+            category,
+            sub_category,
+            &mut ctx.accounts.treasury,
+            ctx.bumps["treasury"],
             &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.treasurer.to_account_info(),
             &ctx.accounts.fee_treasury.to_account_info(),
+            &ctx.accounts.associated_token.to_account_info(),
             &ctx.accounts.system_program.to_account_info(),
-            CREATE_TREASURY_FLAT_FEE,
+            slot,
         )?;
-
-        if sol_fee_payed_by_treasury {
-            transfer_sol_amount(
-                &ctx.accounts.payer.to_account_info(),
-                &ctx.accounts.treasury.to_account_info(),
-                &ctx.accounts.system_program.to_account_info(),
-                CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES,
-            )?;
-        }
-
         return Ok(());
     }
 
@@ -146,23 +122,65 @@ pub mod msp {
         cliff_vest_percent: u64,
         fee_payed_by_treasurer: bool,
     ) -> Result<()> {
-        let clock = Clock::get()?;
-        let now_ts = clock.unix_timestamp as u64;
-        let template = &mut ctx.accounts.template;
-
-        template.version = 2;
-        template.bump = ctx.bumps["template"];
-        template.rate_interval_in_seconds = rate_interval_in_seconds;
-        template.fee_payed_by_treasurer = fee_payed_by_treasurer;
-        template.duration_number_of_units = duration_number_of_units;
-        template.cliff_vest_percent = cliff_vest_percent;
-
-        if start_utc < now_ts {
-            template.start_utc_in_seconds = now_ts;
-        } else {
-            template.start_utc_in_seconds = start_utc;
-        }
+        construct_stream_template(
+            start_utc,
+            rate_interval_in_seconds,
+            duration_number_of_units,
+            cliff_vest_percent,
+            fee_payed_by_treasurer,
+            &mut ctx.accounts.template,
+            ctx.bumps["template"]
+        )?;
         Ok(())
+    }
+
+    /// Create Treasury
+    pub fn create_treasury_and_template(
+        ctx: Context<CreateTreasuryAndTemplateAccounts>,
+        _idl_file_version: u8,
+        name: String,
+        treasury_type: u8,
+        auto_close: bool,
+        sol_fee_payed_by_treasury: bool,
+        category: Category,
+        sub_category: SubCategory,
+        start_utc: u64,
+        rate_interval_in_seconds: u64,
+        duration_number_of_units: u64,
+        cliff_vest_percent: u64,
+        fee_payed_by_treasurer: bool,
+        slot: u64,
+    ) -> Result<()> {
+        // Initialize Treasury
+        construct_treasury_account(
+            name,
+            treasury_type,
+            auto_close,
+            sol_fee_payed_by_treasury,
+            category,
+            sub_category,
+            &mut ctx.accounts.treasury,
+            ctx.bumps["treasury"],
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.treasurer.to_account_info(),
+            &ctx.accounts.fee_treasury.to_account_info(),
+            &ctx.accounts.associated_token.to_account_info(),
+            &ctx.accounts.system_program.to_account_info(),
+            slot,
+        )?;
+        
+        // Create template
+        construct_stream_template(
+            start_utc,
+            rate_interval_in_seconds,
+            duration_number_of_units,
+            cliff_vest_percent,
+            fee_payed_by_treasurer,
+            &mut ctx.accounts.template,
+            ctx.bumps["template"]
+        )?;
+
+        return Ok(());
     }
 
     /// Create stream with template
