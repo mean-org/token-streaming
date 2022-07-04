@@ -4,6 +4,7 @@ use crate::constants::{
 use crate::enums::*;
 use crate::errors::ErrorCode;
 use crate::events::*;
+use crate::mean_emit;
 use crate::stream::*;
 use crate::template::*;
 use crate::treasury::*;
@@ -294,6 +295,18 @@ pub fn construct_treasury_account<'info>(
                 CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES,
             )?;
         }
+
+        mean_emit!(CreateTreasuryEvent {
+            timestamp: treasury.created_on_utc,
+            sol_fee_charged: CREATE_TREASURY_FLAT_FEE,
+            token_fee_charged: 0,
+            sol_deposited_for_fees: CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES,
+            treasury_is_sol_fee_payed_by_treasury: treasury.sol_fee_payed_by_treasury,
+            treasury_type: treasury.treasury_type,
+            treasury_is_auto_close: treasury.auto_close,
+            treasury: treasury.key(),
+        });
+
         Ok(())
 }
 
@@ -346,15 +359,6 @@ pub fn construct_stream_account<'info>(
 ) -> Result<()> {
     let clock = Clock::get()?;
     let now_ts = clock.unix_timestamp as u64;
-
-    msg!(
-        "clock: {0}, tsy_bal: {1}, tsy_alloc: {2}, tsy_wdths: {3}, crt_alloc: {4}",
-        now_ts,
-        treasury.last_known_balance_units,
-        treasury.allocation_assigned_units,
-        treasury.total_withdrawals_units,
-        allocation_assigned_units
-    );
 
     let mut treasurer_fee_amount = 0u64;
     let mut total_treasury_allocation_amount = allocation_assigned_units;
@@ -438,7 +442,6 @@ pub fn construct_stream_account<'info>(
 
     if treasurer_fee_amount > 0 {
         // beneficiary withdraw fee payed by the treasurer
-        msg!("tsy{0}tfa", treasurer_fee_amount);
         treasury_transfer(
             &treasury,
             &treasury_token.to_account_info(),
@@ -459,14 +462,12 @@ pub fn construct_stream_account<'info>(
     // set categories
     stream.category = treasury.category;
     if treasury.sol_fee_payed_by_treasury {
-        msg!("tsy{0}sfa", CREATE_STREAM_FLAT_FEE);
         treasury_transfer_sol_amount(
             &treasury.to_account_info(),
             &fee_treasury,
             CREATE_STREAM_FLAT_FEE,
         )?;
     } else {
-        msg!("itr{0}sfa", CREATE_STREAM_FLAT_FEE);
         transfer_sol_amount(
             // Not changing yet to be paid by treasury because of the airdrop streams
             &payer,
@@ -485,5 +486,31 @@ pub fn construct_stream_account<'info>(
         treasury.allocation_assigned_units >= stream.allocation_assigned_units,
         "treasury vs stream assigned units invariant violated"
     );
+
+    mean_emit!(CreateStreamEvent {
+        timestamp: now_ts,
+        sol_fee_charged: CREATE_STREAM_FLAT_FEE,
+        token_fee_charged: treasurer_fee_amount,
+        stream_start_ts: stream.start_utc_in_seconds,
+        stream_rate_amount: stream.rate_amount_units,
+        stream_rate_interval: stream.rate_interval_in_seconds,
+        stream_allocation: stream.allocation_assigned_units,
+        stream_cliff: stream.cliff_vest_amount_units,
+        stream_is_token_withdraw_fee_payed_by_treasury: fee_payed_by_treasurer,
+        treasury_is_sol_fee_payed_by_treasury: treasury.sol_fee_payed_by_treasury,
+        treasury_allocation_after: treasury.allocation_assigned_units,
+        treasury_balance_after: treasury.last_known_balance_units,
+        stream: stream.key(),
+        treasury: treasury.key(),
+    });
+
     Ok(())
+}
+
+#[macro_export]
+macro_rules! mean_emit {
+    ($e:expr) => {
+        msg!("mean-log-msp2");
+        emit!($e);
+    };
 }

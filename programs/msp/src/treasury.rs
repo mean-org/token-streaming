@@ -29,7 +29,7 @@ pub struct Treasury {
     /// The allocation assigned accross all the streams that belong to this treasury
     ///
     /// The allocation assined will be modified in the following instructions:
-    /// `createStream`, `withdraw` and `closeStream`
+    /// `createStream`, `allocate`, `withdraw` and `closeStream`
     pub allocation_assigned_units: u64,
     /// The allocation reserved accross all the streams that belong to this treasury
     ///
