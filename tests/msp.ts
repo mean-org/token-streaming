@@ -1292,6 +1292,7 @@ describe('msp', () => {
       'stream treasurer is not valid'
     );
 
+    await sleep(1100); // prevent CannotPauseAndUnpauseOnSameBlockTime error
     const txId = await mspSetup.resumeStream({
       stream: streamKeypair.publicKey,
       initializer: treasurerKeypair.publicKey,
@@ -1389,6 +1390,7 @@ describe('msp', () => {
       initializerKeypair: treasurerKeypair
     });
 
+    await sleep(1100); // prevent CannotPauseAndUnpauseOnSameBlockTime error
     await mspSetup.resumeStream({
       stream: streamKeypair.publicKey,
       initializer: treasurerKeypair.publicKey,

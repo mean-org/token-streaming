@@ -85,6 +85,8 @@ pub enum ErrorCode {
     InsufficientTreasuryBalance, // 6039
     #[msg("Stream is auto-paused. To resume use allocate")]
     CannotResumeAutoPausedStream,
+    #[msg("Cannot pause and unpause on the same block time")]
+    CannotPauseAndUnpauseOnSameBlockTime,
     // UPDATE TREASURY ERROR
     #[msg("Treasury allocation can not be greater than treasury balance")]
     InvalidTreasuryRequestedAllocation,
