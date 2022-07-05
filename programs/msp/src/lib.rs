@@ -415,6 +415,10 @@ pub mod msp {
             return Err(ErrorCode::StreamAlreadyPaused.into());
         }
 
+        if stream.last_manual_resume_block_time == now_ts {
+            return Err(ErrorCode::CannotPauseAndUnpauseOnSameBlockTime.into());
+        }
+
         // Update stream data (Pause the stream)
         stream.last_manual_stop_withdrawable_units_snap = withdrawable_amount;
         stream.last_manual_stop_slot = clock.slot as u64;
@@ -452,6 +456,9 @@ pub mod msp {
         }
 
         // at this point, the stream can only be PAUSED
+        if stream.last_manual_stop_block_time == now_ts {
+            return Err(ErrorCode::CannotPauseAndUnpauseOnSameBlockTime.into());
+        }
 
         let remaining_allocation = stream.get_remaining_allocation()?;
         if remaining_allocation == 0 {
