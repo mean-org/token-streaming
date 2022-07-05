@@ -1084,8 +1084,8 @@ describe('msp', () => {
 
     expect(streamEvent!.version).eq(2, 'incorrect version');
     expect(streamEvent!.initialized).eq(true, 'incorrect initialized');
-    expect(streamEvent!.name.length).eq(11, "incorrect stream name lenght")
-    expect(streamEvent!.name).eq("test_stream", "incorrect stream name");
+    expect(streamEvent!.name.length).eq(11, 'incorrect stream name lenght');
+    expect(streamEvent!.name).eq('test_stream', 'incorrect stream name');
     expect(streamEvent!.treasurerAddress.toBase58()).eq(
       treasurerKeypair.publicKey.toBase58(),
       'incorrect treasurerAddress'

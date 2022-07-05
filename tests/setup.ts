@@ -21,6 +21,7 @@ export const TREASURY_TYPE_LOCKED = 1;
 export const TREASURY_ASSOCIATED_MINT_DECIMALS = 6;
 export const MSP_FEES_PUBKEY = new PublicKey('3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw');
 export const MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES = 300;
+export const MSP_TEMPLATE_ACCOUNT_SIZE_IN_BYTES = 200;
 export const MSP_CREATE_TREASURY_FEE_IN_LAMPORTS = 10_000;
 export const MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES = 100_000;
 export const MSP_ADD_FUNDS_FEE_IN_LAMPORTS = 25_000;
@@ -679,6 +680,7 @@ export class MspSetup {
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
     signers = signers ?? [payerKeypair, this.treasurerKeypair, streamKeypair];
+    feePayedByTreasurer = feePayedByTreasurer ?? false;
 
     const preTreasury = await this.program.account.treasury.fetchNullable(treasury);
     assert.isNotNull(preTreasury);
@@ -710,7 +712,7 @@ export class MspSetup {
         new BN(allocationAssignedUnits),
         new BN(cliffVestAmountUnits),
         new BN(cliffVestPercent),
-        feePayedByTreasurer ?? false
+        feePayedByTreasurer
       )
       .accounts({
         payer: payerKeypair.publicKey,
@@ -827,8 +829,7 @@ export class MspSetup {
 
     treasury = treasury ?? this.treasury;
     signers = signers ?? [initializerKeypair, this.treasurerKeypair];
-
-    const preTreasury = await this.program.account.treasury.fetch(treasury);
+    feePayedByTreasurer = feePayedByTreasurer ?? false;
 
     console.log();
     console.log(`startTs:                 ${startTs}`);
@@ -839,10 +840,6 @@ export class MspSetup {
     console.log(`template:                ${template}`);
     console.log(`treasury:                ${treasury.toBase58()}`);
 
-    const treasurerTokenPreBalanceBn = new BN(
-      parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
-    );
-
     const txId = await this.program.methods
       .createStreamTemplate(
         LATEST_IDL_FILE_VERSION,
@@ -850,7 +847,7 @@ export class MspSetup {
         new BN(rateIntervalInSeconds),
         new BN(durationNumberOfUnits),
         new BN(cliffVestPercent),
-        feePayedByTreasurer ?? false
+        feePayedByTreasurer
       )
       .accounts({
         template: template,
@@ -874,25 +871,173 @@ export class MspSetup {
     expect(postTemplate!.rateIntervalInSeconds.toNumber()).eq(rateIntervalInSeconds);
     expect(postTemplate!.durationNumberOfUnits.toNumber()).eq(durationNumberOfUnits);
 
-    if (feePayedByTreasurer === true) {
-      expect(postTemplate!.feePayedByTreasurer).eq(true);
-      console.log('pre treasurer token amount', treasurerTokenPreBalanceBn.toNumber());
-      const treasurerTokenPostBalanceBn = new BN(
-        parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
-      );
-      const treasurerFeeBn = preTreasury.allocationAssignedUnits
-        .mul(new BN(MSP_WITHDRAW_FEE_PCT_NUMERATOR))
-        .div(new BN(MSP_FEE_PCT_DENOMINATOR));
+    expect(postTemplate!.feePayedByTreasurer).eq(feePayedByTreasurer);
+    logEnd(ixName);
+  }
 
-      console.log('stream fee payed by the treasurer', treasurerFeeBn.toNumber());
-      console.log('pre treasurer token amount', treasurerTokenPostBalanceBn.toNumber());
-      expect(
-        treasurerTokenPostBalanceBn.toNumber() === treasurerTokenPreBalanceBn.sub(treasurerFeeBn).toNumber(),
-        'incorrect treasurer balance after create a stream as a fee payer'
+  public async createTreasuryAndTemplate({
+    treasurer,
+    tokenProgram,
+    systemProgram,
+    rent,
+    treasury,
+    treasuryBump,
+    solFeePayedByTreasury,
+    category,
+    subCategory,
+    startTs,
+    rateIntervalInSeconds,
+    durationNumberOfUnits,
+    cliffVestPercent,
+    initializerKeypair,
+    template,
+    templateBump,
+    feePayedByTreasurer,
+    signers
+  }: {
+    treasurer?: PublicKey;
+    tokenProgram?: PublicKey;
+    systemProgram?: PublicKey;
+    rent?: PublicKey;
+    treasuryLpMint?: PublicKey;
+    treasuryBump?: number;
+    solFeePayedByTreasury?: boolean;
+    category?: Category;
+    subCategory?: SubCategory;
+    startTs: number;
+    rateIntervalInSeconds: number;
+    durationNumberOfUnits: number;
+    cliffVestPercent: number;
+    initializerKeypair: Keypair;
+    template: PublicKey;
+    templateBump: number;
+    treasury?: PublicKey;
+    feePayedByTreasurer?: boolean;
+    signers?: Keypair[];
+  }) {
+    const ixName = 'CREATE TREASURY AND TEMPLATE';
+    logStart(ixName);
+
+    treasurer = treasurer ?? this.treasurerKeypair.publicKey;
+    signers = signers ?? [initializerKeypair, this.treasurerKeypair];
+    tokenProgram = tokenProgram ?? TOKEN_PROGRAM_ID;
+    systemProgram = systemProgram ?? SYSTEM_PROGRAM_ID;
+    rent = rent ?? SYSVAR_RENT_PUBKEY;
+    treasury = treasury ?? this.treasury;
+    treasuryBump = treasuryBump ?? this.treasuryBump;
+    solFeePayedByTreasury = solFeePayedByTreasury ?? false;
+    category = category ?? Category.default;
+    subCategory = subCategory ?? SubCategory.default;
+    feePayedByTreasurer = feePayedByTreasurer ?? false;
+
+    console.log();
+    console.log(`startTs:                 ${startTs}`);
+    console.log(`rateIntervalInSeconds:   ${rateIntervalInSeconds}`);
+    console.log(`cliffVestPercent:        ${cliffVestPercent}`);
+    console.log(`initializer:             ${initializerKeypair.publicKey}`);
+    console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
+    console.log(`template:                ${template}`);
+    console.log(`treasury:                ${treasury.toBase58()}`);
+
+    const preTreasurerAccountInfo = await this.connection.getAccountInfo(this.treasurerKeypair.publicKey);
+    const preTreasurerLamports = preTreasurerAccountInfo!.lamports;
+
+    const txId = await this.program.methods
+      .createTreasuryAndTemplate(
+        LATEST_IDL_FILE_VERSION,
+        this.name,
+        this.treasuryType,
+        this.autoClose,
+        solFeePayedByTreasury,
+        { [Category[category]]: {} },
+        { [SubCategory[subCategory]]: {} },
+        new BN(startTs),
+        new BN(rateIntervalInSeconds),
+        new BN(durationNumberOfUnits),
+        new BN(cliffVestPercent),
+        feePayedByTreasurer,
+        this.slot
+      )
+      .accounts({
+        payer: treasurer,
+        treasurer: treasurer,
+        treasury: treasury,
+        treasuryToken: this.treasuryFrom,
+        template,
+        associatedToken: this.fromMint,
+        feeTreasury: MSP_FEES_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgram,
+        systemProgram: systemProgram,
+        rent: rent
+      })
+      .signers(signers)
+      .rpc();
+    console.log(`\n${ixName} TX URL: https://explorer.solana.com/tx/${txId}/?cluster=custom&customUrl=${url}`);
+
+    const postState = await this.getMspWorldState(treasury);
+    assert.isNotNull(postState.treasuryAccount, 'treasury was not created');
+    assert.isNotNull(postState.treasurerAccountInfo, 'treasury was not created');
+    assert.isNotNull(postState.treasurerAccountInfo, 'treasurer was not created');
+    assert.isNotNull(postState.treasurerFromAccountInfo, "treasurer 'from' was not created");
+
+    const actualName = String.fromCharCode(...postState.treasuryAccount!.name);
+    const minNameLength = Math.min(actualName.length, this.name.length);
+    expect(actualName.substring(0, minNameLength)).eq(this.name.substring(0, minNameLength));
+    expect(postState.treasuryAccount!.bump).eq(treasuryBump);
+    expect(postState.treasuryAccount!.slot.toNumber()).eq(this.slot.toNumber());
+    expect(postState.treasuryAccount!.lastKnownBalanceBlockTime.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.lastKnownBalanceSlot.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.totalStreams.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.totalWithdrawalsUnits.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.treasurerAddress.toBase58()).eq(this.treasurerKeypair.publicKey.toBase58());
+    expect(postState.treasuryAccount!.treasuryType).eq(this.treasuryType);
+    expect(postState.treasuryAccount!.version).eq(2);
+    expect(postState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.allocationReservedUnits.toNumber()).eq(0);
+    expect(postState.treasuryAccount!.associatedTokenAddress.toBase58()).eq(this.fromMint.toBase58()); // not set yet
+    expect(postState.treasuryAccount!.autoClose).eq(this.autoClose);
+
+    const treasuryRentExemptLamports = new BN(
+      await this.connection.getMinimumBalanceForRentExemption(MSP_TREASURY_ACCOUNT_SIZE_IN_BYTES)
+    );
+    const treasuryAssociatedMintRentExemptLamports = new BN(
+      await this.connection.getMinimumBalanceForRentExemption(SOLANA_TOKEN_ACCOUNT_SIZE_IN_BYTES)
+    );
+
+    const templateRentExemptLamports = new BN(
+      await this.connection.getMinimumBalanceForRentExemption(MSP_TEMPLATE_ACCOUNT_SIZE_IN_BYTES)
+    );
+
+    let expectedPostTreasurerLamport = new BN(preTreasurerLamports)
+      .sub(treasuryRentExemptLamports)
+      .sub(treasuryAssociatedMintRentExemptLamports)
+      .sub(templateRentExemptLamports)
+      .sub(new BN(MSP_CREATE_TREASURY_FEE_IN_LAMPORTS));
+
+    if (solFeePayedByTreasury) {
+      expectedPostTreasurerLamport = expectedPostTreasurerLamport.sub(
+        new BN(MSP_CREATE_TREASURY_INITIAL_BALANCE_FOR_FEES)
       );
-    } else {
-      expect(postTemplate!.feePayedByTreasurer).eq(false);
     }
+
+    expect(postState.treasurerLamports).eq(
+      expectedPostTreasurerLamport.toNumber(),
+      'incorrect treasurer lamports after create treasury'
+    );
+
+    const postTemplate = await this.program.account.streamTemplate.fetchNullable(template);
+    assert.isNotNull(postTemplate);
+
+    expect(postTemplate!.bump).eq(templateBump);
+    expect(postTemplate!.version).eq(2);
+    expect(postTemplate!.startUtcInSeconds.toNumber()).gte(startTs);
+    expect(postTemplate!.cliffVestPercent.toNumber()).gte(cliffVestPercent);
+    expect(postTemplate!.rateIntervalInSeconds.toNumber()).eq(rateIntervalInSeconds);
+    expect(postTemplate!.durationNumberOfUnits.toNumber()).eq(durationNumberOfUnits);
+
+    expect(postTemplate!.feePayedByTreasurer).eq(feePayedByTreasurer);
     logEnd(ixName);
   }
 
