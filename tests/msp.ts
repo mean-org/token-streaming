@@ -1301,7 +1301,7 @@ describe('msp', () => {
     console.log(txId);
   });
 
-  it('create treasury -> add funds -> create stream -> pause stream (after 3 seconds running) -> resume stream -> withdraw', async () => {
+  it('create treasury -> add funds -> create stream -> pause stream (after 6 seconds running) -> resume stream -> withdraw', async () => {
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup({
@@ -1390,7 +1390,7 @@ describe('msp', () => {
       initializerKeypair: treasurerKeypair
     });
 
-    await sleep(1100); // prevent CannotPauseAndUnpauseOnSameBlockTime error
+    await sleep(5000); // prevent CannotPauseAndUnpauseOnSameBlockTime error
     await mspSetup.resumeStream({
       stream: streamKeypair.publicKey,
       initializer: treasurerKeypair.publicKey,
