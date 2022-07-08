@@ -653,7 +653,9 @@ pub struct CloseStreamAccounts<'info> {
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
         constraint = (
-            treasury.treasury_type != TREASURY_TYPE_LOCKED || stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused
+            treasury.treasury_type != TREASURY_TYPE_LOCKED 
+            || stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused
+            || stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Scheduled
         ) @ ErrorCode::CloseLockedStreamNotAllowedWhileRunning
     )]
     pub stream: Account<'info, Stream>,

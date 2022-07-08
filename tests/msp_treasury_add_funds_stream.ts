@@ -763,4 +763,71 @@ describe('msp', () => {
       template
     });
   });
+
+  it('create lock treasury with template -> add funds -> create stream with template with start date in future -> Close stream 55555', async () => {
+    const treasurerKeypair = Keypair.generate();
+
+    const mspSetup = await createMspSetup({
+      fromTokenClient,
+      treasurerKeypair,
+      name: 'test_treasury',
+      treasuryType: TREASURY_TYPE_LOCKED,
+      autoClose: false,
+      treasurerFromInitialBalance: 1000_000_000,
+      treasurerLamports: 1_000_000_000
+    });
+
+    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
+      mspSetup.program.programId
+    );
+
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
+    const startTs = new Date(nowTs + 3600).getTime();
+
+    await mspSetup.createTreasuryAndTemplate({
+      startTs: startTs,
+      rateIntervalInSeconds: 3600,
+      durationNumberOfUnits: 12,
+      cliffVestPercent: 0,
+      initializerKeypair: treasurerKeypair,
+      template,
+      templateBump,
+      category: Category.vesting
+    });
+
+    await mspSetup.addFunds({ amount: 100_000_000 });
+
+    const beneficiaryKeypair = Keypair.generate();
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      'confirmed'
+    );
+
+    const streamKeypair = Keypair.generate();
+
+    await mspSetup.createStreamWithTemplate({
+      allocationAssignedUnits: 1000,
+      beneficiary: beneficiaryKeypair.publicKey,
+      payerKeypair: treasurerKeypair,
+      name: 'test_stream',
+      streamKeypair,
+      template
+    });
+
+    const beneficiaryFrom = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      mspSetup.fromMint,
+      beneficiaryKeypair.publicKey,
+      true
+    );
+
+    await mspSetup.closeStream({
+      stream: streamKeypair.publicKey,
+      beneficiary: beneficiaryKeypair.publicKey,
+      beneficiaryFrom
+    });
+  });
 });
