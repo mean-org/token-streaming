@@ -875,6 +875,79 @@ export class MspSetup {
     logEnd(ixName);
   }
 
+  public async modifyTemplate({
+    startTs,
+    rateIntervalInSeconds,
+    durationNumberOfUnits,
+    cliffVestPercent,
+    initializerKeypair,
+    template,
+    treasury,
+    feePayedByTreasurer,
+    signers
+  }: {
+    startTs: number;
+    rateIntervalInSeconds: number;
+    durationNumberOfUnits: number;
+    cliffVestPercent: number;
+    initializerKeypair: Keypair;
+    template: PublicKey;
+    treasury?: PublicKey;
+    feePayedByTreasurer?: boolean;
+    signers?: Keypair[];
+  }) {
+    const ixName = 'Mofify TEMPLATE';
+    logStart(ixName);
+
+    treasury = treasury ?? this.treasury;
+    signers = signers ?? [initializerKeypair, this.treasurerKeypair];
+    feePayedByTreasurer = feePayedByTreasurer ?? false;
+
+    console.log();
+    console.log(`startTs:                 ${startTs}`);
+    console.log(`rateIntervalInSeconds:   ${rateIntervalInSeconds}`);
+    console.log(`cliffVestPercent:        ${cliffVestPercent}`);
+    console.log(`initializer:             ${initializerKeypair.publicKey}`);
+    console.log(`initializer key:         ${bs58.encode(initializerKeypair.secretKey)}`);
+    console.log(`template:                ${template}`);
+    console.log(`treasury:                ${treasury.toBase58()}`);
+
+    const preTemplate = await this.program.account.streamTemplate.fetch(template);
+
+    const txId = await this.program.methods
+      .modifyStreamTemplate(
+        LATEST_IDL_FILE_VERSION,
+        new BN(startTs),
+        new BN(rateIntervalInSeconds),
+        new BN(durationNumberOfUnits),
+        new BN(cliffVestPercent),
+        feePayedByTreasurer
+      )
+      .accounts({
+        template: template,
+        payer: initializerKeypair.publicKey,
+        treasurer: this.treasurerKeypair.publicKey,
+        treasury: treasury
+      })
+      .signers(signers)
+      .rpc();
+    logTxUrl(ixName, txId);
+
+    // assert template
+    const postTemplate = await this.program.account.streamTemplate.fetchNullable(template);
+    assert.isNotNull(postTemplate);
+
+    expect(postTemplate!.bump).eq(preTemplate.bump);
+    expect(postTemplate!.version).eq(preTemplate.version);
+    expect(postTemplate!.startUtcInSeconds.toNumber()).gte(startTs);
+    expect(postTemplate!.cliffVestPercent.toNumber()).gte(cliffVestPercent);
+    expect(postTemplate!.rateIntervalInSeconds.toNumber()).eq(rateIntervalInSeconds);
+    expect(postTemplate!.durationNumberOfUnits.toNumber()).eq(durationNumberOfUnits);
+
+    expect(postTemplate!.feePayedByTreasurer).eq(feePayedByTreasurer);
+    logEnd(ixName);
+  }
+
   public async createTreasuryAndTemplate({
     treasurer,
     tokenProgram,

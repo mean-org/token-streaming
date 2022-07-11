@@ -131,7 +131,33 @@ pub mod msp {
             cliff_vest_percent,
             fee_payed_by_treasurer,
             &mut ctx.accounts.template,
-            ctx.bumps["template"]
+            ctx.bumps["template"],
+            2
+        )?;
+        Ok(())
+    }
+
+    /// Edit template
+    pub fn modify_stream_template(
+        ctx: Context<ModifyStreamTemplateAccounts>,
+        _idl_file_version: u8,
+        start_utc: u64,
+        rate_interval_in_seconds: u64,
+        duration_number_of_units: u64,
+        cliff_vest_percent: u64,
+        fee_payed_by_treasurer: bool,
+    ) -> Result<()> {
+        let template_bump = ctx.accounts.template.bump;
+        let template_version = ctx.accounts.template.version;
+        construct_stream_template(
+            start_utc,
+            rate_interval_in_seconds,
+            duration_number_of_units,
+            cliff_vest_percent,
+            fee_payed_by_treasurer,
+            &mut ctx.accounts.template,
+            template_bump,
+            template_version,
         )?;
         Ok(())
     }
@@ -179,7 +205,8 @@ pub mod msp {
             cliff_vest_percent,
             fee_payed_by_treasurer,
             &mut ctx.accounts.template,
-            ctx.bumps["template"]
+            ctx.bumps["template"],
+            2
         )?;
 
         return Ok(());

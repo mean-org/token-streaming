@@ -318,11 +318,12 @@ pub fn construct_stream_template <'info>(
     fee_payed_by_treasurer: bool,
     template: &mut Account<'info, StreamTemplate>,
     template_bump: u8,
+    template_version: u8,
 ) -> Result<()> {
     let clock = Clock::get()?;
     let now_ts = clock.unix_timestamp as u64;
 
-    template.version = 2;
+    template.version = template_version;
     template.bump = template_bump;
     template.rate_interval_in_seconds = rate_interval_in_seconds;
     template.fee_payed_by_treasurer = fee_payed_by_treasurer;

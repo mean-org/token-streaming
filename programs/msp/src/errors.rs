@@ -100,4 +100,6 @@ pub enum ErrorCode {
     InvalidTemplateVersion,
     #[msg("Invalid template size")]
     InvalidTemplateSize,
+    #[msg("Template cannot be modified after streams have been created")]
+    CannotModifyTemplate,
 }

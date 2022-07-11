@@ -17,7 +17,8 @@ import {
   TREASURY_ASSOCIATED_MINT_DECIMALS,
   expectAnchorError,
   Category,
-  SubCategory
+  SubCategory,
+  sleep
 } from './setup';
 
 describe('msp', () => {
@@ -829,5 +830,143 @@ describe('msp', () => {
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom
     });
+  });
+
+  it('create treasury -> add funds -> create teamplate -> modify template -> create stream (initializer = beneficiary)', async () => {
+    const treasurerKeypair = Keypair.generate();
+
+    const mspSetup = await createMspSetup({
+      fromTokenClient,
+      treasurerKeypair,
+      name: 'test_treasury',
+      treasuryType: TREASURY_TYPE_OPEN,
+      autoClose: false,
+      treasurerFromInitialBalance: 100_000_000,
+      treasurerLamports: 1_000_000_000
+    });
+
+    await mspSetup.createTreasury({
+      category: Category.vesting
+    });
+
+    await mspSetup.addFunds({ amount: 100_000_000 });
+
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
+
+    const beneficiaryKeypair = Keypair.generate();
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      'confirmed'
+    );
+
+    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
+      mspSetup.program.programId
+    );
+
+    await mspSetup.createTemplate({
+      initializerKeypair: treasurerKeypair,
+      template,
+      templateBump,
+      startTs: nowTs,
+      rateIntervalInSeconds: 3600,
+      cliffVestPercent: 0,
+      durationNumberOfUnits: 200
+    });
+
+    await sleep(6000);
+
+    await mspSetup.modifyTemplate({
+      initializerKeypair: treasurerKeypair,
+      template,
+      startTs: nowTs + 3600,
+      rateIntervalInSeconds: 3600,
+      cliffVestPercent: 10,
+      durationNumberOfUnits: 200
+    });
+
+    const streamKeypair = Keypair.generate();
+    await mspSetup.createStreamWithTemplate({
+      name: 'test_stream',
+      template,
+      allocationAssignedUnits: 50_000_000,
+      payerKeypair: beneficiaryKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
+  });
+
+  it('create treasury -> add funds -> create teamplate -> create stream -> modify template (should fail)', async () => {
+    const treasurerKeypair = Keypair.generate();
+
+    const mspSetup = await createMspSetup({
+      fromTokenClient,
+      treasurerKeypair,
+      name: 'test_treasury',
+      treasuryType: TREASURY_TYPE_OPEN,
+      autoClose: false,
+      treasurerFromInitialBalance: 100_000_000,
+      treasurerLamports: 1_000_000_000
+    });
+
+    await mspSetup.createTreasury({
+      category: Category.vesting
+    });
+
+    await mspSetup.addFunds({ amount: 100_000_000 });
+
+    const slot = await mspSetup.connection.getSlot('finalized');
+    const nowTs = (await mspSetup.connection.getBlockTime(slot)) as number;
+
+    const beneficiaryKeypair = Keypair.generate();
+    await mspSetup.connection.confirmTransaction(
+      await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
+      'confirmed'
+    );
+
+    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
+      mspSetup.program.programId
+    );
+
+    await mspSetup.createTemplate({
+      initializerKeypair: treasurerKeypair,
+      template,
+      templateBump,
+      startTs: nowTs + 3600,
+      rateIntervalInSeconds: 3600,
+      cliffVestPercent: 0,
+      durationNumberOfUnits: 200
+    });
+
+    const streamKeypair = Keypair.generate();
+    await mspSetup.createStreamWithTemplate({
+      name: 'test_stream',
+      template,
+      allocationAssignedUnits: 50_000_000,
+      payerKeypair: beneficiaryKeypair,
+      beneficiary: beneficiaryKeypair.publicKey,
+      streamKeypair
+    });
+
+    await sleep(6000);
+
+    await node_assert.rejects(
+      async () => {
+        await mspSetup.modifyTemplate({
+          initializerKeypair: treasurerKeypair,
+          template,
+          startTs: nowTs + 7200,
+          rateIntervalInSeconds: 3600,
+          cliffVestPercent: 10,
+          durationNumberOfUnits: 200
+        });
+      },
+      (error: AnchorError) => {
+        expectAnchorError(error, 6047, undefined, 'Template cannot be modified after streams have been created');
+        return true;
+      }
+    );
   });
 });

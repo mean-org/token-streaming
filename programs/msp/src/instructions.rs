@@ -241,6 +241,44 @@ pub struct CreateStreamTemplateAccounts<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    start_utc: u64,
+    rate_interval_in_seconds: u64,
+    duration_number_of_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool,
+)]
+pub struct ModifyStreamTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+
+    #[account(
+        mut,
+        seeds = [b"template", treasury.key().as_ref()],
+        bump = template.bump,
+        constraint = treasury.total_streams == 0 @ ErrorCode::CannotModifyTemplate,
+        constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+}
+
 /// Create stream with template
 #[derive(Accounts, Clone)]
 #[instruction(
