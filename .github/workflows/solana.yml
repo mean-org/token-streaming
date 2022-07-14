@@ -4,7 +4,7 @@ on:
   push:
     branches:
     - develop
-  
+  workflow_dispatch:
 
 env:
   SOLANA_VERSION: "1.10.5"
