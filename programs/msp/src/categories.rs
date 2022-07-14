@@ -19,4 +19,5 @@ pub enum SubCategory {
     Partnership = 6,
     Seed = 7,
     Team = 8,
+    Community = 9,
 }
