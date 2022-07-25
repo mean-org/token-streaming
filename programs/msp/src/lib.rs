@@ -1157,7 +1157,7 @@ pub mod msp {
     //     Ok(())
     // }
 
-    /// Withdraw undallocated funds from treasury
+    /// Withdraw unallocated funds from treasury
     pub fn treasury_withdraw(
         ctx: Context<TreasuryWithdrawAccounts>,
         _idl_file_version: u8,
