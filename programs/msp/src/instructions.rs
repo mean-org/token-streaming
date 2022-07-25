@@ -1,12 +1,14 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::*;
 use anchor_spl::associated_token::*;
+use anchor_spl::token::*;
 
 use crate::constants::*;
-use crate::errors::ErrorCode;
-use crate::treasury::*;
-use crate::stream::*;
 use crate::enums::*;
+use crate::errors::ErrorCode;
+use crate::stream::*;
+use crate::template::*;
+use crate::treasury::*;
+use crate::categories::*;
 
 pub mod fee_treasury {
     anchor_lang::declare_id!("3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw");
@@ -47,7 +49,7 @@ pub struct CreateTreasuryAccounts<'info> {
     pub associated_token: Box<Account<'info, Mint>>,
 
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -118,7 +120,219 @@ pub struct CreateStreamAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
+        constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
+    )]
+    pub fee_treasury: SystemAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = associated_token,
+        associated_token::authority = fee_treasury
+    )]
+    pub fee_treasury_token: Box<Account<'info, TokenAccount>>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+/// Create Treasury And Template
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    name: String,
+    treasury_type: u8,
+    auto_close: bool,
+    sol_fee_payed_by_treasury: bool,
+    category: Category,
+    sub_category: SubCategory,
+    start_utc: u64,
+    rate_interval_in_seconds: u64,
+    duration_number_of_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool,
+    slot: u64,
+)]
+pub struct CreateTreasuryAndTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(mut)]
+    pub treasurer: Signer<'info>,
+    #[account(
+        init,
+        payer = payer,
+        seeds = [treasurer.key().as_ref(), &slot.to_le_bytes()],
+        bump,
+        space = 300,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
+    )]
+    pub treasury: Account<'info, Treasury>,
+
+    #[account(
+        init,
+        payer = payer,
+        associated_token::mint = associated_token,
+        associated_token::authority = treasury
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        init,
+        seeds = [b"template", treasury.key().as_ref()],
+        bump,
+        payer = payer,
+        space = 200,
+        constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+
+    pub associated_token: Box<Account<'info, Mint>>,
+
+    #[account(
+        mut,
+        constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
+    )]
+    pub fee_treasury: SystemAccount<'info>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    start_utc: u64,
+    rate_interval_in_seconds: u64,
+    duration_number_of_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool,
+)]
+pub struct CreateStreamTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+
+    #[account(
+        init,
+        seeds = [b"template", treasury.key().as_ref()],
+        bump,
+        payer = payer,
+        space = 200,
+        constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    start_utc: u64,
+    rate_interval_in_seconds: u64,
+    duration_number_of_units: u64,
+    cliff_vest_percent: u64,
+    fee_payed_by_treasurer: bool,
+)]
+pub struct ModifyStreamTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+
+    #[account(
+        mut,
+        seeds = [b"template", treasury.key().as_ref()],
+        bump = template.bump,
+        constraint = treasury.total_streams == 0 @ ErrorCode::CannotModifyTemplate,
+        constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+}
+
+/// Create stream with template
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    name: String,
+    rate_amount_units: u64,
+    allocation_assigned_units: u64,
+)]
+pub struct CreateStreamWithTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+    #[account(
+        mut,
+        associated_token::mint = associated_token,
+        associated_token::authority = treasury
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+    #[account(
+        constraint = associated_token.key() == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken
+    )]
+    pub associated_token: Box<Account<'info, Mint>>,
+    #[account(constraint = beneficiary.key() != treasurer.key() @ ErrorCode::InvalidBeneficiary)]
+    pub beneficiary: SystemAccount<'info>,
+
+    #[account(
+        seeds = [b"template", treasury.key().as_ref()],
+        bump = template.bump,
+        constraint = template.version == 2 @ ErrorCode::InvalidTemplateVersion,
+        constraint = template.to_account_info().data_len() == 200 @ ErrorCode::InvalidTemplateSize
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 500,
+        // rate_interval_in_seconds > 0 is checked when creating stream template (create_stream_template)
+        constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate,
+    )]
+    pub stream: Box<Account<'info, Stream>>,
+    #[account(
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -189,7 +403,7 @@ pub struct WithdrawAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -235,10 +449,8 @@ pub struct PauseOrResumeStreamAccounts<'info> {
         constraint = treasury.treasury_type != TREASURY_TYPE_LOCKED @ ErrorCode::PauseOrResumeLockedStreamNotAllowed,
         constraint = stream.beneficiary_associated_token == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken,
     )]
-    pub stream: Account<'info, Stream>
+    pub stream: Account<'info, Stream>,
 }
-
-
 
 /// Refresh Treasury Data
 #[derive(Accounts)]
@@ -263,7 +475,7 @@ pub struct RefreshTreasuryDataAccounts<'info> {
         associated_token::mint = associated_token,
         associated_token::authority = treasury
     )]
-    pub treasury_token: Account<'info, TokenAccount>
+    pub treasury_token: Account<'info, TokenAccount>,
 }
 
 /// Transfer Stream
@@ -287,7 +499,7 @@ pub struct TransferStreamAccounts<'info> {
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -302,7 +514,7 @@ pub struct GetStreamAccounts<'info> {
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize
     )]
-    pub stream: Account<'info, Stream>
+    pub stream: Account<'info, Stream>,
 }
 
 #[derive(Accounts)]
@@ -432,7 +644,7 @@ pub struct CloseStreamAccounts<'info> {
     #[account(
         mut,
         constraint = (
-            treasurer.key() == stream.treasurer_address && 
+            treasurer.key() == stream.treasurer_address &&
             treasurer.key() == treasury.treasurer_address
         ) @ ErrorCode::InvalidTreasurer
     )]
@@ -479,12 +691,14 @@ pub struct CloseStreamAccounts<'info> {
         constraint = stream.initialized == true @ ErrorCode::StreamNotInitialized,
         constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
         constraint = (
-            treasury.treasury_type != TREASURY_TYPE_LOCKED || stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused
+            treasury.treasury_type != TREASURY_TYPE_LOCKED 
+            || stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Paused
+            || stream.get_status(Clock::get()?.unix_timestamp as u64)? == StreamStatus::Scheduled
         ) @ ErrorCode::CloseLockedStreamNotAllowedWhileRunning
     )]
     pub stream: Account<'info, Stream>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -547,7 +761,7 @@ pub struct CloseTreasuryAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,
@@ -571,7 +785,7 @@ pub struct CloseTreasuryAccounts<'info> {
 // )]
 // pub struct UpdateTreasuryDataAccounts<'info> {
 //     #[account(
-//         mut, 
+//         mut,
 //         address = maintenance_authority::ID @ ErrorCode::NotAuthorized
 //     )]
 //     pub authority: Signer<'info>,
@@ -596,7 +810,6 @@ pub struct CloseTreasuryAccounts<'info> {
 //     )]
 //     pub treasury_token: Account<'info, TokenAccount>
 // }
-
 
 #[derive(Accounts)]
 #[instruction(
@@ -643,7 +856,7 @@ pub struct TreasuryWithdrawAccounts<'info> {
     )]
     pub treasury_token: Box<Account<'info, TokenAccount>>,
     #[account(
-        mut, 
+        mut,
         constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
     )]
     pub fee_treasury: SystemAccount<'info>,

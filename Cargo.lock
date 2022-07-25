@@ -725,7 +725,7 @@ dependencies = [
 
 [[package]]
 name = "msp"
-version = "2.6.1"
+version = "2.7.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
