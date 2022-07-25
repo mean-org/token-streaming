@@ -34,7 +34,7 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
-export const LATEST_IDL_FILE_VERSION = 3;
+export const LATEST_IDL_FILE_VERSION = 4;
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error('ANCHOR_PROVIDER_URL is not defined');
@@ -2153,11 +2153,9 @@ export class MspSetup {
     treasury,
     treasuryFrom,
     treasurer,
-    treasurerFrom,
     signers
   }: {
     treasurer?: PublicKey;
-    treasurerFrom?: PublicKey;
     treasury?: PublicKey;
     treasuryFrom?: PublicKey;
     signers?: Keypair[];
@@ -2166,15 +2164,13 @@ export class MspSetup {
     logStart(ixName);
 
     treasurer = treasurer ?? this.treasurerKeypair.publicKey;
-    treasurerFrom = treasurerFrom ?? this.treasurerFrom;
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
-    signers = signers ?? [this.treasurerKeypair];
+    signers = signers ?? [];
 
     const txId = await this.program.methods
       .refreshTreasuryData(LATEST_IDL_FILE_VERSION)
       .accounts({
-        treasurer: treasurer,
         associatedToken: this.fromMint,
         treasury: treasury,
         treasuryToken: treasuryFrom

@@ -36,8 +36,6 @@ use solana_program_test::ProgramTestContext;
 use spl_token::native_mint;
 use std::convert::TryInto;
 
-const _IDL_FILE_VERSION: u8 = 3;
-
 #[tokio::test]
 async fn create_treasury_test_1() {
     let mut pt = ProgramTest::new("msp", msp::id(), None);
@@ -68,7 +66,7 @@ async fn create_treasury_test_1() {
         &mut context,
         &program,
         CreateTreasury {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             slot,
             name: "test treasury".to_string(),
             treasury_type: TreasuryType::Opened as u8,
@@ -89,7 +87,7 @@ async fn create_treasury_test_1() {
         &mut context,
         &program,
         AddFunds {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             amount: 1000,
         },
         &treasurer,
@@ -106,7 +104,7 @@ async fn create_treasury_test_1() {
         &mut context,
         &program,
         CreateStream {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             name: "test stream".to_string(),
             start_utc: 0,
             rate_amount_units: 5,
@@ -195,7 +193,7 @@ async fn create_treasury_test_1() {
         &mut context,
         &program,
         Allocate {
-            _idl_file_version: 3,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             amount: 4,
         },
         &treasurer,
@@ -290,7 +288,7 @@ async fn create_treasury_test_2() {
         &mut context,
         &program,
         CreateTreasury {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             slot,
             name: "test treasury".to_string(),
             treasury_type: TreasuryType::Opened as u8,
@@ -311,7 +309,7 @@ async fn create_treasury_test_2() {
         &mut context,
         &program,
         AddFunds {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             amount: 1000,
         },
         &treasurer,
@@ -328,7 +326,7 @@ async fn create_treasury_test_2() {
         &mut context,
         &program,
         CreateStream {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             name: "test stream".to_string(),
             start_utc: 0,
             rate_amount_units: 5,
@@ -432,7 +430,7 @@ async fn create_treasury_test_2() {
         &mut context,
         &program,
         Allocate {
-            _idl_file_version: 3,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             amount: 4,
         },
         &treasurer,
@@ -527,7 +525,7 @@ async fn create_treasury_test_3() {
         &mut context,
         &program,
         CreateTreasury {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             slot,
             name: "test treasury".to_string(),
             treasury_type: TreasuryType::Opened as u8,
@@ -548,7 +546,7 @@ async fn create_treasury_test_3() {
         &mut context,
         &program,
         AddFunds {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             amount: 1000,
         },
         &treasurer,
@@ -565,7 +563,7 @@ async fn create_treasury_test_3() {
         &mut context,
         &program,
         CreateStream {
-            _idl_file_version: _IDL_FILE_VERSION,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             name: "test stream".to_string(),
             start_utc: 0,
             rate_amount_units: 4,
@@ -669,7 +667,7 @@ async fn create_treasury_test_3() {
         &mut context,
         &program,
         Allocate {
-            _idl_file_version: 3,
+            _idl_file_version: msp::constants::IDL_FILE_VERSION,
             amount: 4,
         },
         &treasurer,

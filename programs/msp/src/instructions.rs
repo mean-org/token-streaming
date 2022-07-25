@@ -456,13 +456,11 @@ pub struct PauseOrResumeStreamAccounts<'info> {
 #[derive(Accounts)]
 #[instruction(idl_file_version: u8)]
 pub struct RefreshTreasuryDataAccounts<'info> {
-    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::InvalidTreasurer)]
-    pub treasurer: Signer<'info>,
     #[account(constraint = associated_token.key() == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken)]
     pub associated_token: Account<'info, Mint>,
     #[account(
         mut,
-        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        seeds = [treasury.treasurer_address.as_ref(), &treasury.slot.to_le_bytes()],
         bump = treasury.bump,
         constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
         constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,

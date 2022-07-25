@@ -537,10 +537,6 @@ pub mod msp {
         treasury.last_known_balance_block_time = clock.unix_timestamp as u64;
         treasury.last_known_balance_units = ctx.accounts.treasury_token.amount;
 
-        if treasury.associated_token_address.eq(&Pubkey::default()) {
-            treasury.associated_token_address = ctx.accounts.associated_token.key();
-        }
-
         mean_emit!(TreasuryRefreshEvent {
             timestamp: treasury.last_known_balance_block_time,
             sol_fee_charged: 0,
