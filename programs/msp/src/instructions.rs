@@ -724,6 +724,7 @@ pub struct CloseTreasuryAccounts<'info> {
     )]
     pub treasurer: Signer<'info>,
     #[account(mut)]
+    //#[soteria(ignore)]
     pub destination_authority: SystemAccount<'info>,
     #[account(
         init_if_needed,
@@ -823,6 +824,7 @@ pub struct TreasuryWithdrawAccounts<'info> {
     )]
     pub treasurer: Signer<'info>,
     #[account()]
+    //#[soteria(ignore)]
     pub destination_authority: SystemAccount<'info>,
     #[account(
         init_if_needed,
