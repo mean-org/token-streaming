@@ -1084,8 +1084,8 @@ describe('msp', () => {
 
     expect(streamEvent!.version).eq(2, 'incorrect version');
     expect(streamEvent!.initialized).eq(true, 'incorrect initialized');
-    expect(streamEvent!.name.length).eq(11, "incorrect stream name lenght")
-    expect(streamEvent!.name).eq("test_stream", "incorrect stream name");
+    expect(streamEvent!.name.length).eq(11, 'incorrect stream name lenght');
+    expect(streamEvent!.name).eq('test_stream', 'incorrect stream name');
     expect(streamEvent!.treasurerAddress.toBase58()).eq(
       treasurerKeypair.publicKey.toBase58(),
       'incorrect treasurerAddress'
@@ -1301,7 +1301,7 @@ describe('msp', () => {
     console.log(txId);
   });
 
-  it('create treasury -> add funds -> create stream -> pause stream (after 3 seconds running) -> resume stream -> withdraw', async () => {
+  it('create treasury -> add funds -> create stream -> pause stream (after 6 seconds running) -> resume stream -> withdraw', async () => {
     const treasurerKeypair = Keypair.generate();
 
     const mspSetup = await createMspSetup({
@@ -1322,7 +1322,7 @@ describe('msp', () => {
     const nowBn = new anchor.BN(Date.now() / 1000);
     console.log('nowTs:', nowBn.toNumber());
 
-    await mspSetup.refreshTreasuryData({ });
+    await mspSetup.refreshTreasuryData({});
 
     const beneficiaryKeypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
@@ -1352,7 +1352,7 @@ describe('msp', () => {
       streamKeypair
     });
 
-    await mspSetup.refreshTreasuryData({ });
+    await mspSetup.refreshTreasuryData({});
 
     await mspSetup.addFunds({
       amount: 250_000
@@ -1363,7 +1363,7 @@ describe('msp', () => {
       stream: streamKeypair.publicKey
     });
 
-    await mspSetup.refreshTreasuryData({ });
+    await mspSetup.refreshTreasuryData({});
 
     // await mspSetup.addFunds(
     //   1_000_000,
@@ -1390,7 +1390,7 @@ describe('msp', () => {
       initializerKeypair: treasurerKeypair
     });
 
-    await sleep(1100); // prevent CannotPauseAndUnpauseOnSameBlockTime error
+    await sleep(5000); // prevent CannotPauseAndUnpauseOnSameBlockTime error
     await mspSetup.resumeStream({
       stream: streamKeypair.publicKey,
       initializer: treasurerKeypair.publicKey,
