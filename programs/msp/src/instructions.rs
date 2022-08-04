@@ -99,9 +99,7 @@ pub struct CreateStreamAccounts<'info> {
     #[account(constraint = beneficiary.key() != treasurer.key() @ ErrorCode::InvalidBeneficiary)]
     pub beneficiary: SystemAccount<'info>,
     #[account(
-        init,
-        payer = payer,
-        space = 500,
+        zero,
         // rate_amount_units and rate_interval_in_seconds are allowed to be
         // equal to zero to support one time payments (OTP)
         // Here, because we are forcing cliff_vest_amount_units to be positive,
@@ -117,6 +115,7 @@ pub struct CreateStreamAccounts<'info> {
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
         // passing both, cliff amount and cliff percent is not allowed
         constraint = (cliff_vest_amount_units == 0 || cliff_vest_percent == 0) @ ErrorCode::InvalidCliff,
+        constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize,
     )]
     pub stream: Account<'info, Stream>,
     #[account(
@@ -324,11 +323,10 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
     pub template: Box<Account<'info, StreamTemplate>>,
 
     #[account(
-        init,
-        payer = payer,
-        space = 500,
+        zero,
         // rate_interval_in_seconds > 0 is checked when creating stream template (create_stream_template)
         constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = stream.to_account_info().data_len() == 500 @ ErrorCode::InvalidStreamSize
     )]
     pub stream: Box<Account<'info, Stream>>,
     #[account(

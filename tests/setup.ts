@@ -698,6 +698,11 @@ export class MspSetup {
     console.log(`beneficiary:             ${beneficiary}`);
     console.log(`stream:                  ${streamKeypair.publicKey}`);
 
+    const createStreamAccountInstruction = await this.program.account.stream.createInstruction(
+        streamKeypair,
+        500,
+    );
+
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
     );
@@ -729,6 +734,7 @@ export class MspSetup {
         systemProgram: SYSTEM_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY
       })
+      .preInstructions([createStreamAccountInstruction])
       .signers(signers)
       .rpc();
     logTxUrl(ixName, txId);
@@ -1164,6 +1170,8 @@ export class MspSetup {
       (allocationAssignedUnits * (1 - preTemplate!.cliffVestPercent.toNumber() / 1_000_000)) /
       preTemplate!.durationNumberOfUnits.toNumber();
 
+    const createStreamAccountInstruction = await this.program.account.stream.createInstruction(streamKeypair, 500);
+
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
     );
@@ -1185,6 +1193,7 @@ export class MspSetup {
         systemProgram: SYSTEM_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY
       })
+      .preInstructions([createStreamAccountInstruction])
       .signers(signers)
       .rpc();
 
