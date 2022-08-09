@@ -34,7 +34,7 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
-export const LATEST_IDL_FILE_VERSION = 4;
+export const LATEST_IDL_FILE_VERSION = 5;
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error('ANCHOR_PROVIDER_URL is not defined');
@@ -653,7 +653,6 @@ export class MspSetup {
     cliffVestPercent,
     payerKeypair,
     beneficiary,
-    streamKeypair,
     treasury,
     treasuryFrom,
     feePayedByTreasurer,
@@ -668,19 +667,24 @@ export class MspSetup {
     cliffVestPercent: number;
     payerKeypair: Keypair;
     beneficiary: PublicKey;
-    streamKeypair: Keypair;
     treasury?: PublicKey;
     treasuryFrom?: PublicKey;
     feePayedByTreasurer?: boolean;
     signers?: Keypair[];
-  }) {
+  }): Promise<PublicKey> {
     const ixName = 'CREATE STREAM';
     logStart(ixName);
 
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
-    signers = signers ?? [payerKeypair, this.treasurerKeypair, streamKeypair];
+    signers = signers ?? [payerKeypair, this.treasurerKeypair];
     feePayedByTreasurer = feePayedByTreasurer ?? false;
+
+    const uniqueSeed = Keypair.generate().publicKey;
+    const [stream] = await anchor.web3.PublicKey.findProgramAddress(
+      [treasury.toBuffer(), uniqueSeed.toBuffer()],
+      this.program.programId
+    );
 
     const preTreasury = await this.program.account.treasury.fetchNullable(treasury);
     assert.isNotNull(preTreasury);
@@ -696,12 +700,7 @@ export class MspSetup {
     console.log(`payer:                   ${payerKeypair.publicKey}`);
     console.log(`payer key:         ${bs58.encode(payerKeypair.secretKey)}`);
     console.log(`beneficiary:             ${beneficiary}`);
-    console.log(`stream:                  ${streamKeypair.publicKey}`);
-
-    const createStreamAccountInstruction = await this.program.account.stream.createInstruction(
-        streamKeypair,
-        500,
-    );
+    console.log(`stream:                  ${stream}`);
 
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
@@ -711,6 +710,7 @@ export class MspSetup {
       .createStream(
         LATEST_IDL_FILE_VERSION,
         name,
+        uniqueSeed,
         new BN(startTs),
         new BN(rateAmountUnits),
         new BN(rateIntervalInSeconds),
@@ -726,7 +726,7 @@ export class MspSetup {
         treasuryToken: treasuryFrom,
         associatedToken: this.fromTokenClient.publicKey,
         beneficiary: beneficiary,
-        stream: streamKeypair.publicKey,
+        stream,
         feeTreasury: MSP_FEES_PUBKEY,
         feeTreasuryToken: this.feesFrom,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -734,13 +734,12 @@ export class MspSetup {
         systemProgram: SYSTEM_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY
       })
-      .preInstructions([createStreamAccountInstruction])
       .signers(signers)
       .rpc();
     logTxUrl(ixName, txId);
 
     // assert stream
-    const postStream = await this.program.account.stream.fetchNullable(streamKeypair.publicKey);
+    const postStream = await this.program.account.stream.fetchNullable(stream);
     assert.isNotNull(postStream);
 
     expect(postStream!.version).eq(2);
@@ -805,6 +804,7 @@ export class MspSetup {
     expect(postTreasury!.totalStreams.toNumber()).eq(preTreasury!.totalStreams.addn(1).toNumber());
 
     logEnd(ixName);
+    return stream;
   }
 
   public async createTemplate({
@@ -1126,7 +1126,6 @@ export class MspSetup {
     template,
     payerKeypair,
     beneficiary,
-    streamKeypair,
     treasury,
     treasuryFrom,
     signers
@@ -1136,18 +1135,23 @@ export class MspSetup {
     template: PublicKey;
     payerKeypair: Keypair;
     beneficiary: PublicKey;
-    streamKeypair: Keypair;
     treasury?: PublicKey;
     treasuryFrom?: PublicKey;
     feePayedByTreasurer?: boolean;
     signers?: Keypair[];
-  }) {
+  }): Promise<PublicKey> {
     const ixName = 'CREATE STREAM WITH TEMPLATE';
     logStart(ixName);
 
     treasury = treasury ?? this.treasury;
     treasuryFrom = treasuryFrom ?? this.treasuryFrom;
-    signers = signers ?? [payerKeypair, this.treasurerKeypair, streamKeypair];
+    signers = signers ?? [payerKeypair, this.treasurerKeypair];
+
+    const uniqueSeed = Keypair.generate().publicKey;
+    const [stream] = await anchor.web3.PublicKey.findProgramAddress(
+      [treasury.toBuffer(), uniqueSeed.toBuffer()],
+      this.program.programId
+    );
 
     const preTreasury = await this.program.account.treasury.fetchNullable(treasury);
     assert.isNotNull(preTreasury);
@@ -1163,20 +1167,24 @@ export class MspSetup {
     console.log(`payerKeypair key:        ${bs58.encode(payerKeypair.secretKey)}`);
     console.log(`beneficiary:             ${beneficiary}`);
     console.log(`template:                ${template}`);
-    console.log(`stream:                  ${streamKeypair.publicKey}`);
+    console.log(`stream:                  ${stream}`);
     console.log(`treasury:                ${treasury.toBase58()}`);
 
     const rateAmount =
       (allocationAssignedUnits * (1 - preTemplate!.cliffVestPercent.toNumber() / 1_000_000)) /
       preTemplate!.durationNumberOfUnits.toNumber();
 
-    const createStreamAccountInstruction = await this.program.account.stream.createInstruction(streamKeypair, 500);
-
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
     );
     const txId = await this.program.methods
-      .createStreamWithTemplate(LATEST_IDL_FILE_VERSION, name, new BN(rateAmount), new BN(allocationAssignedUnits))
+      .createStreamWithTemplate(
+        LATEST_IDL_FILE_VERSION,
+        name,
+        uniqueSeed,
+        new BN(rateAmount),
+        new BN(allocationAssignedUnits)
+      )
       .accounts({
         payer: payerKeypair.publicKey,
         treasurer: this.treasurerKeypair.publicKey,
@@ -1184,7 +1192,7 @@ export class MspSetup {
         treasuryToken: treasuryFrom,
         associatedToken: this.fromTokenClient.publicKey,
         beneficiary: beneficiary,
-        stream: streamKeypair.publicKey,
+        stream,
         template: template,
         feeTreasury: MSP_FEES_PUBKEY,
         feeTreasuryToken: this.feesFrom,
@@ -1193,14 +1201,13 @@ export class MspSetup {
         systemProgram: SYSTEM_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY
       })
-      .preInstructions([createStreamAccountInstruction])
       .signers(signers)
       .rpc();
 
     logTxUrl(ixName, txId);
 
     // assert stream
-    const postStream = await this.program.account.stream.fetchNullable(streamKeypair.publicKey);
+    const postStream = await this.program.account.stream.fetchNullable(stream);
     assert.isNotNull(postStream);
 
     const expectedEffectiveCliffUnits =
@@ -1266,6 +1273,7 @@ export class MspSetup {
     expect(postTreasury!.totalStreams.toNumber()).eq(preTreasury!.totalStreams.addn(1).toNumber());
 
     logEnd(ixName);
+    return stream;
   }
 
   public async getCreateStreamTx(

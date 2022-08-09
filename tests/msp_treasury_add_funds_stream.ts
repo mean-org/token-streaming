@@ -73,7 +73,6 @@ describe('msp', () => {
     const startTs = nowBn.addn(10).toNumber();
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
 
     await node_assert.rejects(
       async () => {
@@ -86,8 +85,7 @@ describe('msp', () => {
           cliffVestAmountUnits: 0,
           cliffVestPercent: 0,
           payerKeypair: treasurerKeypair,
-          beneficiary: beneficiaryKeypair.publicKey,
-          streamKeypair
+          beneficiary: beneficiaryKeypair.publicKey
         });
       },
       (error: AnchorError) => {
@@ -124,8 +122,6 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
-
     await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
@@ -136,7 +132,6 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair,
       feePayedByTreasurer: true
     });
   });
@@ -174,7 +169,6 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
     console.log(`streamStartTs: ${streamStartTs.toNumber()}`);
 
@@ -190,7 +184,6 @@ describe('msp', () => {
           cliffVestPercent: 0,
           payerKeypair: treasurerKeypair,
           beneficiary: beneficiary,
-          streamKeypair,
           feePayedByTreasurer: true
         });
       },
@@ -225,7 +218,7 @@ describe('msp', () => {
     console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
+
     const streamStartTs = nowBn.addn(1);
 
     const txId = await mspSetup.createStream({
@@ -237,8 +230,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
     console.log(txId);
   });
@@ -273,7 +265,6 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
 
     await mspSetup.createStream({
       name: 'test_stream',
@@ -284,8 +275,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 100_000, // 10%
       payerKeypair: beneficiaryKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
   });
 
@@ -319,10 +309,7 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -332,12 +319,11 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair,
       feePayedByTreasurer: true
     });
 
-    await mspSetup.filterStreamByCategory(category, streamKeypair.publicKey);
-    await mspSetup.filterStreamBySubCateogry(subCategory, streamKeypair.publicKey);
+    await mspSetup.filterStreamByCategory(category, stream);
+    await mspSetup.filterStreamBySubCateogry(subCategory, stream);
   });
 
   it('create treasury -> add funds -> create teamplate -> create stream (initializer = beneficiary)', async () => {
@@ -383,14 +369,12 @@ describe('msp', () => {
       durationNumberOfUnits: 200
     });
 
-    const streamKeypair = Keypair.generate();
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       template,
       allocationAssignedUnits: 50_000_000,
       payerKeypair: beneficiaryKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
   });
 
@@ -433,14 +417,12 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       template,
       allocationAssignedUnits: 50_000_000,
       payerKeypair: beneficiaryKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
   });
 
@@ -487,14 +469,11 @@ describe('msp', () => {
       initializerKeypair: treasurerKeypair
     });
 
-    const streamKeypair = Keypair.generate();
-
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 1000,
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair,
       template,
       feePayedByTreasurer: true
     });
@@ -540,13 +519,11 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 1000,
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair,
       template,
       feePayedByTreasurer: true
     });
@@ -599,14 +576,11 @@ describe('msp', () => {
       initializerKeypair: treasurerKeypair
     });
 
-    const streamKeypair = Keypair.generate();
-
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 50_000_000, //5 0 UI tokens
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair,
       template,
       feePayedByTreasurer: true
     });
@@ -656,13 +630,11 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       allocationAssignedUnits: 50_000_000, //5 0 UI tokens
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair,
       template,
       feePayedByTreasurer: true
     });
@@ -706,14 +678,12 @@ describe('msp', () => {
     });
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
 
     await mspSetup.createStreamWithTemplate({
       allocationAssignedUnits: 1000,
       beneficiary: beneficiaryKeypair.publicKey,
       payerKeypair: treasurerKeypair,
       name: 'test_stream',
-      streamKeypair,
       template
     });
   });
@@ -753,14 +723,12 @@ describe('msp', () => {
     await mspSetup.addFunds({ amount: 100_000_000 });
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
 
     await mspSetup.createStreamWithTemplate({
       allocationAssignedUnits: 1000,
       beneficiary: beneficiaryKeypair.publicKey,
       payerKeypair: treasurerKeypair,
       name: 'test_stream',
-      streamKeypair,
       template
     });
   });
@@ -806,14 +774,11 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStreamWithTemplate({
+    const stream = await mspSetup.createStreamWithTemplate({
       allocationAssignedUnits: 1000,
       beneficiary: beneficiaryKeypair.publicKey,
       payerKeypair: treasurerKeypair,
       name: 'test_stream',
-      streamKeypair,
       template
     });
 
@@ -826,7 +791,7 @@ describe('msp', () => {
     );
 
     await mspSetup.closeStream({
-      stream: streamKeypair.publicKey,
+      stream,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom
     });
@@ -886,14 +851,12 @@ describe('msp', () => {
       durationNumberOfUnits: 200
     });
 
-    const streamKeypair = Keypair.generate();
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       template,
       allocationAssignedUnits: 50_000_000,
       payerKeypair: beneficiaryKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
   });
 
@@ -940,14 +903,12 @@ describe('msp', () => {
       durationNumberOfUnits: 200
     });
 
-    const streamKeypair = Keypair.generate();
     await mspSetup.createStreamWithTemplate({
       name: 'test_stream',
       template,
       allocationAssignedUnits: 50_000_000,
       payerKeypair: beneficiaryKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(6000);

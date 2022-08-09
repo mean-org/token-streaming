@@ -68,6 +68,7 @@ pub mod msp {
         ctx: Context<CreateStreamAccounts>,
         _idl_file_version: u8,
         name: String,
+        _unique_seed: Pubkey,
         start_utc: u64,
         rate_amount_units: u64,
         rate_interval_in_seconds: u64,
@@ -217,6 +218,7 @@ pub mod msp {
         ctx: Context<CreateStreamWithTemplateAccounts>,
         _idl_file_version: u8,
         name: String,
+        _unique_seed: Pubkey,
         rate_amount_units: u64,
         allocation_assigned_units: u64,
     ) -> Result<()> {

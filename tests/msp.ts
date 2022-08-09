@@ -79,9 +79,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -90,8 +88,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await mspSetup.addFunds({ amount: 50_000_000 });
@@ -100,7 +97,7 @@ describe('msp', () => {
       async () => {
         await mspSetup.allocate({
           amount: 50_000_000,
-          stream: streamKeypair.publicKey
+          stream
         });
       },
       (error: AnchorError) => {
@@ -133,9 +130,8 @@ describe('msp', () => {
     const startTs = nowBn.toNumber();
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 10,
@@ -144,14 +140,13 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await node_assert.rejects(
       async () => {
         await mspSetup.pauseStream({
-          stream: streamKeypair.publicKey,
+          stream,
           initializer: treasurerKeypair.publicKey,
           initializerKeypair: treasurerKeypair
         });
@@ -175,7 +170,7 @@ describe('msp', () => {
       async () => {
         await mspSetup.allocate({
           amount: 10_000_000,
-          stream: streamKeypair.publicKey
+          stream
         });
       },
       (error: any) => {
@@ -200,7 +195,7 @@ describe('msp', () => {
         await mspSetup.closeStream({
           beneficiary: beneficiaryKeypair.publicKey,
           beneficiaryFrom,
-          stream: streamKeypair.publicKey
+          stream
         });
       },
       (error: any) => {
@@ -236,9 +231,8 @@ describe('msp', () => {
       'confirmed'
     );
     const beneficiaryFrom = await mspSetup.findTreasuryFromAssociatedTokenAddress(beneficiaryKeypair.publicKey);
-    const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 10,
@@ -247,8 +241,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await node_assert.rejects(
@@ -258,7 +251,7 @@ describe('msp', () => {
           beneficiaryKeypair,
           beneficiary: beneficiaryKeypair.publicKey,
           beneficiaryFrom,
-          stream: streamKeypair.publicKey
+          stream
         });
       },
       (error: AnchorError) => {
@@ -291,7 +284,7 @@ describe('msp', () => {
   //     await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
   //     "confirmed"
   //   );
-  //   const streamKeypair = Keypair.generate();
+  //
 
   //   await node_assert.rejects(async () => {
   //     await mspSetup.createStream(
@@ -364,9 +357,8 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -375,8 +367,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -393,7 +384,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -423,9 +414,8 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -434,8 +424,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -452,7 +441,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -478,7 +467,6 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -490,7 +478,7 @@ describe('msp', () => {
 
     const nowBn = new anchor.BN(Date.now() / 1000);
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -499,8 +487,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(3000);
@@ -509,7 +496,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     const preTreasurerFromAmount = new BN(
@@ -530,7 +517,7 @@ describe('msp', () => {
     await mspSetup.closeStream({
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     const postTreasurerFromAmount = new BN(
@@ -575,9 +562,8 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.addn(60).toNumber(), // scheduled to 1 min after created
       rateAmountUnits: 10,
@@ -586,8 +572,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -606,7 +591,7 @@ describe('msp', () => {
         beneficiaryKeypair,
         beneficiary: beneficiaryKeypair.publicKey,
         beneficiaryFrom,
-        stream: streamKeypair.publicKey
+        stream
       });
       console.log(txId);
     } catch (error: any) {
@@ -642,9 +627,8 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
 
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -653,8 +637,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 1_000_000,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -671,7 +654,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     // try to withdraw again fails since the stream is lack of funds and is paused
@@ -682,7 +665,7 @@ describe('msp', () => {
         beneficiaryKeypair,
         beneficiary: beneficiaryKeypair.publicKey,
         beneficiaryFrom,
-        stream: streamKeypair.publicKey
+        stream
       });
       console.log(txId);
     } catch (error: any) {
@@ -718,9 +701,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 10,
@@ -729,8 +710,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(1000);
@@ -739,7 +719,7 @@ describe('msp', () => {
 
     await mspSetup.allocate({
       amount: 50_000_000,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     const beneficiaryFrom = await Token.getAssociatedTokenAddress(
@@ -756,7 +736,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -798,9 +778,7 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 10,
@@ -809,8 +787,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await mspSetup.connection.confirmTransaction(
@@ -825,7 +802,7 @@ describe('msp', () => {
         await mspSetup.closeStream({
           beneficiary: beneficiaryKeypair.publicKey,
           beneficiaryFrom,
-          stream: streamKeypair.publicKey,
+          stream,
           signers: [beneficiaryKeypair] // <-- injecting unauthorized signer
         });
       },
@@ -874,9 +851,7 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 10,
@@ -885,8 +860,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiary,
-      streamKeypair
+      beneficiary: beneficiary
     });
 
     await mspSetup.connection.confirmTransaction(
@@ -899,7 +873,7 @@ describe('msp', () => {
     await mspSetup.closeStream({
       beneficiary,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -947,9 +921,7 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair1 = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 500_000,
@@ -958,8 +930,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary,
-      streamKeypair: streamKeypair1
+      beneficiary
     });
 
     await sleep(3_000);
@@ -967,13 +938,13 @@ describe('msp', () => {
     await mspSetup.closeStream({
       beneficiary,
       beneficiaryFrom,
-      stream: streamKeypair1.publicKey
+      stream
     });
 
     await sleep(1_000);
 
     const postState = await mspSetup.getMspWorldState();
-    const postStateStream = await mspSetup.program.account.stream.fetchNullable(streamKeypair1.publicKey);
+    const postStateStream = await mspSetup.program.account.stream.fetchNullable(stream);
     assert.isNull(postStateStream, 'Stream was not closed');
     assert.isNotNull(postState.treasuryAccountInfo, 'Treasury was closed');
     assert.isNotNull(postState.treasuryFromAccountInfo, 'Treasury associated token was closed');
@@ -1006,8 +977,7 @@ describe('msp', () => {
     );
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 10,
@@ -1016,8 +986,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await mspSetup.connection.confirmTransaction(
@@ -1028,7 +997,7 @@ describe('msp', () => {
     const newBeneficiaryKeypair = Keypair.generate();
 
     await mspSetup.transferStream({
-      stream: streamKeypair.publicKey,
+      stream,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryKeypair: beneficiaryKeypair,
       newBeneficiary: newBeneficiaryKeypair.publicKey
@@ -1057,10 +1026,9 @@ describe('msp', () => {
     console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-    const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream({
+    const streamStartTs = nowBn.addn(1);
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 10,
@@ -1069,14 +1037,13 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(3000);
     const streamEvent = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey
+      stream
     });
     const beneficiaryFromAta = await mspSetup.findTreasuryFromAssociatedTokenAddress(beneficiaryKeypair.publicKey);
 
@@ -1192,10 +1159,9 @@ describe('msp', () => {
     console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-    const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream({
+    const streamStartTs = nowBn.addn(1);
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 10,
@@ -1204,13 +1170,12 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(3_000);
     await mspSetup.pauseStream({
-      stream: streamKeypair.publicKey,
+      stream,
       initializer: treasurerKeypair.publicKey,
       initializerKeypair: treasurerKeypair
     });
@@ -1219,7 +1184,7 @@ describe('msp', () => {
     await node_assert.rejects(
       async () => {
         const txId = await mspSetup.pauseStream({
-          stream: streamKeypair.publicKey,
+          stream,
           initializer: treasurerKeypair.publicKey,
           initializerKeypair: treasurerKeypair
         });
@@ -1258,10 +1223,9 @@ describe('msp', () => {
     console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-    const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream({
+    const streamStartTs = nowBn.addn(1);
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 10,
@@ -1270,19 +1234,18 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(3_000);
     await mspSetup.pauseStream({
-      stream: streamKeypair.publicKey,
+      stream,
       initializer: treasurerKeypair.publicKey,
       initializerKeypair: treasurerKeypair
     });
 
     const preStreamEventResponse = await mspSetup.program.simulate.getStream(LATEST_IDL_FILE_VERSION, {
-      accounts: { stream: streamKeypair.publicKey }
+      accounts: { stream }
     });
     const preStateStream = preStreamEventResponse.events[0].data;
     assert.isNotNull(preStateStream, 'pre-state stream was not found');
@@ -1294,7 +1257,7 @@ describe('msp', () => {
 
     await sleep(1100); // prevent CannotPauseAndUnpauseOnSameBlockTime error
     const txId = await mspSetup.resumeStream({
-      stream: streamKeypair.publicKey,
+      stream,
       initializer: treasurerKeypair.publicKey,
       initializerKeypair: treasurerKeypair
     });
@@ -1336,10 +1299,9 @@ describe('msp', () => {
     //   beneficiaryKeypair.publicKey,
     //   true
     // );
-    const streamKeypair = Keypair.generate();
-    // const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream({
+    // const streamStartTs = nowBn.addn(1);
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 250000,
@@ -1348,8 +1310,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await mspSetup.refreshTreasuryData({});
@@ -1360,7 +1321,7 @@ describe('msp', () => {
 
     await mspSetup.allocate({
       amount: 250_000,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     await mspSetup.refreshTreasuryData({});
@@ -1371,7 +1332,7 @@ describe('msp', () => {
     //   undefined,
     //   undefined,
     //   undefined,
-    //   streamKeypair.publicKey,
+    //   stream,
     //   );
 
     // await mspSetup.addFunds(
@@ -1380,25 +1341,25 @@ describe('msp', () => {
     //   undefined,
     //   undefined,
     //   undefined,
-    //   streamKeypair.publicKey,
+    //   stream,
     //   );
 
     await sleep(1000);
     await mspSetup.pauseStream({
-      stream: streamKeypair.publicKey,
+      stream,
       initializer: treasurerKeypair.publicKey,
       initializerKeypair: treasurerKeypair
     });
 
     await sleep(5000); // prevent CannotPauseAndUnpauseOnSameBlockTime error
     await mspSetup.resumeStream({
-      stream: streamKeypair.publicKey,
+      stream,
       initializer: treasurerKeypair.publicKey,
       initializerKeypair: treasurerKeypair
     });
 
     // await sleep(5000);
-    // await mspSetup.withdraw(8_000_000, beneficiaryKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey);
+    // await mspSetup.withdraw(8_000_000, beneficiaryKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, stream);
 
     const beneficiary2Keypair = Keypair.generate();
     await mspSetup.connection.confirmTransaction(
@@ -1412,7 +1373,6 @@ describe('msp', () => {
     //   beneficiary2Keypair.publicKey,
     //   true
     // );
-    const stream2Keypair = Keypair.generate();
     // const streamStartTs = nowBn.addn(1);
     await node_assert.rejects(
       async () => {
@@ -1426,7 +1386,6 @@ describe('msp', () => {
           cliffVestPercent: 0,
           payerKeypair: treasurerKeypair,
           beneficiary: beneficiary2Keypair.publicKey,
-          streamKeypair: stream2Keypair,
           feePayedByTreasurer: true
         });
       },
@@ -1450,7 +1409,7 @@ describe('msp', () => {
 
     // // close s1
 
-    // await mspSetup.closeStream(treasurerKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, streamKeypair.publicKey, false);
+    // await mspSetup.closeStream(treasurerKeypair, beneficiaryKeypair.publicKey, beneficiaryFrom, stream, false);
   });
 
   it('create treasury -> add funds -> create stream -> resume stream (error stream already running)', async () => {
@@ -1475,10 +1434,9 @@ describe('msp', () => {
     console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-    const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream({
+    const streamStartTs = nowBn.addn(1);
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 10,
@@ -1487,8 +1445,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(3_000);
@@ -1496,7 +1453,7 @@ describe('msp', () => {
     await node_assert.rejects(
       async () => {
         const txId = await mspSetup.resumeStream({
-          stream: streamKeypair.publicKey,
+          stream,
           initializer: treasurerKeypair.publicKey,
           initializerKeypair: treasurerKeypair
         });
@@ -1535,10 +1492,9 @@ describe('msp', () => {
     console.log('nowTs:', nowTs);
 
     const beneficiaryKeypair = Keypair.generate();
-    const streamKeypair = Keypair.generate();
-    const streamStartTs = nowBn.addn(1);
 
-    await mspSetup.createStream({
+    const streamStartTs = nowBn.addn(1);
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 10,
@@ -1547,8 +1503,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(3_000);
@@ -1556,7 +1511,7 @@ describe('msp', () => {
     await node_assert.rejects(
       async () => {
         const txId = await mspSetup.pauseStream({
-          stream: streamKeypair.publicKey,
+          stream,
           initializer: treasurerKeypair.publicKey,
           initializerKeypair: treasurerKeypair
         });
@@ -1603,10 +1558,8 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 10,
@@ -1615,8 +1568,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiary,
-      streamKeypair
+      beneficiary: beneficiary
     });
 
     await sleep(3_000);
@@ -1626,7 +1578,7 @@ describe('msp', () => {
         const txId = await mspSetup.closeStream({
           beneficiary,
           beneficiaryFrom,
-          stream: streamKeypair.publicKey
+          stream
         });
 
         console.log(txId);
@@ -1678,9 +1630,7 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs,
       rateAmountUnits: 10,
@@ -1689,8 +1639,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiary,
-      streamKeypair
+      beneficiary: beneficiary
     });
 
     await mspSetup.connection.confirmTransaction(
@@ -1703,7 +1652,7 @@ describe('msp', () => {
     await mspSetup.closeStream({
       beneficiary,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -1739,9 +1688,7 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowTs,
       rateAmountUnits: 10,
@@ -1750,8 +1697,7 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await sleep(1_000);
@@ -1789,7 +1735,7 @@ describe('msp', () => {
     await mspSetup.closeStream({
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -1828,11 +1774,9 @@ describe('msp', () => {
       true
     );
 
-    const streamKeypair = Keypair.generate();
     const streamStartTs = nowBn.addn(1);
     console.log(`streamStartTs: ${streamStartTs.toNumber()}`);
-
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: streamStartTs.toNumber(),
       rateAmountUnits: 100_000_000,
@@ -1842,12 +1786,11 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
-      streamKeypair,
       feePayedByTreasurer: true
     });
 
     // console.log();
-    // const preStream = await mspSetup.getStream(treasurerKeypair, streamKeypair.publicKey);
+    // const preStream = await mspSetup.getStream(treasurerKeypair, stream);
     // console.log('preStream:',
     //   {
     //     beneficiaryAddress: preStream?.beneficiaryAddress.toBase58(),
@@ -1862,7 +1805,7 @@ describe('msp', () => {
     await sleep(3000); // after this all the funds allocated to the stream will be vested
 
     // console.log();
-    const postStream = await mspSetup.getStream({ feePayerKeypair: treasurerKeypair, stream: streamKeypair.publicKey });
+    const postStream = await mspSetup.getStream({ feePayerKeypair: treasurerKeypair, stream });
     // console.log('postStream:',
     //   {
     //     beneficiaryAddress: postStream?.beneficiaryAddress.toBase58(),
@@ -1877,7 +1820,7 @@ describe('msp', () => {
     const txId = await mspSetup.closeStream({
       beneficiary,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     console.log(txId);
@@ -1919,8 +1862,7 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: new BN(Date.now() / 1000).toNumber(),
       rateAmountUnits: 50_000_000,
@@ -1929,13 +1871,12 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await mspSetup.allocate({
       amount: 50_000_000,
-      stream: streamKeypair.publicKey
+      stream
     });
   });
 
@@ -1961,8 +1902,7 @@ describe('msp', () => {
       await connection.requestAirdrop(beneficiaryKeypair.publicKey, 1_000_000_000),
       'confirmed'
     );
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: new BN(Date.now() / 1000).toNumber(),
       rateAmountUnits: 50_000_000,
@@ -1971,15 +1911,14 @@ describe('msp', () => {
       cliffVestAmountUnits: 0,
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
-      beneficiary: beneficiaryKeypair.publicKey,
-      streamKeypair
+      beneficiary: beneficiaryKeypair.publicKey
     });
 
     await node_assert.rejects(
       async () => {
         await mspSetup.allocate({
           amount: 50_000_001,
-          stream: streamKeypair.publicKey
+          stream
         });
       },
       (error: AnchorError) => {
@@ -2021,8 +1960,7 @@ describe('msp', () => {
     );
 
     const nowBn = new anchor.BN(Date.now() / 1000);
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 2,
@@ -2032,7 +1970,6 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary: beneficiary,
-      streamKeypair,
       feePayedByTreasurer: true
     });
 
@@ -2043,7 +1980,7 @@ describe('msp', () => {
     elapsed++;
     let postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2053,7 +1990,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2063,7 +2000,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2085,7 +2022,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
     streamLifeEvents.push(parseStreamEvent(elapsed, 'withdraw -5', postStream!));
 
@@ -2093,7 +2030,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2101,11 +2038,11 @@ describe('msp', () => {
 
     await mspSetup.allocate({
       amount: 5,
-      stream: streamKeypair.publicKey
+      stream
     });
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2115,7 +2052,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2125,7 +2062,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2135,7 +2072,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2145,7 +2082,7 @@ describe('msp', () => {
     elapsed++;
     postStream = await mspSetup.getStream({
       feePayerKeypair: treasurerKeypair,
-      stream: streamKeypair.publicKey,
+      stream,
       logRawLogs: true
     });
     // console.log(postStream);
@@ -2168,7 +2105,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
     streamLifeEvents.push(parseStreamEvent(elapsed, 'withdraw -5', postStream!));
 
@@ -2207,8 +2144,7 @@ describe('msp', () => {
     );
 
     const nowBn = new anchor.BN(Date.now() / 1000);
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 100_000_000,
@@ -2218,7 +2154,6 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary,
-      streamKeypair,
       feePayedByTreasurer: true
     });
 
@@ -2228,7 +2163,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
     // let withdrawFeeAmountBn = new BN(100_000_000)
     //   .mul(new BN(MSP_WITHDRAW_FEE_PCT_NUMERATOR))
@@ -2237,7 +2172,7 @@ describe('msp', () => {
     // await sleep(1000);
     await mspSetup.allocate({
       amount: 50_000_000,
-      stream: streamKeypair.publicKey
+      stream
     });
     // withdrawFeeAmountBn = withdrawFeeAmountBn
     //   .add(new BN(50_000_000)
@@ -2265,14 +2200,14 @@ describe('msp', () => {
     // await sleep(1000);
     await mspSetup.allocate({
       amount: 49501247,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     await node_assert.rejects(
       async () => {
         await mspSetup.allocate({
           amount: 49501248,
-          stream: streamKeypair.publicKey
+          stream
         });
       },
       (error: AnchorError) => {
@@ -2316,8 +2251,7 @@ describe('msp', () => {
     );
 
     const nowBn = new anchor.BN(Date.now() / 1000);
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(),
       rateAmountUnits: 100_000_000,
@@ -2327,7 +2261,6 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary,
-      streamKeypair,
       feePayedByTreasurer: false
     });
 
@@ -2335,7 +2268,7 @@ describe('msp', () => {
     expect(preState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(200_000_000);
     expect(preState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(100_000_000);
 
-    const preStream = await program.account.stream.fetch(streamKeypair.publicKey);
+    const preStream = await program.account.stream.fetch(stream);
     expect(preStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
 
     // WITHDRAW
@@ -2345,7 +2278,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     const postState = await mspSetup.getMspWorldState();
@@ -2356,7 +2289,7 @@ describe('msp', () => {
     const postTreasuryFromAtaAmount = new BN(postTreasuryFrom!.amount);
     expect(postTreasuryFromAtaAmount.toNumber()).eq(100_000_000);
 
-    const postStream = await program.account.stream.fetch(streamKeypair.publicKey);
+    const postStream = await program.account.stream.fetch(stream);
     expect(postStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
     expect(postStream.totalWithdrawalsUnits.toNumber()).eq(100_000_000);
 
@@ -2405,8 +2338,7 @@ describe('msp', () => {
     );
 
     const nowBn = new anchor.BN(Date.now() / 1000);
-    const streamKeypair = Keypair.generate();
-    await mspSetup.createStream({
+    const stream = await mspSetup.createStream({
       name: 'test_stream',
       startTs: nowBn.toNumber(), // startUtc
       rateAmountUnits: 100_000_000,
@@ -2416,14 +2348,13 @@ describe('msp', () => {
       cliffVestPercent: 0,
       payerKeypair: treasurerKeypair,
       beneficiary, // beneficiary
-      streamKeypair,
       feePayedByTreasurer: true
     });
 
     const preState = await mspSetup.getMspWorldState();
     expect(preState.treasuryAccount!.lastKnownBalanceUnits.toNumber()).eq(199_750_000);
     expect(preState.treasuryAccount!.allocationAssignedUnits.toNumber()).eq(100_000_000);
-    const preStream = await program.account.stream.fetch(streamKeypair.publicKey);
+    const preStream = await program.account.stream.fetch(stream);
     expect(preStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
 
     // WITHDRAW
@@ -2433,7 +2364,7 @@ describe('msp', () => {
       beneficiaryKeypair,
       beneficiary: beneficiaryKeypair.publicKey,
       beneficiaryFrom,
-      stream: streamKeypair.publicKey
+      stream
     });
 
     const postState = await mspSetup.getMspWorldState();
@@ -2444,7 +2375,7 @@ describe('msp', () => {
     const postTreasuryFromAtaAmount = new BN(postTreasuryFrom!.amount);
     expect(postTreasuryFromAtaAmount.toNumber()).eq(99_750_000);
 
-    const postStream = await program.account.stream.fetch(streamKeypair.publicKey);
+    const postStream = await program.account.stream.fetch(stream);
     expect(postStream.allocationAssignedUnits.toNumber()).eq(100_000_000);
     expect(postStream.totalWithdrawalsUnits.toNumber()).eq(100_000_000);
 

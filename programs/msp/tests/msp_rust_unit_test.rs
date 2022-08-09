@@ -100,12 +100,14 @@ async fn create_treasury_test_1() {
     )
     .await;
 
+    let unique_seed = Keypair::new().pubkey();
     let (stream, stream_key) = create_stream(
         &mut context,
         &program,
         CreateStream {
             _idl_file_version: msp::constants::IDL_FILE_VERSION,
             name: "test stream".to_string(),
+            _unique_seed: unique_seed,
             start_utc: 0,
             rate_amount_units: 5,
             rate_interval_in_seconds: 2,
@@ -121,6 +123,7 @@ async fn create_treasury_test_1() {
         &beneficiary.pubkey(),
         &fee_pubkey,
         &fees_token,
+        &unique_seed,
     )
     .await;
     println!(
@@ -198,7 +201,7 @@ async fn create_treasury_test_1() {
         },
         &treasurer,
         &treasury_pubkey,
-        stream_key.pubkey(),
+        stream_key,
         &treasury_token_account,
         &treasury_token_mint,
         &fee_pubkey,
@@ -206,7 +209,7 @@ async fn create_treasury_test_1() {
     )
     .await;
 
-    let stream = &mut fetch_stream(&context, stream_key.pubkey()).await;
+    let stream = &mut fetch_stream(&context, stream_key).await;
     assert_eq!(
         stream.allocation_assigned_units, 10,
         "incorrect stream allocation"
@@ -322,11 +325,13 @@ async fn create_treasury_test_2() {
     )
     .await;
 
+    let unique_seed = Keypair::new().pubkey();
     let (stream, stream_key) = create_stream(
         &mut context,
         &program,
         CreateStream {
             _idl_file_version: msp::constants::IDL_FILE_VERSION,
+            _unique_seed: unique_seed,
             name: "test stream".to_string(),
             start_utc: 0,
             rate_amount_units: 5,
@@ -343,6 +348,7 @@ async fn create_treasury_test_2() {
         &beneficiary.pubkey(),
         &fee_pubkey,
         &fees_token,
+        &unique_seed
     )
     .await;
     println!(
@@ -435,7 +441,7 @@ async fn create_treasury_test_2() {
         },
         &treasurer,
         &treasury_pubkey,
-        stream_key.pubkey(),
+        stream_key,
         &treasury_token_account,
         &treasury_token_mint,
         &fee_pubkey,
@@ -443,7 +449,7 @@ async fn create_treasury_test_2() {
     )
     .await;
 
-    let stream = &mut fetch_stream(&context, stream_key.pubkey()).await;
+    let stream = &mut fetch_stream(&context, stream_key).await;
     assert_eq!(
         stream.allocation_assigned_units, 10,
         "incorrect stream allocation"
@@ -559,12 +565,14 @@ async fn create_treasury_test_3() {
     )
     .await;
 
+    let unique_seed = Keypair::new().pubkey();
     let (stream, stream_key) = create_stream(
         &mut context,
         &program,
         CreateStream {
             _idl_file_version: msp::constants::IDL_FILE_VERSION,
             name: "test stream".to_string(),
+            _unique_seed: unique_seed,
             start_utc: 0,
             rate_amount_units: 4,
             rate_interval_in_seconds: 2,
@@ -580,6 +588,7 @@ async fn create_treasury_test_3() {
         &beneficiary.pubkey(),
         &fee_pubkey,
         &fees_token,
+        &unique_seed
     )
     .await;
     println!(
@@ -672,7 +681,7 @@ async fn create_treasury_test_3() {
         },
         &treasurer,
         &treasury_pubkey,
-        stream_key.pubkey(),
+        stream_key,
         &treasury_token_account,
         &treasury_token_mint,
         &fee_pubkey,
@@ -680,7 +689,7 @@ async fn create_treasury_test_3() {
     )
     .await;
 
-    let stream = &mut fetch_stream(&context, stream_key.pubkey()).await;
+    let stream = &mut fetch_stream(&context, stream_key).await;
     assert_eq!(
         stream.allocation_assigned_units, 12,
         "incorrect stream allocation"
@@ -786,8 +795,10 @@ async fn create_stream(
     beneficiary_pubkey: &Pubkey,
     fee_pubkey: &Pubkey,
     fees_token: &Pubkey,
-) -> (Stream, Keypair) {
-    let stream_key = Keypair::new();
+    unique_seed: &Pubkey,
+) -> (Stream, Pubkey) {
+    let (stream, _) =
+        Pubkey::find_program_address(&[treasury_pubkey.as_ref(), &unique_seed.as_ref()], &msp::id());
     let create_stream_ix = program
         .request()
         .accounts(msp::accounts::CreateStreamAccounts {
@@ -797,7 +808,7 @@ async fn create_stream(
             treasury_token: treasury_token_account.clone(),
             associated_token: treasury_token_mint.clone(),
             beneficiary: beneficiary_pubkey.key(),
-            stream: stream_key.pubkey(),
+            stream,
             fee_treasury: fee_pubkey.key(),
             fee_treasury_token: fees_token.clone(),
             associated_token_program: associated_token::ID,
@@ -814,7 +825,7 @@ async fn create_stream(
     let crate_stream_tx = Transaction::new_signed_with_payer(
         &[create_stream_ix],
         Some(&context.payer.pubkey()),
-        &[&context.payer, &treasurer, &stream_key],
+        &[&context.payer, &treasurer],
         context.last_blockhash,
     );
     context
@@ -823,8 +834,8 @@ async fn create_stream(
         .await
         .unwrap();
 
-    let stream = fetch_stream(context, stream_key.pubkey()).await;
-    (stream, stream_key)
+   (fetch_stream(context, stream).await, stream)
+    
 }
 
 async fn allocate(
