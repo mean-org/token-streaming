@@ -101,7 +101,7 @@ pub struct CreateStreamAccounts<'info> {
     pub beneficiary: SystemAccount<'info>,
     #[account(
         init,
-        seeds = [treasury.key().as_ref(), &unique_seed.as_ref()],
+        seeds = [treasury.key().as_ref(), unique_seed.as_ref()],
         bump,
         payer = payer,
         space = 500,
@@ -329,7 +329,7 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
 
     #[account(
         init,
-        seeds = [treasury.key().as_ref(), &unique_seed.as_ref()],
+        seeds = [treasury.key().as_ref(), unique_seed.as_ref()],
         bump,
         payer = payer,
         space = 500,
