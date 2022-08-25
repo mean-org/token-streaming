@@ -23,6 +23,9 @@ pub use categories::*;
 use std::convert::TryFrom;
 use crate::events::*;
 
+#[cfg(feature = "test")]
+declare_id!("MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ");
+#[cfg(not(feature = "test"))]
 declare_id!("MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu");
 
 #[program]
