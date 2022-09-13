@@ -222,13 +222,16 @@ pub mod msp {
     ) -> Result<()> {
         let template = &ctx.accounts.template;
 
+        // calculate effective cliff units as an absolute amount. We will not store %
         let effective_cliff_units = if template.cliff_vest_percent > 0 {
-            template
-                .cliff_vest_percent
-                .checked_mul(allocation_assigned_units)
-                .unwrap()
-                .checked_div(PERCENT_DENOMINATOR)
-                .ok_or(ErrorCode::Overflow)?
+            u64::try_from(
+                (template.cliff_vest_percent as u128)
+                    .checked_mul(allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
         } else {
             0
         };
