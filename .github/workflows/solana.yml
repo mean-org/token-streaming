@@ -103,35 +103,37 @@ jobs:
       - name: Copy secrets
         run: echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
 
-      # Install Node
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+      # Rust Unit tests
+      - name: Cargo Tests
+        run: cargo test-bpf -- --nocapture
+        
+      # # Install Node
+      # - name: Setup Node
+      #   uses: actions/setup-node@v3
+      #   with:
+      #     node-version: ${{ env.NODE_VERSION }}
+      #     cache: 'yarn'
 
-      # Install Yarn
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
-      - name: Yarn Cache
-        uses: actions/cache@v3
-        with:
-            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-            key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-            restore-keys: |
-                ${{ runner.os }}-modules-
-      - name: Install Packages
-        run: yarn install
+      # # Yarn Cache      
+      # - name: Cache packages
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: '**/node_modules'
+      #     key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      
+      # # Install Yarn      
+      # - name: Install Packages
+      #   run: yarn install
 
-      # Install Anchor
-      - name: Install Anchor
-        run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
+      # # Install Anchor
+      # - name: Install Anchor
+      #   run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
 
-      # Run tests
-      - name: Cache build
-        uses: Swatinem/rust-cache@v1
-      - name: Run Tests
-        run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
+      # # Run tests
+      # - name: Cache build
+      #   uses: Swatinem/rust-cache@v1
+      # - name: Run Tests
+      #   run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
 
   audit:
     runs-on: ubuntu-latest
@@ -215,23 +217,25 @@ jobs:
       - name: Copy secrets
         run: echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
 
-      # Install Yarn
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
-      - name: Yarn Cache
+      # Install Node
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      # Yarn Cache      
+      - name: Cache packages
         uses: actions/cache@v3
         with:
-            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-            key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-            restore-keys: |
-                ${{ runner.os }}-modules-
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       # Install Anchor
       - name: Install Anchor
         run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
 
-      # Deploy
+      # Deploy with 3 retry
       - name: Cache build
         uses: Swatinem/rust-cache@v1
       - name: Deploy program
@@ -307,17 +311,23 @@ jobs:
       - name: Copy secrets
         run: echo ${{ secrets.MAINNET_PAYER_KEY }} > ~/.config/solana/id.json
 
-      # Install Yarn
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
-      - name: Yarn Cache
+      # Install Node
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
+
+      # Yarn Cache      
+      - name: Cache packages
         uses: actions/cache@v3
         with:
-            path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-            key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-            restore-keys: |
-                ${{ runner.os }}-modules-
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      # Install Anchor
+      - name: Install Anchor
+        run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}      
 
       # Install Anchor
       - name: Install Anchor
