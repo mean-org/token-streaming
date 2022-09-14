@@ -164,7 +164,7 @@ jobs:
     environment:
       name: devnet
     env:
-      CLUSTER: devnet
+      CLUSTER: "devnet"
       RPC_URL: ${{ secrets.DEVNET_RPC_URL }}
       MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.DEVNET_MULTISIG_AUTHORITY }}
     steps:

@@ -33,7 +33,12 @@ then
 fi
 
 # anchor cli
-SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" | grep '$ solana program deploy')"
+if [[ "$CLUSTER" -e "devnet"  ]]
+then
+  SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" -- --flags test | grep '$ solana program deploy')"    
+else
+  SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" | grep '$ solana program deploy')"
+fi
 echo "Program binary(SO) path: $SO_FILE"
 
 BUFFER_ACCOUNT_ADDRESS="$(solana program write-buffer target/deploy/$PROGRAM_NAME.so --output json-compact | jq .buffer -r)"
@@ -46,7 +51,7 @@ else
       echo "Updating buffer authority..."
       solana program set-buffer-authority "$BUFFER_ACCOUNT_ADDRESS" --new-buffer-authority "$MULTISIG_AUTHORITY_ADDRESS"
       
-      EXPLORER_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}?cluster=mainnet"
+      EXPLORER_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}"
       if [[ "$CLUSTER" -e "devnet"  ]]
       then
             EXPLORER_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}?cluster=devnet"
