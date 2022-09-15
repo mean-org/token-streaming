@@ -33,7 +33,7 @@ then
 fi
 
 # anchor cli
-SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" -- --flags test | grep '$ solana program deploy')"    
+SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" -- --features test | grep '$ solana program deploy')"    
 
 echo "Program binary(SO) path: $SO_FILE"
 
