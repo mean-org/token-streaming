@@ -109,10 +109,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: target
-          key: ${{ runner.os }}-cargo-target-${{ hashFiles('programs/msp/Cargo.toml') }}
+          key: ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-target-${{ hashFiles('programs/msp/Cargo.toml') }}
-            ${{ runner.os }}-cargo-target
+            ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
+            ${{ runner.os }}-c-target
 
       # Rust Unit tests
       - name: Cargo Tests
