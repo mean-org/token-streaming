@@ -1,8 +1,8 @@
 [programs.localnet]
-msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
+msp = "MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ"
 
 [programs.devnet]
-msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
+msp = "MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ"
 
 [programs.mainnet]
 msp = "MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu"
