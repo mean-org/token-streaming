@@ -102,4 +102,8 @@ pub enum ErrorCode {
     InvalidTemplateSize,
     #[msg("Template cannot be modified after streams have been created")]
     CannotModifyTemplate,
+    #[msg("Number of intervals must be greater than zero")]
+    NumberOfIntervalsMustBePossitive,
+    #[msg("The configuration of this template yields a zero rate amount per interval")]
+    ZeroRateAmountTemplateConfiguration,
 }

@@ -220,7 +220,6 @@ pub mod msp {
         ctx: Context<CreateStreamWithTemplateAccounts>,
         _idl_file_version: u8,
         name: String,
-        rate_amount_units: u64,
         allocation_assigned_units: u64,
     ) -> Result<()> {
         let template = &ctx.accounts.template;
@@ -238,6 +237,19 @@ pub mod msp {
         } else {
             0
         };
+
+        let allocation_units_after_cliff = allocation_assigned_units
+            .checked_sub(effective_cliff_units).ok_or(ErrorCode::Overflow)?;
+
+        let rate_amount_units = u64::try_from(
+            (allocation_units_after_cliff as u128)
+                .checked_div(template.duration_number_of_units as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        ).unwrap();
+
+        if rate_amount_units == 0 {
+            return Err(ErrorCode::ZeroRateAmountTemplateConfiguration.into());
+        }
 
         construct_stream_account(
             name,

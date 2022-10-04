@@ -184,6 +184,7 @@ pub struct CreateTreasuryAndTemplateAccounts<'info> {
         payer = payer,
         space = 200,
         constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = duration_number_of_units > 0 @ ErrorCode::NumberOfIntervalsMustBePossitive,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
     )]
     pub template: Box<Account<'info, StreamTemplate>>,
@@ -235,6 +236,7 @@ pub struct CreateStreamTemplateAccounts<'info> {
         payer = payer,
         space = 200,
         constraint = rate_interval_in_seconds > 0 @ ErrorCode::InvalidStreamRate,
+        constraint = duration_number_of_units > 0 @ ErrorCode::NumberOfIntervalsMustBePossitive,
         constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
     )]
     pub template: Box<Account<'info, StreamTemplate>>,
@@ -284,7 +286,6 @@ pub struct ModifyStreamTemplateAccounts<'info> {
 #[instruction(
     idl_file_version: u8,
     name: String,
-    rate_amount_units: u64,
     allocation_assigned_units: u64,
 )]
 pub struct CreateStreamWithTemplateAccounts<'info> {
@@ -328,7 +329,6 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
         payer = payer,
         space = 500,
         // rate_interval_in_seconds > 0 is checked when creating stream template (create_stream_template)
-        constraint = rate_amount_units > 0 @ ErrorCode::InvalidStreamRate,
     )]
     pub stream: Box<Account<'info, Stream>>,
     #[account(
