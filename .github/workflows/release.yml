@@ -5,7 +5,7 @@ name: GH Release & NPM Publish
 on:
   push:
     tags:
-      - "v*"
+      - "TS-v*"
 
 # Automatically create a GitHub Release, with release details specified (the relevant commits)
 jobs:
