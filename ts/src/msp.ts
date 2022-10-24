@@ -20,6 +20,7 @@ import {
   NATIVE_MINT as NATIVE_WSOL_MINT,
   Token,
   TOKEN_PROGRAM_ID,
+  u64
 } from '@solana/spl-token';
 import { BN, Program } from '@project-serum/anchor';
 
@@ -234,9 +235,6 @@ export class MSP {
     const ixs: TransactionInstruction[] = [];
     const amountBN = new BN(amount);
 
-    // console.log(`1 u64: ${amountBN.toBuffer().toString('base64')} vs BN: ${amountBN2.toBuffer('be').toString('base64')}`);
-    
-
     if (mint.equals(Constants.SOL_MINT)) {
       ixs.push(
         SystemProgram.transfer({
@@ -319,7 +317,7 @@ export class MSP {
           beneficiaryToken,
           sender,
           [],
-          amountBN,
+          new u64(amountBN),
         ),
       );
     }
@@ -393,8 +391,6 @@ export class MSP {
     // Create the treasury account since the OTP is schedule
     const slot = await this.connection.getSlot(this.commitment as Commitment);
     const slotBuffer = new BN(slot).toBuffer('le', 8);
-
-    // console.log(`2 u64: ${slotBuffer.toString('base64')} vs BN: ${amountBN2.toString('base64')}`);
     const treasurySeeds = [treasurer.toBuffer(), slotBuffer];
     const [treasury] = await PublicKey.findProgramAddress(
       treasurySeeds,
@@ -605,8 +601,6 @@ export class MSP {
       (this.commitment as Commitment) || 'finalized',
     );
     const slotBuffer = new BN(slot).toBuffer('le', 8);
-
-    // console.log(`3 u64: ${slotBuffer.toString('base64')} vs BN: ${amountBN2.toString('base64')}`);
     const treasurySeeds = [treasurer.toBuffer(), slotBuffer];
     const [treasury] = await PublicKey.findProgramAddress(
       treasurySeeds,
@@ -794,8 +788,6 @@ export class MSP {
       (this.commitment as Commitment) || 'finalized',
     );
     const slotBuffer = new BN(slot).toBuffer('le', 8);
-
-    // console.log(`4 u64: ${slotBuffer.toString('base64')} vs BN: ${amountBN2.toString('base64')}`);
     const treasurySeeds = [treasurer.toBuffer(), slotBuffer];
     // Treasury Pool PDA
     const [treasury] = await PublicKey.findProgramAddress(
@@ -1017,8 +1009,6 @@ export class MSP {
       (this.commitment as Commitment) || 'finalized',
     );
     const slotBuffer = new BN(slot).toBuffer('le', 8);
-
-    // console.log(`5 u64: ${slotBuffer.toString('base64')} vs BN: ${amountBN2.toString('base64')}`);
     const treasurySeeds = [treasurer.toBuffer(), slotBuffer];
     // Treasury Pool PDA
     const [treasury] = await PublicKey.findProgramAddress(

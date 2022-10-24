@@ -22,7 +22,7 @@ jobs:
       - run: cd ts && npm run build
 
       - name: Meandao Release & Publish Toolkit
-        uses: mean-dao/npm-publish-toolkit@v10
+        uses: mean-dao/npm-publish-toolkit@v11
         with:
           access: public
           npm_token: ${{ secrets.NPM_TOKEN }}
