@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
-      - run: npm i
+      - run: cd ts && npm i
       - run: cd ts && npm run build
 
       - name: Meandao Release & Publish Toolkit
