@@ -854,6 +854,7 @@ export class MSP {
     cliffVestAmount?: number | string,
     cliffVestPercent?: number,
     feePayedByTreasurer?: boolean,
+    usePda?: boolean,
   ): Promise<Transaction> {
     const [tx] = await this.createStream2(
       payer,
@@ -868,6 +869,7 @@ export class MSP {
       cliffVestAmount,
       cliffVestPercent,
       feePayedByTreasurer,
+      usePda
     );
     return tx;
   }
@@ -889,6 +891,7 @@ export class MSP {
     cliffVestAmount?: number | string,
     cliffVestPercent?: number,
     feePayedByTreasurer?: boolean,
+    usePda?: boolean,
   ): Promise<[Transaction, PublicKey]> {
     if (treasurer.equals(beneficiary)) {
       throw Error('Beneficiary can not be the same Treasurer');
@@ -928,47 +931,89 @@ export class MSP {
     const startDate =
       startUtc && startUtc.getTime() >= now.getTime() ? startUtc : now;
     const startUtcInSeconds = parseInt((startDate.getTime() / 1000).toString());
-    const streamAccount = Keypair.generate();
 
     // Create Stream
-    const tx = this.program.transaction.createStream(
-      LATEST_IDL_FILE_VERSION,
-      streamName,
-      new BN(startUtcInSeconds),
-      new BN(rateAmount || 0),
-      new BN(rateIntervalInSeconds || 0),
-      new BN(allocationAssigned),
-      new BN(cliffVestAmount || 0),
-      new BN(cliffVestPercentValue),
-      feePayedByTreasurer ?? false,
-      {
-        accounts: {
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash(
+      (this.commitment as Commitment) || 'finalized',
+    );
+    const tx = new Transaction({ feePayer: payer, blockhash, lastValidBlockHeight });
+
+    if (usePda) {
+      const streamPdaSeed = Keypair.generate().publicKey;
+      const [streamPda, streamBump] = await PublicKey.findProgramAddress(
+        [Buffer.from('stream'), treasury.toBuffer(), streamPdaSeed.toBuffer()],
+        this.program.programId
+      );
+
+      tx.add(
+        await this.program.methods
+          .createStreamPda(
+            LATEST_IDL_FILE_VERSION,
+            streamName,
+            new BN(startUtcInSeconds),
+            new BN(rateAmount || 0),
+            new BN(rateIntervalInSeconds || 0),
+            new BN(allocationAssigned),
+            new BN(cliffVestAmount || 0),
+            new BN(cliffVestPercentValue),
+            feePayedByTreasurer ?? false,
+            streamPdaSeed
+          )
+          .accounts({
+            payer: payer,
+            treasurer: treasurer,
+            treasury: treasury,
+            treasuryToken: treasuryToken,
+            associatedToken: treasuryAssociatedTokenMint,
+            beneficiary: beneficiary,
+            stream: streamPda,
+            feeTreasury: Constants.FEE_TREASURY,
+            feeTreasuryToken: feeTreasuryToken,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            rent: SYSVAR_RENT_PUBKEY,
+          })
+          .instruction()
+      );
+      return [tx, streamPda];
+    }
+
+    // use random keypair as the stream address
+    const streamKey = Keypair.generate();
+
+    tx.add(
+      await this.program.methods
+        .createStream(
+          LATEST_IDL_FILE_VERSION,
+          streamName,
+          new BN(startUtcInSeconds),
+          new BN(rateAmount || 0),
+          new BN(rateIntervalInSeconds || 0),
+          new BN(allocationAssigned),
+          new BN(cliffVestAmount || 0),
+          new BN(cliffVestPercentValue),
+          feePayedByTreasurer ?? false,
+        )
+        .accounts({
           payer: payer,
           treasurer: treasurer,
           treasury: treasury,
           treasuryToken: treasuryToken,
           associatedToken: treasuryAssociatedTokenMint,
           beneficiary: beneficiary,
-          stream: streamAccount.publicKey,
+          stream: streamKey.publicKey,
           feeTreasury: Constants.FEE_TREASURY,
           feeTreasuryToken: feeTreasuryToken,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: [streamAccount],
-      },
-    );
+        })
+        .instruction()
+    ).partialSign(streamKey);
 
-    tx.feePayer = payer;
-    const { blockhash } = await this.connection.getLatestBlockhash(
-      (this.commitment as Commitment) || 'finalized',
-    );
-    tx.recentBlockhash = blockhash;
-    tx.partialSign(...[streamAccount]);
-
-    return [tx, streamAccount.publicKey];
+    return [tx, streamKey.publicKey];
   }
 
   /**
@@ -1376,6 +1421,7 @@ export class MSP {
     beneficiary: PublicKey,
     allocationAssigned: string | number,
     streamName = '',
+    usePda?: boolean,
   ): Promise<[Transaction, PublicKey]> {
 
     if (treasurer.equals(beneficiary)) {
@@ -1424,42 +1470,78 @@ export class MSP {
       true,
     );
 
-    const streamAccount = Keypair.generate();
-
     // Create Stream
-    const tx = this.program.transaction.createStreamWithTemplate(
-      LATEST_IDL_FILE_VERSION,
-      streamName,
-      new BN(allocationAssigned),
-      {
-        accounts: {
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash(
+      (this.commitment as Commitment) || 'finalized',
+    );
+    const tx = new Transaction({ feePayer: payer, blockhash, lastValidBlockHeight });
+
+    if (usePda) {
+      const streamPdaSeed = Keypair.generate().publicKey;
+      const [streamPda, streamBump] = await PublicKey.findProgramAddress(
+        [Buffer.from('stream'), treasury.toBuffer(), streamPdaSeed.toBuffer()],
+        this.program.programId
+      );
+
+      tx.add(
+        await this.program.methods
+          .createStreamPdaWithTemplate(
+            LATEST_IDL_FILE_VERSION,
+            streamName,
+            new BN(allocationAssigned),
+            streamPdaSeed
+          )
+          .accounts({
+            payer: payer,
+            treasurer: treasurer,
+            treasury: treasury,
+            treasuryToken: treasuryToken,
+            associatedToken: treasuryAssociatedTokenMint,
+            beneficiary: beneficiary,
+            template: template,
+            stream: streamPda,
+            feeTreasury: Constants.FEE_TREASURY,
+            feeTreasuryToken: feeTreasuryToken,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            rent: SYSVAR_RENT_PUBKEY,
+          })
+          .instruction()
+      );
+      return [tx, streamPda];
+    }
+
+    // use random keypair as the stream address
+    const streamKey = Keypair.generate();
+
+    tx.add(
+      await this.program.methods
+        .createStreamWithTemplate(
+          LATEST_IDL_FILE_VERSION,
+          streamName,
+          new BN(allocationAssigned),
+        )
+        .accounts({
           payer: payer,
-          template,
           treasurer: treasurer,
           treasury: treasury,
           treasuryToken: treasuryToken,
           associatedToken: treasuryAssociatedTokenMint,
           beneficiary: beneficiary,
-          stream: streamAccount.publicKey,
+          template: template,
+          stream: streamKey.publicKey,
           feeTreasury: Constants.FEE_TREASURY,
           feeTreasuryToken: feeTreasuryToken,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
-        },
-        signers: [streamAccount],
-      },
-    );
+        })
+        .instruction()
+    ).partialSign(streamKey);
 
-    tx.feePayer = payer;
-    const { blockhash } = await this.connection.getLatestBlockhash(
-      (this.commitment as Commitment) || 'finalized',
-    );
-    tx.recentBlockhash = blockhash;
-    tx.partialSign(...[streamAccount]);
-
-    return [tx, streamAccount.publicKey];
+    return [tx, streamKey.publicKey];
   }
 
   /**

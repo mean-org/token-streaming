@@ -204,6 +204,118 @@ export type Msp = {
       ]
     },
     {
+      "name": "createStreamPda",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "treasurer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "beneficiary",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stream",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "idlFileVersion",
+          "type": "u8"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "startUtc",
+          "type": "u64"
+        },
+        {
+          "name": "rateAmountUnits",
+          "type": "u64"
+        },
+        {
+          "name": "rateIntervalInSeconds",
+          "type": "u64"
+        },
+        {
+          "name": "allocationAssignedUnits",
+          "type": "u64"
+        },
+        {
+          "name": "cliffVestAmountUnits",
+          "type": "u64"
+        },
+        {
+          "name": "cliffVestPercent",
+          "type": "u64"
+        },
+        {
+          "name": "feePayedByTreasurer",
+          "type": "bool"
+        },
+        {
+          "name": "streamPdaSeed",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
       "name": "createStreamTemplate",
       "accounts": [
         {
@@ -514,6 +626,99 @@ export type Msp = {
         {
           "name": "allocationAssignedUnits",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "createStreamPdaWithTemplate",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "treasurer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "beneficiary",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "template",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stream",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "idlFileVersion",
+          "type": "u8"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "allocationAssignedUnits",
+          "type": "u64"
+        },
+        {
+          "name": "streamPdaSeed",
+          "type": "publicKey"
         }
       ]
     },
@@ -2789,6 +2994,118 @@ export const IDL: Msp = {
       ]
     },
     {
+      "name": "createStreamPda",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "treasurer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "beneficiary",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stream",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "idlFileVersion",
+          "type": "u8"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "startUtc",
+          "type": "u64"
+        },
+        {
+          "name": "rateAmountUnits",
+          "type": "u64"
+        },
+        {
+          "name": "rateIntervalInSeconds",
+          "type": "u64"
+        },
+        {
+          "name": "allocationAssignedUnits",
+          "type": "u64"
+        },
+        {
+          "name": "cliffVestAmountUnits",
+          "type": "u64"
+        },
+        {
+          "name": "cliffVestPercent",
+          "type": "u64"
+        },
+        {
+          "name": "feePayedByTreasurer",
+          "type": "bool"
+        },
+        {
+          "name": "streamPdaSeed",
+          "type": "publicKey"
+        }
+      ]
+    },
+    {
       "name": "createStreamTemplate",
       "accounts": [
         {
@@ -3099,6 +3416,99 @@ export const IDL: Msp = {
         {
           "name": "allocationAssignedUnits",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "createStreamPdaWithTemplate",
+      "accounts": [
+        {
+          "name": "payer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "treasurer",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedToken",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "beneficiary",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "template",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "stream",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasury",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "feeTreasuryToken",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "idlFileVersion",
+          "type": "u8"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "allocationAssignedUnits",
+          "type": "u64"
+        },
+        {
+          "name": "streamPdaSeed",
+          "type": "publicKey"
         }
       ]
     },

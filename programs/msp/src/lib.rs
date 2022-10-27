@@ -117,6 +117,58 @@ pub mod msp {
         Ok(())
     }
 
+    /// Create Stream PDA
+    pub fn create_stream_pda(
+        ctx: Context<CreateStreamPdaAccounts>,
+        _idl_file_version: u8,
+        name: String,
+        start_utc: u64,
+        rate_amount_units: u64,
+        rate_interval_in_seconds: u64,
+        allocation_assigned_units: u64,
+        // allocation_reserved_units: u64, //deprecated. TODO: Remove after updating sdk/ui
+        cliff_vest_amount_units: u64,
+        cliff_vest_percent: u64,
+        fee_payed_by_treasurer: bool,
+        _stream_pda_seed: Pubkey,
+    ) -> Result<()> {
+        // calculate effective cliff units as an absolute amount. We will not store %
+        let effective_cliff_units = if cliff_vest_percent > 0 {
+            u64::try_from(
+                (cliff_vest_percent as u128)
+                    .checked_mul(allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
+        } else {
+            cliff_vest_amount_units
+        };
+
+        construct_stream_account(
+            name,
+            start_utc,
+            rate_amount_units,
+            rate_interval_in_seconds,
+            allocation_assigned_units,
+            fee_payed_by_treasurer,
+            effective_cliff_units,
+            &mut ctx.accounts.stream,
+            &mut ctx.accounts.treasury,
+            &mut ctx.accounts.treasury_token,
+            &ctx.accounts.treasurer.to_account_info(),
+            &ctx.accounts.beneficiary.to_account_info(),
+            &ctx.accounts.associated_token.to_account_info(),
+            &ctx.accounts.fee_treasury_token.to_account_info(),
+            &ctx.accounts.fee_treasury,
+            &ctx.accounts.payer,
+            &ctx.accounts.token_program,
+            &ctx.accounts.system_program,
+        )?;
+        Ok(())
+    }
+
     /// Create template
     pub fn create_stream_template(
         ctx: Context<CreateStreamTemplateAccounts>,
@@ -221,6 +273,67 @@ pub mod msp {
         _idl_file_version: u8,
         name: String,
         allocation_assigned_units: u64,
+    ) -> Result<()> {
+        let template = &ctx.accounts.template;
+
+        // calculate effective cliff units as an absolute amount. We will not store %
+        let effective_cliff_units = if template.cliff_vest_percent > 0 {
+            u64::try_from(
+                (template.cliff_vest_percent as u128)
+                    .checked_mul(allocation_assigned_units as u128)
+                    .ok_or(ErrorCode::Overflow)?
+                    .checked_div(PERCENT_DENOMINATOR as u128)
+                    .ok_or(ErrorCode::Overflow)?,
+            )
+            .unwrap()
+        } else {
+            0
+        };
+
+        let allocation_units_after_cliff = allocation_assigned_units
+            .checked_sub(effective_cliff_units).ok_or(ErrorCode::Overflow)?;
+
+        let rate_amount_units = u64::try_from(
+            (allocation_units_after_cliff as u128)
+                .checked_div(template.duration_number_of_units as u128)
+                .ok_or(ErrorCode::Overflow)?,
+        ).unwrap();
+
+        if rate_amount_units == 0 {
+            return Err(ErrorCode::ZeroRateAmountTemplateConfiguration.into());
+        }
+
+        construct_stream_account(
+            name,
+            template.start_utc_in_seconds,
+            rate_amount_units,
+            template.rate_interval_in_seconds,
+            allocation_assigned_units,
+            template.fee_payed_by_treasurer,
+            effective_cliff_units,
+            &mut ctx.accounts.stream,
+            &mut ctx.accounts.treasury,
+            &mut ctx.accounts.treasury_token,
+            &ctx.accounts.treasurer.to_account_info(),
+            &ctx.accounts.beneficiary.to_account_info(),
+            &ctx.accounts.associated_token.to_account_info(),
+            &ctx.accounts.fee_treasury_token.to_account_info(),
+            &ctx.accounts.fee_treasury,
+            &ctx.accounts.payer,
+            &ctx.accounts.token_program,
+            &ctx.accounts.system_program,
+        )?;
+
+        Ok(())
+    }
+
+    /// Create stream with template
+    pub fn create_stream_pda_with_template(
+        ctx: Context<CreateStreamPdaWithTemplateAccounts>,
+        _idl_file_version: u8,
+        name: String,
+        allocation_assigned_units: u64,
+        _stream_pda_seed: Pubkey,
     ) -> Result<()> {
         let template = &ctx.accounts.template;
 

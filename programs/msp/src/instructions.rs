@@ -137,6 +137,92 @@ pub struct CreateStreamAccounts<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
+/// Create Stream
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    name: String,
+    start_utc: u64,
+    rate_amount_units: u64,
+    rate_interval_in_seconds: u64,
+    allocation_assigned_units: u64,
+    cliff_vest_amount_units: u64,
+    cliff_vest_percent: u64,
+    _fee_payed_by_treasurer: bool,
+    stream_pda_seed: Pubkey,
+)]
+pub struct CreateStreamPdaAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion,
+    )]
+    pub treasury: Account<'info, Treasury>,
+    #[account(
+        mut,
+        associated_token::mint = associated_token,
+        associated_token::authority = treasury
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+    #[account(
+        constraint = associated_token.key() == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken
+    )]
+    pub associated_token: Box<Account<'info, Mint>>,
+    #[account(constraint = beneficiary.key() != treasurer.key() @ ErrorCode::InvalidBeneficiary)]
+    pub beneficiary: SystemAccount<'info>,
+    #[account(
+        init,
+        seeds = [
+            b"stream",
+            treasury.key().as_ref(),
+            stream_pda_seed.key().as_ref()
+        ],
+        bump,
+        payer = payer,
+        space = 500,
+        // rate_amount_units and rate_interval_in_seconds are allowed to be
+        // equal to zero to support one time payments (OTP)
+        // Here, because we are forcing cliff_vest_amount_units to be positive,
+        // we are also forcing allocation_assigned_units to be positive
+        constraint = (
+                rate_amount_units == 0 &&
+                rate_interval_in_seconds == 0 &&
+                cliff_vest_amount_units > 0 &&
+                cliff_vest_amount_units == allocation_assigned_units) ||
+            (rate_amount_units > 0 && rate_interval_in_seconds > 0)
+            @ ErrorCode::InvalidStreamRate,
+        constraint = allocation_assigned_units >= cliff_vest_amount_units @ ErrorCode::InvalidCliff,
+        constraint = cliff_vest_percent <= PERCENT_DENOMINATOR @ ErrorCode::InvalidCliff,
+        // passing both, cliff amount and cliff percent is not allowed
+        constraint = (cliff_vest_amount_units == 0 || cliff_vest_percent == 0) @ ErrorCode::InvalidCliff,
+    )]
+    pub stream: Account<'info, Stream>,
+    #[account(
+        mut,
+        constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
+    )]
+    pub fee_treasury: SystemAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = associated_token,
+        associated_token::authority = fee_treasury
+    )]
+    pub fee_treasury_token: Box<Account<'info, TokenAccount>>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
 /// Create Treasury And Template
 #[derive(Accounts, Clone)]
 #[instruction(
@@ -326,6 +412,81 @@ pub struct CreateStreamWithTemplateAccounts<'info> {
 
     #[account(
         init,
+        payer = payer,
+        space = 500,
+        // rate_interval_in_seconds > 0 is checked when creating stream template (create_stream_template)
+    )]
+    pub stream: Box<Account<'info, Stream>>,
+    #[account(
+        mut,
+        constraint = fee_treasury.key() == fee_treasury::ID @ ErrorCode::InvalidFeeTreasuryAccount
+    )]
+    pub fee_treasury: SystemAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = associated_token,
+        associated_token::authority = fee_treasury
+    )]
+    pub fee_treasury_token: Box<Account<'info, TokenAccount>>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+}
+
+/// Create stream PDA with template
+#[derive(Accounts, Clone)]
+#[instruction(
+    idl_file_version: u8,
+    _name: String,
+    _allocation_assigned_units: u64,
+    stream_pda_seed: Pubkey
+)]
+pub struct CreateStreamPdaWithTemplateAccounts<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(constraint = treasurer.key() == treasury.treasurer_address @ ErrorCode::NotAuthorized)]
+    pub treasurer: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [treasurer.key().as_ref(), &treasury.slot.to_le_bytes()],
+        bump = treasury.bump,
+        constraint = treasury.version == 2 @ ErrorCode::InvalidTreasuryVersion,
+        constraint = treasury.initialized == true @ ErrorCode::TreasuryNotInitialized,
+        constraint = treasury.to_account_info().data_len() == 300 @ ErrorCode::InvalidTreasurySize,
+        constraint = idl_file_version == IDL_FILE_VERSION @ErrorCode::InvalidIdlFileVersion
+    )]
+    pub treasury: Box<Account<'info, Treasury>>,
+    #[account(
+        mut,
+        associated_token::mint = associated_token,
+        associated_token::authority = treasury
+    )]
+    pub treasury_token: Box<Account<'info, TokenAccount>>,
+    #[account(
+        constraint = associated_token.key() == treasury.associated_token_address @ ErrorCode::InvalidAssociatedToken
+    )]
+    pub associated_token: Box<Account<'info, Mint>>,
+    #[account(constraint = beneficiary.key() != treasurer.key() @ ErrorCode::InvalidBeneficiary)]
+    pub beneficiary: SystemAccount<'info>,
+
+    #[account(
+        seeds = [b"template", treasury.key().as_ref()],
+        bump = template.bump,
+        constraint = template.version == 2 @ ErrorCode::InvalidTemplateVersion,
+        constraint = template.to_account_info().data_len() == 200 @ ErrorCode::InvalidTemplateSize
+    )]
+    pub template: Box<Account<'info, StreamTemplate>>,
+
+    #[account(
+        init,
+        seeds = [
+            b"stream",
+            treasury.key().as_ref(),
+            stream_pda_seed.key().as_ref()
+        ],
+        bump,
         payer = payer,
         space = 500,
         // rate_interval_in_seconds > 0 is checked when creating stream template (create_stream_template)
