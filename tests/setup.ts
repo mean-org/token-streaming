@@ -34,7 +34,7 @@ export const SYSVAR_RENT_PUBKEY = anchor.web3.SYSVAR_RENT_PUBKEY;
 export const SYSVAR_CLOCK_PUBKEY = anchor.web3.SYSVAR_CLOCK_PUBKEY;
 export const ONE_SOL = 1_000_000_000;
 
-export const LATEST_IDL_FILE_VERSION = 4;
+export const LATEST_IDL_FILE_VERSION = 5;
 export const url = process.env.ANCHOR_PROVIDER_URL;
 if (url === undefined) {
   throw new Error('ANCHOR_PROVIDER_URL is not defined');
@@ -1160,15 +1160,11 @@ export class MspSetup {
     console.log(`stream:                  ${streamKeypair.publicKey}`);
     console.log(`treasury:                ${treasury.toBase58()}`);
 
-    const rateAmount =
-      (allocationAssignedUnits * (1 - preTemplate!.cliffVestPercent.toNumber() / 1_000_000)) /
-      preTemplate!.durationNumberOfUnits.toNumber();
-
     const treasurerTokenPreBalanceBn = new BN(
       parseInt((await this.getTokenAccountBalance(this.treasurerFrom))?.amount || '0')
     );
     const txId = await this.program.methods
-      .createStreamWithTemplate(LATEST_IDL_FILE_VERSION, name, new BN(rateAmount), new BN(allocationAssignedUnits))
+      .createStreamWithTemplate(LATEST_IDL_FILE_VERSION, name, new BN(allocationAssignedUnits))
       .accounts({
         payer: payerKeypair.publicKey,
         treasurer: this.treasurerKeypair.publicKey,
@@ -1202,7 +1198,6 @@ export class MspSetup {
     expect(postStream!.version).eq(2);
     expect(postStream!.initialized).eq(true);
     expect(postStream!.treasurerAddress.toBase58()).eq(this.treasurerKeypair.publicKey.toBase58());
-    expect(postStream!.rateAmountUnits.toNumber()).eq(Math.floor(rateAmount));
     expect(postStream!.rateIntervalInSeconds.toNumber()).eq(preTemplate.rateIntervalInSeconds.toNumber());
     expect(postStream!.startUtc.toNumber()).gte(preTemplate.startUtcInSeconds.toNumber());
     expect(postStream!.startUtcInSeconds.toNumber()).gte(preTemplate.startUtcInSeconds.toNumber());
