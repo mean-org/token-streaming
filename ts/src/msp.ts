@@ -1716,19 +1716,12 @@ export class MSP {
       throw Error('Amount should be greater than 0');
     }
 
-    const treasuryInfo = await getTreasury(this.program, treasury);
-
-    if (!treasuryInfo) {
-      throw Error('Treasury account not found');
-    }
-
     let autoWSol = false;
     if (mint.equals(Constants.SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
       autoWSol = true;
     }
 
-    const treasuryMint = new PublicKey(treasuryInfo.mint as string);
     const contributorToken = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -1753,14 +1746,6 @@ export class MSP {
       contributorTokenInfo,
       ixs,
       txSigners,
-    );
-
-    const contributorTreasuryToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      treasuryMint,
-      contributor,
-      true,
     );
 
     const treasuryToken = await Token.getAssociatedTokenAddress(
