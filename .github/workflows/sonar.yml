@@ -20,5 +20,5 @@ jobs:
         with:
           args: >
             -Dsonar.verbose=false
-            -Dsonar.projectKey=${{ github.event.repository.name }}
+            -Dsonar.projectKey=payment-streaming-sdk
             -Dsonar.sources=ts/src/
