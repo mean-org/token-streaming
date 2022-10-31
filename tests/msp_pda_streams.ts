@@ -8,7 +8,7 @@ import { Msp } from '../target/types/msp';
 import { expect } from 'chai';
 import node_assert from 'assert';
 import { bs58 } from '@project-serum/anchor/dist/cjs/utils/bytes';
-import { Category, SubCategory } from '../ts/src/types';
+import { Category, SubCategory } from '../sdks/msp/src/types';
 import { CONFIRM_OPTIONS, DECIMALS, LATEST_IDL_FILE_VERSION, MSP_FEES_PUBKEY, SYSTEM_PROGRAM_ID, SYSVAR_RENT_PUBKEY, TREASURY_TYPE_OPEN, URL } from './constants';
 
 

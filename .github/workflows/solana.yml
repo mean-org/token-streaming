@@ -1,13 +1,13 @@
 name: SOLANA-CI
 
 on:
-  push:
-    branches:
-    - develop
+  pull_request:
+    branches:    
+      - main
   workflow_dispatch:
 
 env:
-  SOLANA_VERSION: "1.10.29"
+  SOLANA_VERSION: "1.13.4"
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
   NODE_VERSION: "17"
@@ -118,33 +118,33 @@ jobs:
       - name: Cargo Tests
         run: cargo test-bpf -- --nocapture
         
-      # # Install Node
-      # - name: Setup Node
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: ${{ env.NODE_VERSION }}
-      #     cache: 'yarn'
+      # Install Node
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'yarn'
 
-      # # Yarn Cache      
-      # - name: Cache packages
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: '**/node_modules'
-      #     key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      # Yarn Cache      
+      - name: Cache packages
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       
-      # # Install Yarn      
-      # - name: Install Packages
-      #   run: yarn install
+      # Install Yarn      
+      - name: Install Packages
+        run: yarn install
 
-      # # Install Anchor
-      # - name: Install Anchor
-      #   run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
+      # Install Anchor
+      - name: Install Anchor
+        run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
 
-      # # Run tests
-      # - name: Cache build
-      #   uses: Swatinem/rust-cache@v1
-      # - name: Run Tests
-      #   run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
+      # Run tests
+      - name: Cache build
+        uses: Swatinem/rust-cache@v1
+      - name: Run Tests
+        run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
 
   audit:
     runs-on: ubuntu-latest
