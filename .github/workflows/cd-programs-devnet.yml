@@ -1,7 +1,7 @@
 name: cd-programs
 
 on:
-  pull_request:
+  push:
     branches:    
       - main
     paths:
@@ -180,7 +180,6 @@ jobs:
   cd-devnet:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
     needs: [audit]
     environment:
       name: devnet
