@@ -1,4 +1,5 @@
-// how to run: cargo test-bpf -- --nocapture
+// how to run: 
+// cargo test-bpf -- --nocapture
 // #![cfg(feature = "test-bpf")]
 
 use std::println;
