@@ -24,6 +24,7 @@ jobs:
       - run: cd sdks/msp && yarn build
   sonar-scan:
     name: "Sonar Scan"
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
