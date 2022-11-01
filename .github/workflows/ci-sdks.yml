@@ -1,4 +1,4 @@
-name: ci-sdks
+name: CI SDKs
 
 on:
   workflow_dispatch:

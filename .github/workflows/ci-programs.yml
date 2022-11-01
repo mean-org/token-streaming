@@ -1,4 +1,4 @@
-name: ci-programs
+name: CI Programs
 
 on:
   pull_request:

@@ -1,4 +1,4 @@
-name: cd-sdks
+name: CD SDKs
 
 on:
   push:

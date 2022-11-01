@@ -1,4 +1,4 @@
-name: cd-programs
+name: CD Programs
 
 on:
   push:
