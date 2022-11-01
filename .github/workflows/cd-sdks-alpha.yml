@@ -1,11 +1,9 @@
-# Name of the workflow
-name: GH Release & NPM Publish
+name: cd-sdks
 
-# Run on every commit tag which begins with "v" (e.g., "v0.1.4")
 on:
   push:
-    tags:
-      - "sdk-v*"
+    branches:
+      - main
 
 # Automatically create a GitHub Release, with release details specified (the relevant commits)
 jobs:
@@ -18,8 +16,8 @@ jobs:
         with:
           node-version: 16
           registry-url: https://registry.npmjs.org/
-      - run: cd ts && npm i
-      - run: cd ts && npm run build
+      - run: cd sdks/msp && yarn install
+      - run: cd sdks/msp && yarn build
 
       - name: Meandao Release & Publish Toolkit
         uses: mean-dao/npm-publish-toolkit@v17
