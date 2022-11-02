@@ -26,7 +26,6 @@ branding:
   icon: truck
   color: red
 runs:
-  using: 'node16'
   steps:
       - name: Exit if release type argument is invalid
         if: ${{ inputs.release-type != 'major' && inputs.release-type != 'minor' && inputs.release-type != 'patch' && inputs.release-type != 'prerelease'}}
