@@ -13,7 +13,7 @@ on:
 # Automatically create a GitHub Release, with release details specified (the relevant commits)
 jobs:
   release:
-    # if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
     name: "Release & Publish"
     runs-on: "ubuntu-latest"
     steps:
