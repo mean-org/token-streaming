@@ -1,9 +1,12 @@
 name: CD SDKs
 
 on:
-  push:
+  pull_request:
     branches:
       - main
+  # push:
+  #   branches:
+  #     - main
     paths:
       - 'sdks/msp/**.js'
       - 'sdks/msp/**.ts'
@@ -20,16 +23,17 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3      
         with:
-          node-version: 18
+          node-version: 16
           registry-url: https://registry.npmjs.org/
       - run: cd sdks/msp && yarn install
       - run: cd sdks/msp && yarn build
 
       - name: Meandao Release & Publish Toolkit
-        uses: mean-dao/npm-publish-toolkit@v17
+        uses: ./.github/actions/npm-publish
         with:
           access: public
-          npm_token: ${{ secrets.NPM_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release-type: prerelease
+          npm_token: ${{ secrets.NPM_TOKEN_FAKE }}
+          github_token: ${{ secrets.GITHUB_TOKEN_FAKE }}
           gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
