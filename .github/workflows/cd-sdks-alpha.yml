@@ -1,12 +1,9 @@
 name: CD SDKs
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-  # push:
-  #   branches:
-  #     - main
     paths:
       - 'sdks/msp/**.js'
       - 'sdks/msp/**.ts'
@@ -34,6 +31,6 @@ jobs:
           access: public
           release-type: prerelease
           npm_token: ${{ secrets.NPM_TOKEN }}
-          # github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
