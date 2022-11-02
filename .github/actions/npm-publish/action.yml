@@ -1,6 +1,5 @@
 name: 'NPM Publish'
 description: 'GitHub Action to publish NPM packages'
-author: '@mean-dao'
 inputs:
   github_token:
     description: 'GitHub Token'

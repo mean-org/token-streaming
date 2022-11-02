@@ -28,7 +28,7 @@ jobs:
       - run: cd sdks/msp && yarn install
       - run: cd sdks/msp && yarn build
 
-      - name: Meandao Release & Publish Toolkit
+      - name: Publish package to NPM
         uses: ./.github/actions/npm-publish
         with:
           access: public
