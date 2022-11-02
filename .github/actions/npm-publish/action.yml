@@ -73,15 +73,15 @@ runs:
 
       # Publish version to public repository
       - name: Publish
-        run: yarn publish --verbose --access $ { inputs.access }} --tag ${{ env.RELEASE_TAG }}
+        run: yarn publish --verbose --access ${{ inputs.access }} --tag ${{ env.RELEASE_TAG }}
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
 
       # Push changes to origin
-      - name: Push changes to repository
-        env:
-          GITHUB_TOKEN: ${{ inputs.github_token }}
-        run: |
-          git push origin && git push --tags
-        shell: bash
+      # - name: Push changes to repository
+      #   env:
+      #     GITHUB_TOKEN: ${{ inputs.github_token }}
+      #   run: |
+      #     git push origin && git push --tags
+      #   shell: bash

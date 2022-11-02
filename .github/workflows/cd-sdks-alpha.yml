@@ -34,6 +34,6 @@ jobs:
           access: public
           release-type: prerelease
           npm_token: ${{ secrets.NPM_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          # github_token: ${{ secrets.GITHUB_TOKEN }}
+          # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
