@@ -33,7 +33,7 @@ jobs:
         with:
           access: public
           release-type: prerelease
-          npm_token: ${{ secrets.NPM_TOKEN_FAKE }}
-          github_token: ${{ secrets.GITHUB_TOKEN_FAKE }}
+          npm_token: ${{ secrets.NPM_TOKEN }}
+          github_token: $token12345678890 # {{ secrets.GITHUB_TOKEN }}
           gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
