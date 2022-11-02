@@ -26,6 +26,7 @@ branding:
   icon: truck
   color: red
 runs:
+  using: 'composite'
   steps:
       - name: Exit if release type argument is invalid
         if: ${{ inputs.release-type != 'major' && inputs.release-type != 'minor' && inputs.release-type != 'patch' && inputs.release-type != 'prerelease'}}
