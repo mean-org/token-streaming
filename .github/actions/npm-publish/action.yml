@@ -32,6 +32,7 @@ runs:
       - name: Exit if release type argument is invalid
         if: ${{ inputs.release-type != 'major' && inputs.release-type != 'minor' && inputs.release-type != 'patch' && inputs.release-type != 'prerelease'}}
         run: exit 1
+        shell: bash
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3  
         with:
@@ -41,6 +42,7 @@ runs:
       # Install dependencies
       - name: Install dependencies
         run: cd ${{ inputs.path }} && yarn install --frozen-lockfile
+        shell: bash
 
       # # Test the project
       # - name: Tests
@@ -52,6 +54,7 @@ runs:
         run: |
           echo "NEW_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE)" >> $GITHUB_ENV
           echo "RELEASE_TAG=latest" >> $GITHUB_ENV
+        shell: bash
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
 
@@ -60,16 +63,19 @@ runs:
         run: |
           echo "NEW_VERSION=$(npm --no-git-tag-version --preid=beta version $RELEASE_TYPE)" >> $GITHUB_ENV
           echo "RELEASE_TAG=beta" >> $GITHUB_ENV
+        shell: bash
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
 
       # Build
       - name: Build
         run: cd ${{ inputs.path }} && yarn build
+        shell: bash
 
       # Publish version to public repository
       - name: Publish
         run: yarn publish --verbose --access $ { inputs.access }} --tag ${{ env.RELEASE_TAG }}
+        shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
 
@@ -79,3 +85,4 @@ runs:
           GITHUB_TOKEN: ${{ github_token }}
         run: |
           git push origin && git push --tags
+        shell: bash
