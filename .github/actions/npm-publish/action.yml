@@ -73,7 +73,7 @@ runs:
 
       # Publish version to public repository
       - name: Publish
-        run: yarn publish --verbose --access ${{ inputs.access }} --tag ${{ env.RELEASE_TAG }}
+        run: cd ${{ inputs.path }} && yarn publish --verbose --access ${{ inputs.access }} --tag ${{ env.RELEASE_TAG }}
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
