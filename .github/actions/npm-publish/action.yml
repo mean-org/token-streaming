@@ -82,7 +82,7 @@ runs:
       # Push changes to origin
       - name: Push changes to repository
         env:
-          GITHUB_TOKEN: ${{ github_token }}
+          GITHUB_TOKEN: ${{ input.github_token }}
         run: |
           git push origin && git push --tags
         shell: bash
