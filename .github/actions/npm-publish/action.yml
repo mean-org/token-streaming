@@ -51,20 +51,22 @@ runs:
       - name: Bump release version
         if: ${{ inputs.release-type != 'prerelease' }}
         run: |
-          echo "NEW_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE)" >> $GITHUB_ENV
+          echo "NEW_VERSION=$(cd $PACKAGE_PATH && npm --no-git-tag-version version $RELEASE_TYPE)" >> $GITHUB_ENV
           echo "RELEASE_TAG=latest" >> $GITHUB_ENV
         shell: bash
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
+          PACKAGE_PATH: ${{ inputs.path }}
 
       - name: Bump pre-release version
         if: ${{ inputs.release-type == 'prerelease' }}
         run: |
-          echo "NEW_VERSION=$(npm --no-git-tag-version --preid=beta version $RELEASE_TYPE)" >> $GITHUB_ENV
+          echo "NEW_VERSION=$(cd $PACKAGE_PATH && npm --no-git-tag-version --preid=beta version $RELEASE_TYPE)" >> $GITHUB_ENV
           echo "RELEASE_TAG=beta" >> $GITHUB_ENV
         shell: bash
         env:
           RELEASE_TYPE: ${{ inputs.release-type }}
+          PACKAGE_PATH: ${{ inputs.path }}
 
       # Build
       - name: Build
