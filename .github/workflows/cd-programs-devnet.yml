@@ -52,7 +52,7 @@ jobs:
       - name: Cache build
         uses: Swatinem/rust-cache@v1
       - name: Build program
-        run: cargo build-bpf -- --features test
+        run: cargo build
       # - name: Run clippy
       #   run: cargo clippy -- -D warnings -A clippy::too_many_arguments
 
