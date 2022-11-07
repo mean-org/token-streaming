@@ -22,6 +22,7 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - name: GH Pre-release & Publish Beta to NPM
+        uses: actions/checkout@v3
         if: github.event.pull_request.merged == true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
@@ -33,6 +34,7 @@ jobs:
           path: ./sdks/msp
           tag_prefix: sdk-v
       - name: GH Release & Publish to NPM
+        uses: actions/checkout@v3
         if: github.event.pull_request.merged != true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
