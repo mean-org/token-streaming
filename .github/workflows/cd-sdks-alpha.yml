@@ -23,10 +23,21 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - name: GH Release & Publish package to NPM
+        if: github.event.pull_request.merged == true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
           access: public
           release-type: prerelease
+          npm_token: ${{ secrets.NPM_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          path: ./sdks/msp
+          tag_prefix: sdk-v
+        if: github.event.pull_request.merged != true
+        uses: ./.github/actions/gh-release-and-npm-publish
+        with:
+          access: public
+          release-type: ${{ github.inputs.release-type }}
           npm_token: ${{ secrets.NPM_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
