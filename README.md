@@ -8,7 +8,7 @@ The Money Streaming Program (MSP) is one of the interoperable smart contracts co
 
 ### Related Repos
 ![Mean Repos](https://user-images.githubusercontent.com/714487/138731452-a87355e0-5579-4da9-bb12-3aa90c526a8c.png)
-- Repo for Mean Protocol SDKs 👉 **[HERE](https://github.com/mean-dao/mean-sdk)** (how to use instructions there)
+- Mean Protocol SDKs 👉 **[HERE](https://github.com/mean-dao/payment-streaming/tree/main/sdks/msp)** (how to use instructions there)
 - Repo for MeanFi UI 👉 **[HERE](https://github.com/mean-dao/meanfi-ui)** 
 [MeanFi](https://meanfi.com) is a web3 app implementing the different programs in the Mean Protocol 
 
