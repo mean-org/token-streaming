@@ -15,7 +15,8 @@
   "keywords": [
     "mean-dao",
     "mean-protocol",
-    "money-streaming"
+    "money-streaming",
+    "payment-streaming"
   ],
   "bugs": {
     "url": "https://github.com/mean-dao/mean-msp-sdk/issues"
