@@ -17,14 +17,6 @@ jobs:
     name: "Release & Publish"
     runs-on: "ubuntu-latest"
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-          registry-url: https://registry.npmjs.org/
-      - run: cd sdks/msp && yarn install
-      - run: cd sdks/msp && yarn build
-
       - name: GH Release & Publish package to NPM
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
@@ -34,4 +26,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
-          tag_prefix: SDK-v
+          tag_prefix: sdk-v
