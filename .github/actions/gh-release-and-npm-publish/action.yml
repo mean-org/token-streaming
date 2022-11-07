@@ -55,6 +55,7 @@ runs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "GitHub Actions"
+        shell: bash
 
       # Prepare release version and NPM release tag
       - name: Bump release version
