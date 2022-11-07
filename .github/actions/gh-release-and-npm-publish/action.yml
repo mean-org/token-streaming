@@ -40,6 +40,7 @@ runs:
         with:
           registry-url: https://registry.npmjs.org/
           node-version: 16
+      - uses: softprops/action-gh-release@v1
 
       # Install dependencies
       - name: Install dependencies
@@ -96,7 +97,6 @@ runs:
         env:
           GITHUB_TOKEN: ${{ inputs.github_token }}
         shell: bash
-        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ tag_prefix }}${{ env.NEW_VERSION }}
           prerelease: ${{ startsWith(inputs.release-type, 'pre') }}
