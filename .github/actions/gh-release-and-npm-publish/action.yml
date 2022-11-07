@@ -5,7 +5,7 @@ inputs:
     description: 'GitHub Token'
     required: true
   release-type:
-    description: 'one of: major, minor, path, prerelease'
+    description: 'one of: major, minor, patch, prerelease'
     required: true
   npm_token:
     description: 'Optional. If not provided, publishing to npm will be skipped. NPM token with publish permission.'

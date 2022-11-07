@@ -9,6 +9,11 @@ on:
       - 'sdks/msp/**.ts'
       - 'sdks/msp/package.json'
       - 'sdks/msp/tsconfig.json'
+  workflow_dispatch:
+    inputs:
+      release-type:
+        description: 'one of: major, minor, patch, prerelease'
+        required: true
 
 # Automatically create a GitHub Release, with release details specified (the relevant commits)
 jobs:
