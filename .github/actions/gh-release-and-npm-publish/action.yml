@@ -1,4 +1,4 @@
-name: 'NPM Publish'
+name: 'GH Release & NPM Publish'
 description: 'GitHub Action to publish NPM packages'
 inputs:
   github_token:
@@ -21,6 +21,9 @@ inputs:
   #   required: false
   path:
     description: 'Optional. Path to dir containing the npm package.'
+    required: false
+  tag_prefix:
+    description: 'Optional. Prefix for commit tag.'
     required: false
 branding:
   icon: truck
@@ -87,3 +90,13 @@ runs:
         run: |
           git push origin && git push --tags
         shell: bash
+
+      # GitHub Release
+      - name: Create a new GitHub release
+        env:
+          GITHUB_TOKEN: ${{ inputs.github_token }}
+        shell: bash
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ tag_prefix }}${{ env.NEW_VERSION }}
+          prerelease: ${{ startsWith(inputs.release-type, 'pre') }}
