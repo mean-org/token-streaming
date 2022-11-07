@@ -22,7 +22,7 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v3
-      - name: GH Pre-release & Publish Beta to NPM
+      - name: Release & Publish to NPM (after PR merged)
         if: github.event.pull_request.merged == true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
