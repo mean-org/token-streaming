@@ -97,5 +97,5 @@ runs:
           GITHUB_TOKEN: ${{ inputs.github_token }}
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ tag_prefix }}${{ env.NEW_VERSION }}
+          tag_name: ${{ inputs.tag_prefix }}${{ env.NEW_VERSION }}
           prerelease: ${{ startsWith(inputs.release-type, 'pre') }}
