@@ -32,7 +32,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
-          tag_prefix: sdk-v
+          tag_prefix: sdk-
       - name: GH Release & Publish to NPM
         if: github.event.pull_request.merged != true
         uses: ./.github/actions/gh-release-and-npm-publish
@@ -43,4 +43,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
-          tag_prefix: sdk-v
+          tag_prefix: sdk-
