@@ -38,7 +38,7 @@ jobs:
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
           access: public
-          release-type: ${{ github.inputs.release-type }}
+          release-type: ${{ inputs.release-type }}
           npm_token: ${{ secrets.NPM_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
