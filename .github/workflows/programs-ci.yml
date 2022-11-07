@@ -1,4 +1,4 @@
-name: CI Programs
+name: Programs CI
 
 on:
   pull_request:
@@ -7,16 +7,20 @@ on:
     paths:
       - 'programs/msp/**.rs'
       - 'programs/Cargo.toml'
-      - 'Anchor.toml'
       - 'tests/**.ts'
+      - 'Anchor.toml'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
       - 'package.json'
+      - 'tsconfig.json'
+      - 'yarn.lock'
   workflow_dispatch:
 
 env:
   SOLANA_VERSION: "1.13.4"
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
-  NODE_VERSION: "18"
+  NODE_VERSION: "16"
   PROGRAM_NAME: "msp"
   MINIMUM_SOL_NEEDED: 6
   BUILD_NUMBER: $GITHUB_RUN_NUMBER
