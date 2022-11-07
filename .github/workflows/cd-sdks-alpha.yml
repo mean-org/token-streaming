@@ -18,11 +18,10 @@ on:
 # Automatically create a GitHub Release, with release details specified (the relevant commits)
 jobs:
   release:
-    if: github.event.pull_request.merged == true
     name: "Release & Publish"
     runs-on: "ubuntu-latest"
     steps:
-      - name: GH Release & Publish package to NPM
+      - name: GH Pre-release & Publish Beta to NPM
         if: github.event.pull_request.merged == true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
@@ -33,6 +32,7 @@ jobs:
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           path: ./sdks/msp
           tag_prefix: sdk-v
+      - name: GH Release & Publish to NPM
         if: github.event.pull_request.merged != true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
