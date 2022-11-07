@@ -25,7 +25,7 @@ jobs:
       - run: cd sdks/msp && yarn install
       - run: cd sdks/msp && yarn build
 
-      - name: Publish package to NPM
+      - name: GH Release & Publish package to NPM
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
           access: public
