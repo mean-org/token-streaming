@@ -1,4 +1,4 @@
-// How to use
+// How to use:
 // 1. Start local validator
 //    solana-test-validator [-r]
 // 2. Deploy msp locally:
