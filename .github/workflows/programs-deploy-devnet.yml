@@ -109,4 +109,4 @@ jobs:
         run: |
           echo ${{ env.BUFFER_ACCOUNT_URL }}
           echo '### New Program Buffer Account! :rocket:' >> $GITHUB_STEP_SUMMARY
-          echo [${{ env.BUFFER_ACCOUNT_ADDRESS }}](${{ env.BUFFER_ACCOUNT_URL }}) >> $GITHUB_STEP_SUMMARY
+          echo "[${{ env.BUFFER_ACCOUNT_ADDRESS }}](${{ env.BUFFER_ACCOUNT_URL }})" >> $GITHUB_STEP_SUMMARY
