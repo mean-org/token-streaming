@@ -1,40 +1,19 @@
 name: SDKs Release
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'sdks/msp/**.js'
-      - 'sdks/msp/**.ts'
-      - 'sdks/msp/package.json'
-      - 'sdks/msp/tsconfig.json'
   workflow_dispatch:
     inputs:
       release-type:
         description: 'one of: major, minor, patch, prerelease'
         required: true
 
-# Automatically create a GitHub Release, with release details specified (the relevant commits)
 jobs:
   release:
     name: "Release & Publish"
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v3
-      - name: Release & Publish to NPM (after PR merged)
-        if: github.event.pull_request.merged == true
-        uses: ./.github/actions/gh-release-and-npm-publish
-        with:
-          access: public
-          release-type: prerelease
-          npm_token: ${{ secrets.NPM_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          path: ./sdks/msp
-          tag_prefix: sdk-
       - name: GH Release & Publish to NPM
-        if: github.event.pull_request.merged != true
         uses: ./.github/actions/gh-release-and-npm-publish
         with:
           access: public

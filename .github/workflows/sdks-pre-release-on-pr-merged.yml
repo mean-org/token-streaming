@@ -1,0 +1,31 @@
+name: SDKs Pre-release
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+    paths:
+      - 'sdks/msp/**.js'
+      - 'sdks/msp/**.ts'
+      - 'sdks/msp/package.json'
+      - 'sdks/msp/tsconfig.json'
+
+jobs:
+  pre-release:
+    if: github.event.pull_request.merged == true
+    name: "Pre-release & Publish Beta (on PR merged)"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Release & Publish to NPM
+        uses: ./.github/actions/gh-release-and-npm-publish
+        with:
+          access: public
+          release-type: prerelease
+          npm_token: ${{ secrets.NPM_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          path: ./sdks/msp
+          tag_prefix: sdk-
