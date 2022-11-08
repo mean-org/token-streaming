@@ -1,7 +1,7 @@
 [package]
 name = "msp"
 version = "2.8.1"
-description = "Created with Anchor"
+description = "Money Streaming Program"
 edition = "2018"
 
 [lib]
