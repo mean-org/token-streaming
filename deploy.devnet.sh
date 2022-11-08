@@ -64,7 +64,7 @@ else
       BUFFER_ACCOUNT_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}?cluster=devnet"
      
       echo "****** Account Detals: ${BUFFER_ACCOUNT_URL} **********"
-      echo "{BUFFER_ACCOUNT}={$BUFFER_ACCOUNT_ADDRESS}" >> $GITHUB_ENV
+      echo "{BUFFER_ACCOUNT_ADDRESS}={$BUFFER_ACCOUNT_ADDRESS}" >> $GITHUB_ENV
       echo "{BUFFER_ACCOUNT_URL}={$BUFFER_ACCOUNT_URL}" >> $GITHUB_ENV
       exit 0
 fi
