@@ -11,6 +11,13 @@ on:
       - 'sdks/msp/package.json'
       - 'sdks/msp/tsconfig.json'
       - 'sdks/msp/yarn.lock'
+
+env:
+  SOLANA_VERSION: "1.13.4"
+  ANCHOR_VERSION: "0.24.2"
+  RUST_TOOLCHAIN: "stable"
+  NODE_VERSION: "16"
+
 jobs:
   build:
     name: Build
@@ -40,3 +47,23 @@ jobs:
             -Dsonar.verbose=false
             -Dsonar.projectKey=payment-streaming-sdk
             -Dsonar.sources=sdks/msp/src/
+  run-sdk-tests:
+    name: Run SDK tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup-solana-anchor
+        with:
+          solana-cli-version: ${{ env.SOLANA_VERSION }}
+          anchor-cli-version: ${{ env.ANCHOR_VERSION }}
+          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
+          node-version: ${{ env.NODE_VERSION }}
+          solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
+
+      - run: solana-test-validator -r --quiet &
+        name: Start validator
+      - run: anchor build -- --features test
+      - run: echo ${{ secrets.MSP_ID_KEYPAIR }} > target/deploy/msp-keypair.json
+      - run: solana program deploy --program-id ./target/deploy/msp-keypair.json --url localhost target/deploy/msp.so
+      - run: cd sdks/msp && yarn build && yarn test
+        name: Run Tests
