@@ -105,10 +105,8 @@ jobs:
           command: ./deploy.devnet.sh
       
       # Print outputs
-      - name: Print buffer account to console
+      - name: Print buffer account
         run: |
           echo ${{ env.BUFFER_ACCOUNT_URL }}
-      - name: Print buffer account to summary
-        run: |
           echo '### New Program Buffer Account! :rocket:' >> $GITHUB_STEP_SUMMARY
-          echo '[${{ env.BUFFER_ACCOUNT_ADDRESS }}]'(${{ env.BUFFER_ACCOUNT_URL }}) >> $GITHUB_STEP_SUMMARY
+          echo [${{ env.BUFFER_ACCOUNT_ADDRESS }}](${{ env.BUFFER_ACCOUNT_URL }}) >> $GITHUB_STEP_SUMMARY
