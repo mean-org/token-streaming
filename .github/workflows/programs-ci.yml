@@ -21,9 +21,6 @@ env:
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
   NODE_VERSION: "16"
-  PROGRAM_NAME: "msp"
-  MINIMUM_SOL_NEEDED: 6
-  BUILD_NUMBER: $GITHUB_RUN_NUMBER
   
 jobs:
   build:
@@ -31,33 +28,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      # Install Rust
-      - name: Cache Cargo registry + index
-        uses: actions/cache@v3
-        id: cache-cargo
-        with:
-            path: |
-                ~/.cargo/bin/
-                ~/.cargo/registry/index/
-                ~/.cargo/registry/cache/
-                ~/.cargo/git/db/
-            key: cargo-${{ runner.os }}-v0000-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
-        uses: actions-rs/toolchain@v1
-        with:
-            override: true
-            profile: minimal
-            toolchain: ${{ env.RUST_TOOLCHAIN }}
-            components: rustfmt, clippy
+      - uses: ./.github/actions/setup-solana-anchor
+      with:
+            solana-cli-version: ${{ env.SOLANA_VERSION }}
+            anchor-cli-version: ${{ env.ANCHOR_VERSION }}
+            rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
+            node-version: ${{ env.NODE_VERSION }}
+            solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
 
       # Run build
       - name: Cache build
         uses: Swatinem/rust-cache@v1
-      - name: Build program
-        run: cargo build
-      # - name: Run clippy
-      #   run: cargo clippy -- -D warnings -A clippy::too_many_arguments
 
   tests:
     name: Run tests
@@ -67,94 +48,13 @@ jobs:
         name: localnet
     steps:
       - uses: actions/checkout@v3
-
-      # Install Rust
-      - name: Cache Cargo registry + index
-        uses: actions/cache@v3
-        id: cache-cargo
-        with:
-            path: |
-                ~/.cargo/bin/
-                ~/.cargo/registry/index/
-                ~/.cargo/registry/cache/
-                ~/.cargo/git/db/
-            key: cargo-${{ runner.os }}-v0000-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
-        uses: actions-rs/toolchain@v1
-        with:
-            override: true
-            profile: minimal
-            toolchain: ${{ env.RUST_TOOLCHAIN }}
-
-      - name: Install Linux dependencies
-        run: |
-            sudo apt-get update
-            sudo apt-get install -y pkg-config build-essential libudev-dev jq
-
-      # Install Solana
-      - name: Cache Solana binaries
-        id: solana-cache
-        uses: actions/cache@v3
-        with:
-            path: |
-                ~/.cache/solana
-                ~/.local/share/solana/install
-            key: ${{ runner.os }}-${{ env.SOLANA_VERSION }}
-
-      - name: Install Solana
-        if: steps.solana-cache.outputs.cache-hit != 'true'
-        run: sh -c "$(curl -sSfL https://release.solana.com/v${{env.SOLANA_VERSION}}/install)"
-
-      - name: Setup Solana Path
-        run: |
-            mkdir -p ~/.config/solana/
-            echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-            export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
-            solana config set --url http://localhost:8899
-            solana config get
-
-      # Copy secrets
-      - name: Copy secrets
-        run: echo ${{ secrets.DEVNET_PAYER_KEY }} > ~/.config/solana/id.json
-
-      - name: Cargo Target Cache
-        uses: actions/cache@v3
-        with:
-          path: target
-          key: ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
-            ${{ runner.os }}-c-target
+      - uses: ./.github/actions/setup-solana-anchor
 
       # Rust Unit tests
       - name: Run Cargo Tests
         run: cargo test-bpf -- --nocapture
-        
-      # Install Node
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'yarn'
-
-      # Yarn Cache      
-      - name: Cache packages
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-      
-      # Install Yarn      
-      - name: Install Packages
-        run: yarn install
-
-      # Install Anchor
-      - name: Install Anchor
-        run: yarn global add @project-serum/anchor-cli@${{ env.ANCHOR_VERSION }}
 
       # Run tests
-      - name: Cache build
-        uses: Swatinem/rust-cache@v1
       - name: Run Anchor Tests
         run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
 
