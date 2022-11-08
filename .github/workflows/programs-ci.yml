@@ -29,12 +29,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-solana-anchor
-      with:
-        solana-cli-version: ${{ env.SOLANA_VERSION }}
-        anchor-cli-version: ${{ env.ANCHOR_VERSION }}
-        rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
-        node-version: ${{ env.NODE_VERSION }}
-        solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
+        with:
+          solana-cli-version: ${{ env.SOLANA_VERSION }}
+          anchor-cli-version: ${{ env.ANCHOR_VERSION }}
+          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
+          node-version: ${{ env.NODE_VERSION }}
+          solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
 
       # Run build
       - name: Cache build
