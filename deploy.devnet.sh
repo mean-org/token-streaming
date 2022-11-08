@@ -61,9 +61,9 @@ else
       echo "Updating buffer authority..."
       solana program set-buffer-authority "$BUFFER_ACCOUNT_ADDRESS" --new-buffer-authority "$MULTISIG_AUTHORITY_ADDRESS"
 
-      EXPLORER_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}?cluster=devnet"
+      BUFFER_ACCOUNT_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}?cluster=devnet"
      
-      echo "****** Account Detals: ${EXPLORER_URL} **********"
-      echo "{EXPLORER_URL}={$EXPLORER_URL}" >> $GITHUB_ENV
+      echo "****** Account Detals: ${BUFFER_ACCOUNT_URL} **********"
+      echo "{BUFFER_ACCOUNT_URL}={$BUFFER_ACCOUNT_URL}" >> $GITHUB_ENV
       exit 0
 fi

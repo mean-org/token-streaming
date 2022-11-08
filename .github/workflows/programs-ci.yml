@@ -39,6 +39,8 @@ jobs:
       # Run build
       - name: Cache build
         uses: Swatinem/rust-cache@v1
+      # - name: Run clippy
+      #   run: cargo clippy -- -D warnings -A clippy::too_many_arguments
 
   tests:
     name: Run tests
