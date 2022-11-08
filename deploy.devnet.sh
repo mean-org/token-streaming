@@ -20,6 +20,8 @@ then
       exit 4
 fi
 
+echo ""
+
 # solana cli overwrite env
 solana config set --url $RPC_URL
 
@@ -36,6 +38,11 @@ MAX_AIRDROP_ATTEMPS=3
 AIRDROP_ATTEMPS=$MAX_AIRDROP_ATTEMPS
 SLEEP_SECONDS=2
 
+echo "AIRDROP_ATTEMPS: $AIRDROP_ATTEMPS"
+echo "SOL_BALANCE_AMOUNT: $SOL_BALANCE_AMOUNT"
+echo "MINIMUM_SOL_NEEDED: $MINIMUM_SOL_NEEDED"
+echo "SLEEP_SECONDS: $SLEEP_SECONDS"
+
 while (( $(echo "$AIRDROP_ATTEMPS > 0" | bc -l) )) && (( $(echo "$SOL_BALANCE_AMOUNT <= $MINIMUM_SOL_NEEDED" | bc -l) ))
 do
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE"
@@ -51,7 +58,15 @@ do
       SOL_BALANCE="$(solana balance)"
       SOL_BALANCE_AMOUNT=$(echo $SOL_BALANCE | sed -E  's/(.*) (.*)/\1/')
       let SLEEP_SECONDS=2*$SLEEP_SECONDS
+
+      echo "AIRDROP_ATTEMPS: $AIRDROP_ATTEMPS"
+      echo "SOL_BALANCE_AMOUNT: $SOL_BALANCE_AMOUNT"
+      echo "MINIMUM_SOL_NEEDED: $MINIMUM_SOL_NEEDED"
+      echo "SLEEP_SECONDS: $SLEEP_SECONDS"
 done
+
+echo "SOL_BALANCE_AMOUNT: $SOL_BALANCE_AMOUNT"
+echo "MINIMUM_SOL_NEEDED: $MINIMUM_SOL_NEEDED"
 
 if (( $(echo "$SOL_BALANCE_AMOUNT <= $MINIMUM_SOL_NEEDED" | bc -l) ))
 then
