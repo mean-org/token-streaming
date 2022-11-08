@@ -29,18 +29,18 @@ SOL_BALANCE_AMOUNT=$(echo $SOL_BALANCE | grep -Po '\d+' | head -1 | grep -Po '\d
 MAX_AIRDROP_ATTEMPS=3
 AIRDROP_ATTEMPS=$MAX_AIRDROP_ATTEMPS
 
-while [ $AIRDROP_ATTEMPS -ge 0 && $SOL_BALANCE_AMOUNT -le $MINIMUM_SOL_NEEDED ]
+while [ "$AIRDROP_ATTEMPS" -ge 0 && "$SOL_BALANCE_AMOUNT" -le "$MINIMUM_SOL_NEEDED" ]
 do
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE"
       echo "Requesting SOL..."
-      if [ $AIRDROP_ATTEMPS -lt $MAX_AIRDROP_ATTEMPS ]; then sleep 2; fi
+      if [ "$AIRDROP_ATTEMPS" -lt "$MAX_AIRDROP_ATTEMPS" ]; then sleep 2; fi
       solana airdrop 2
       AIRDROP_ATTEMPS=$(( $AIRDROP_ATTEMPS - 1 ))
       SOL_BALANCE="$(solana balance)"
       SOL_BALANCE_AMOUNT=$(echo $SOL_BALANCE | grep -Po '\d+' | head -1 | grep -Po '\d+')
 done
 
-if [ $SOL_BALANCE_AMOUNT -le $MINIMUM_SOL_NEEDED ]
+if [ "$SOL_BALANCE_AMOUNT" -le "$MINIMUM_SOL_NEEDED" ]
 then
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE. Aborting after $MAX_AIRDROP_ATTEMPS airdrop attemps..."
       exit 4
@@ -53,7 +53,7 @@ echo "Program binary(SO) path: $SO_FILE"
 
 BUFFER_ACCOUNT_ADDRESS="$(solana program write-buffer target/deploy/$PROGRAM_NAME.so --output json-compact | jq .buffer -r)"
 echo "{BUFFER_ACCOUNT_ADDRESS}={$BUFFER_ACCOUNT_ADDRESS}" >> $GITHUB_ENV
-if [ -z $BUFFER_ACCOUNT_ADDRESS ]
+if [ -z "$BUFFER_ACCOUNT_ADDRESS" ]
 then
       echo "Deploy failed..."
       exit 5
