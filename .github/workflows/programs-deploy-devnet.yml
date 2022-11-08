@@ -102,7 +102,7 @@ jobs:
           timeout_minutes: 10
           retry_on: error
           max_attempts: 3
-          command: sh ./deploy.devnet.sh
+          command: ./deploy.devnet.sh
       
       # Print outputs
       - name: Print buffer account to console
