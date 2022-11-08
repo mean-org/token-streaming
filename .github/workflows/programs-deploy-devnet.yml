@@ -8,7 +8,7 @@ on:
       - closed
     paths:
       - 'programs/msp/**.rs'
-      - 'programs/Cargo.toml'
+      - 'programs/msp/Cargo.toml'
       - 'tests/**.ts'
       - 'Anchor.toml'
       - 'Cargo.lock'
