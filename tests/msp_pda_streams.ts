@@ -1,4 +1,4 @@
-// how to use:
+// how to use
 // anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json --detach -- --features test
 // node_modules/.bin/ts-mocha -p ./tsconfig.json -t 1000000 tests/msp_treasury_add_funds_stream.ts
 import { PublicKey, Keypair, Connection, Transaction, sendAndConfirmRawTransaction, sendAndConfirmTransaction } from '@solana/web3.js';
