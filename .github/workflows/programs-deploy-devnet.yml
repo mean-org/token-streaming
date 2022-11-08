@@ -94,9 +94,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
 
-      - name: Install Basic Calculator (bc)
-        run: sudo apt-get install bc
-
       # Deploy with 3 retry
       - name: Deploy program
         uses: nick-fields/retry@v2

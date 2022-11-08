@@ -43,7 +43,7 @@ echo "SOL_BALANCE_AMOUNT: $SOL_BALANCE_AMOUNT"
 echo "MINIMUM_SOL_NEEDED: $MINIMUM_SOL_NEEDED"
 echo "SLEEP_SECONDS: $SLEEP_SECONDS"
 
-while (( $(echo "$AIRDROP_ATTEMPS > 0" | bc -l) )) && (( $(echo "$SOL_BALANCE_AMOUNT <= $MINIMUM_SOL_NEEDED" | bc -l) ))
+while [[ $(echo "$AIRDROP_ATTEMPS > 0" | bc -l) ]] && [[ $(echo "$SOL_BALANCE_AMOUNT <= $MINIMUM_SOL_NEEDED" | bc -l) ]]
 do
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE"
       echo "Requesting SOL..."
@@ -68,7 +68,7 @@ done
 echo "SOL_BALANCE_AMOUNT: $SOL_BALANCE_AMOUNT"
 echo "MINIMUM_SOL_NEEDED: $MINIMUM_SOL_NEEDED"
 
-if (( $(echo "$SOL_BALANCE_AMOUNT <= $MINIMUM_SOL_NEEDED" | bc -l) ))
+if [[ $(echo "$SOL_BALANCE_AMOUNT <= $MINIMUM_SOL_NEEDED" | bc -l) ]]
 then
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE. Aborting after $MAX_AIRDROP_ATTEMPS airdrop attemps..."
       exit 5
