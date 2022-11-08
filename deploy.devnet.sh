@@ -16,7 +16,7 @@ then
 fi
 
 # solana cli overwrite env
-solana config set --url "$RPC_URL"
+solana config set --url $RPC_URL
 
 WALLET="$(solana address)"
 echo "Wallet Address: $WALLET"
@@ -27,9 +27,9 @@ echo "SOL balance: $SOL_BALANCE"
 # Get balance amount & compare
 SOL_BALANCE_AMOUNT=$(echo $SOL_BALANCE | grep -Po '\d+' | head -1 | grep -Po '\d+')
 MAX_AIRDROP_ATTEMPS=3
-AIRDROP_ATTEMPS
+AIRDROP_ATTEMPS=$MAX_AIRDROP_ATTEMPS
 
-while [ $AIRDROP_ATTEMPS -ge 0 && "$SOL_BALANCE_AMOUNT" -le "$MINIMUM_SOL_NEEDED" ]
+while [ $AIRDROP_ATTEMPS -ge 0 && $SOL_BALANCE_AMOUNT -le $MINIMUM_SOL_NEEDED ]
 do
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE"
       echo "Requesting SOL..."
@@ -40,26 +40,26 @@ do
       SOL_BALANCE_AMOUNT=$(echo $SOL_BALANCE | grep -Po '\d+' | head -1 | grep -Po '\d+')
 done
 
-if [ "$SOL_BALANCE_AMOUNT" -le "$MINIMUM_SOL_NEEDED" ]
+if [ $SOL_BALANCE_AMOUNT -le $MINIMUM_SOL_NEEDED ]
 then
       echo "SOL balance is LOW. At least $MINIMUM_SOL_NEEDED SOL are needed. The wallet has $SOL_BALANCE. Aborting after $MAX_AIRDROP_ATTEMPS airdrop attemps..."
       exit 4
 fi
 
 # anchor cli
-SO_FILE="$(anchor build --program-name "$PROGRAM_NAME" -- --features test | grep '$ solana program deploy')"    
+SO_FILE="$(anchor build --program-name $PROGRAM_NAME -- --features test | grep '$ solana program deploy')"    
 
 echo "Program binary(SO) path: $SO_FILE"
 
 BUFFER_ACCOUNT_ADDRESS="$(solana program write-buffer target/deploy/$PROGRAM_NAME.so --output json-compact | jq .buffer -r)"
 echo "{BUFFER_ACCOUNT_ADDRESS}={$BUFFER_ACCOUNT_ADDRESS}" >> $GITHUB_ENV
-if [ -z "$BUFFER_ACCOUNT_ADDRESS" ]
+if [ -z $BUFFER_ACCOUNT_ADDRESS ]
 then
       echo "Deploy failed..."
       exit 5
 else
       echo "Updating buffer authority..."
-      solana program set-buffer-authority "$BUFFER_ACCOUNT_ADDRESS" --new-buffer-authority "$MULTISIG_AUTHORITY_ADDRESS"
+      solana program set-buffer-authority $BUFFER_ACCOUNT_ADDRESS --new-buffer-authority $MULTISIG_AUTHORITY_ADDRESS
 
       BUFFER_ACCOUNT_URL="https://explorer.solana.com/address/${BUFFER_ACCOUNT_ADDRESS}?cluster=devnet"
      
