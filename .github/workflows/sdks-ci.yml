@@ -52,6 +52,7 @@ jobs:
             -Dsonar.sources=sdks/msp/src/
   run-sdk-tests:
     name: Run SDK tests
+    needs: [sonar-scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
