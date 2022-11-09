@@ -977,7 +977,9 @@ async function parseVersionedStreamInstruction(
     if (
       [
         'createStream',
+        'createStreamPda',
         'createStreamWithTemplate',
+        'createStreamPdaWithTemplate',
         'allocate',
         'withdraw',
       ].indexOf(ixName) === -1
@@ -999,8 +1001,8 @@ async function parseVersionedStreamInstruction(
 
     const blockTime = (transactionBlockTimeInSeconds as number) * 1000; // mult by 1000 to add milliseconds
     const action =
-      decodedIx.name === 'createStream' ||
-        decodedIx.name === 'createStreamWithTemplate' ||
+      decodedIx.name === 'createStream' || decodedIx.name === 'createStreamPda' ||
+        decodedIx.name === 'createStreamWithTemplate' || decodedIx.name === 'createStreamPdaWithTemplate' ||
         decodedIx.name === 'allocate'
         ? 'deposited'
         : 'withdrew';
@@ -1010,8 +1012,8 @@ async function parseVersionedStreamInstruction(
     let amountBN: BN | undefined;
 
     if (
-      decodedIx.name === 'createStream' ||
-      decodedIx.name === 'createStreamWithTemplate'
+      decodedIx.name === 'createStream' || decodedIx.name === 'createStreamPda' ||
+      decodedIx.name === 'createStreamWithTemplate' || decodedIx.name === 'createStreamPdaWithTemplate'
     ) {
       initializer = formattedIx?.accounts.find(
         a => a.name === 'Treasurer',
