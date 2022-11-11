@@ -1,9 +1,12 @@
 export type Msp = {
-  "version": "2.8.1",
+  "version": "2.8.2",
   "name": "msp",
   "instructions": [
     {
       "name": "createTreasury",
+      "docs": [
+        "Create Treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -97,6 +100,9 @@ export type Msp = {
     },
     {
       "name": "createStream",
+      "docs": [
+        "Create Stream"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -205,6 +211,9 @@ export type Msp = {
     },
     {
       "name": "createStreamPda",
+      "docs": [
+        "Create Stream PDA"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -317,6 +326,9 @@ export type Msp = {
     },
     {
       "name": "createStreamTemplate",
+      "docs": [
+        "Create template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -373,6 +385,9 @@ export type Msp = {
     },
     {
       "name": "modifyStreamTemplate",
+      "docs": [
+        "Edit template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -424,6 +439,9 @@ export type Msp = {
     },
     {
       "name": "createTreasuryAndTemplate",
+      "docs": [
+        "Create Treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -542,6 +560,9 @@ export type Msp = {
     },
     {
       "name": "createStreamWithTemplate",
+      "docs": [
+        "Create stream with template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -631,6 +652,9 @@ export type Msp = {
     },
     {
       "name": "createStreamPdaWithTemplate",
+      "docs": [
+        "Create stream with template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -724,6 +748,9 @@ export type Msp = {
     },
     {
       "name": "withdraw",
+      "docs": [
+        "Withdraw"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -804,6 +831,9 @@ export type Msp = {
     },
     {
       "name": "pauseStream",
+      "docs": [
+        "Pause Stream"
+      ],
       "accounts": [
         {
           "name": "initializer",
@@ -830,6 +860,9 @@ export type Msp = {
     },
     {
       "name": "resumeStream",
+      "docs": [
+        "Resume Stream"
+      ],
       "accounts": [
         {
           "name": "initializer",
@@ -856,6 +889,9 @@ export type Msp = {
     },
     {
       "name": "refreshTreasuryData",
+      "docs": [
+        "Refresh Treasury Balance"
+      ],
       "accounts": [
         {
           "name": "associatedToken",
@@ -882,6 +918,9 @@ export type Msp = {
     },
     {
       "name": "transferStream",
+      "docs": [
+        "Transfer Stream"
+      ],
       "accounts": [
         {
           "name": "beneficiary",
@@ -917,6 +956,9 @@ export type Msp = {
     },
     {
       "name": "getStream",
+      "docs": [
+        "Get Stream"
+      ],
       "accounts": [
         {
           "name": "stream",
@@ -933,6 +975,9 @@ export type Msp = {
     },
     {
       "name": "addFunds",
+      "docs": [
+        "Adds funds the treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -1008,6 +1053,9 @@ export type Msp = {
     },
     {
       "name": "allocate",
+      "docs": [
+        "Allocate units to a stream"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -1083,6 +1131,9 @@ export type Msp = {
     },
     {
       "name": "closeStream",
+      "docs": [
+        "Close Stream"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -1164,6 +1215,9 @@ export type Msp = {
     },
     {
       "name": "closeTreasury",
+      "docs": [
+        "Close Treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -1240,6 +1294,9 @@ export type Msp = {
     },
     {
       "name": "treasuryWithdraw",
+      "docs": [
+        "Withdraw unallocated funds from treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -1356,14 +1413,27 @@ export type Msp = {
           },
           {
             "name": "startUtc",
+            "docs": [
+              "The start timestamp in seconds"
+            ],
             "type": "u64"
           },
           {
             "name": "cliffVestAmountUnits",
+            "docs": [
+              "The amount availaible to withdraw inmidiately (without streaming)",
+              "once the money stream starts.",
+              "If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the former will be used."
+            ],
             "type": "u64"
           },
           {
             "name": "cliffVestPercent",
+            "docs": [
+              "The percent of the allocation assigned that is availaible to withdraw",
+              "inmidiately (without streaming) once the money stream starts.",
+              "If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the second (this field) will be used."
+            ],
             "type": "u64"
           },
           {
@@ -1380,30 +1450,65 @@ export type Msp = {
           },
           {
             "name": "allocationAssignedUnits",
+            "docs": [
+              "Amount of tokens allocated to the stream on creation or top up. If the",
+              "treasurer decides to close the stream, the vested amount will be sent",
+              "to the benefifiary and the unvested amount will be sent to the",
+              "treasurer",
+              "",
+              "The allocation assigned will be affected by the following instructions:",
+              "`addFunds`"
+            ],
             "type": "u64"
           },
           {
             "name": "allocationReservedUnits",
+            "docs": [
+              "Amount of tokens reserved to the stream. If the treasurer decides to",
+              "close the stream, the total amount (vested and unvested) WILL be sent",
+              "to the beneficiary",
+              "",
+              "[deprecated] The allocation reserved will be affected by the following instructions:",
+              "`addFunds`"
+            ],
             "type": "u64"
           },
           {
             "name": "totalWithdrawalsUnits",
+            "docs": [
+              "Withdrawal tracking",
+              "The total amount that has been withdrawn by the beneficiary"
+            ],
             "type": "u64"
           },
           {
             "name": "lastWithdrawalUnits",
+            "docs": [
+              "The last amount withdrew by the beneficiary"
+            ],
             "type": "u64"
           },
           {
             "name": "lastWithdrawalSlot",
+            "docs": [
+              "The slot number when the last withdrawal was executed"
+            ],
             "type": "u64"
           },
           {
             "name": "lastWithdrawalBlockTime",
+            "docs": [
+              "The blocktime value when the last withdrawal was executed"
+            ],
             "type": "u64"
           },
           {
             "name": "lastManualStopWithdrawableUnitsSnap",
+            "docs": [
+              "How can a stream STOP? -> There are 2 ways:",
+              "1) by a Manual Action (recordable when it happens) or",
+              "2) by Running Out Of Funds (not recordable when it happens, needs to be calculated)"
+            ],
             "type": "u64"
           },
           {
@@ -1416,6 +1521,10 @@ export type Msp = {
           },
           {
             "name": "lastManualResumeRemainingAllocationUnitsSnap",
+            "docs": [
+              "The remaining allocation units at the moment of the last manual resume",
+              "must be set when calling the Resume Stream"
+            ],
             "type": "u64"
           },
           {
@@ -1428,10 +1537,18 @@ export type Msp = {
           },
           {
             "name": "lastKnownTotalSecondsInPausedStatus",
+            "docs": [
+              "The total seconds that have been paused since the start_utc",
+              "increment when resume is called manually"
+            ],
             "type": "u64"
           },
           {
             "name": "lastAutoStopBlockTime",
+            "docs": [
+              "The last blocktime when the stream was stopped",
+              "either manually or automaticaly (run out of funds)"
+            ],
             "type": "u64"
           },
           {
@@ -1440,18 +1557,32 @@ export type Msp = {
           },
           {
             "name": "startUtcInSeconds",
+            "docs": [
+              "The start timestamp blocktime"
+            ],
             "type": "u64"
           },
           {
             "name": "createdOnUtc",
+            "docs": [
+              "Unix timestamp (in seconds) when the stream was created"
+            ],
             "type": "u64"
           },
           {
             "name": "category",
+            "docs": [
+              "Indicates the main product category such as `Vesting(1)`",
+              "The default value is set to a `Default(0)` cateogry."
+            ],
             "type": "u8"
           },
           {
             "name": "subCategory",
+            "docs": [
+              "Indicates the sub product category such as `Advisor(1)`, Development(2)",
+              "The default value is set to a `Default(0)` sub_cateogry."
+            ],
             "type": "u8"
           }
         ]
@@ -1472,10 +1603,17 @@ export type Msp = {
           },
           {
             "name": "startUtcInSeconds",
+            "docs": [
+              "The start timestamp blocktime"
+            ],
             "type": "u64"
           },
           {
             "name": "cliffVestPercent",
+            "docs": [
+              "The percentage availaible to withdraw inmidiately (without streaming)",
+              "once the money stream starts."
+            ],
             "type": "u64"
           },
           {
@@ -1533,40 +1671,77 @@ export type Msp = {
           },
           {
             "name": "mintAddress",
+            "docs": [
+              "[deprecated] The address of the Mint of the treasury pool"
+            ],
             "type": "publicKey"
           },
           {
             "name": "labels",
+            "docs": [
+              "This field should not be used in its current form because it has a dynamic size",
+              "",
+              "The 4-bytes header can be repurposed in the future"
+            ],
             "type": {
               "vec": "string"
             }
           },
           {
             "name": "lastKnownBalanceUnits",
+            "docs": [
+              "Treasury balance tracking",
+              "The last known treasury balance (will be updated in the `refreshTreasuryData` instruction)"
+            ],
             "type": "u64"
           },
           {
             "name": "lastKnownBalanceSlot",
+            "docs": [
+              "The slot of the last time the treasury balance was updated"
+            ],
             "type": "u64"
           },
           {
             "name": "lastKnownBalanceBlockTime",
+            "docs": [
+              "The blocktime when the treasury balance was updated"
+            ],
             "type": "u64"
           },
           {
             "name": "allocationAssignedUnits",
+            "docs": [
+              "Treasury allocation tracking",
+              "The allocation assigned accross all the streams that belong to this treasury",
+              "",
+              "The allocation assined will be modified in the following instructions:",
+              "`createStream`, `allocate`, `withdraw` and `closeStream`"
+            ],
             "type": "u64"
           },
           {
             "name": "allocationReservedUnits",
+            "docs": [
+              "The allocation reserved accross all the streams that belong to this treasury",
+              "",
+              "[deprecated] The allocation reserved will be modified in the following instructions:",
+              "`createStream`, `withdraw` and `closeStream`"
+            ],
             "type": "u64"
           },
           {
             "name": "totalWithdrawalsUnits",
+            "docs": [
+              "The total amount withdrawn by all the streams that belong to this treasury"
+            ],
             "type": "u64"
           },
           {
             "name": "totalStreams",
+            "docs": [
+              "The current amount of streams in the treasury (will be updated in the `refreshTreasuryData` instruction)"
+            ],
             "type": "u64"
           },
           {
@@ -1575,22 +1750,41 @@ export type Msp = {
           },
           {
             "name": "treasuryType",
+            "docs": [
+              "The type of the treasury (Open, Locked)"
+            ],
             "type": "u8"
           },
           {
             "name": "autoClose",
+            "docs": [
+              "only used for filtering in the ui"
+            ],
             "type": "bool"
           },
           {
             "name": "solFeePayedByTreasury",
+            "docs": [
+              "Indicates whether program sol fees are payed from the `treasury`'s",
+              "lamports balance (when true) or by the `payer` account in the",
+              "transaction (when false)"
+            ],
             "type": "bool"
           },
           {
             "name": "category",
+            "docs": [
+              "Indicates the main product category such as `Vesting(1)`",
+              "The default value is set to a `Default(0)` cateogry."
+            ],
             "type": "u8"
           },
           {
             "name": "subCategory",
+            "docs": [
+              "Indicates the sub product category such as `Advisor(1)`, Development(2)",
+              "The default value is set to a `Default(0)` sub_cateogry."
+            ],
             "type": "u8"
           }
         ]
@@ -2789,11 +2983,14 @@ export type Msp = {
 };
 
 export const IDL: Msp = {
-  "version": "2.8.1",
+  "version": "2.8.2",
   "name": "msp",
   "instructions": [
     {
       "name": "createTreasury",
+      "docs": [
+        "Create Treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -2887,6 +3084,9 @@ export const IDL: Msp = {
     },
     {
       "name": "createStream",
+      "docs": [
+        "Create Stream"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -2995,6 +3195,9 @@ export const IDL: Msp = {
     },
     {
       "name": "createStreamPda",
+      "docs": [
+        "Create Stream PDA"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3107,6 +3310,9 @@ export const IDL: Msp = {
     },
     {
       "name": "createStreamTemplate",
+      "docs": [
+        "Create template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3163,6 +3369,9 @@ export const IDL: Msp = {
     },
     {
       "name": "modifyStreamTemplate",
+      "docs": [
+        "Edit template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3214,6 +3423,9 @@ export const IDL: Msp = {
     },
     {
       "name": "createTreasuryAndTemplate",
+      "docs": [
+        "Create Treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3332,6 +3544,9 @@ export const IDL: Msp = {
     },
     {
       "name": "createStreamWithTemplate",
+      "docs": [
+        "Create stream with template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3421,6 +3636,9 @@ export const IDL: Msp = {
     },
     {
       "name": "createStreamPdaWithTemplate",
+      "docs": [
+        "Create stream with template"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3514,6 +3732,9 @@ export const IDL: Msp = {
     },
     {
       "name": "withdraw",
+      "docs": [
+        "Withdraw"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3594,6 +3815,9 @@ export const IDL: Msp = {
     },
     {
       "name": "pauseStream",
+      "docs": [
+        "Pause Stream"
+      ],
       "accounts": [
         {
           "name": "initializer",
@@ -3620,6 +3844,9 @@ export const IDL: Msp = {
     },
     {
       "name": "resumeStream",
+      "docs": [
+        "Resume Stream"
+      ],
       "accounts": [
         {
           "name": "initializer",
@@ -3646,6 +3873,9 @@ export const IDL: Msp = {
     },
     {
       "name": "refreshTreasuryData",
+      "docs": [
+        "Refresh Treasury Balance"
+      ],
       "accounts": [
         {
           "name": "associatedToken",
@@ -3672,6 +3902,9 @@ export const IDL: Msp = {
     },
     {
       "name": "transferStream",
+      "docs": [
+        "Transfer Stream"
+      ],
       "accounts": [
         {
           "name": "beneficiary",
@@ -3707,6 +3940,9 @@ export const IDL: Msp = {
     },
     {
       "name": "getStream",
+      "docs": [
+        "Get Stream"
+      ],
       "accounts": [
         {
           "name": "stream",
@@ -3723,6 +3959,9 @@ export const IDL: Msp = {
     },
     {
       "name": "addFunds",
+      "docs": [
+        "Adds funds the treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3798,6 +4037,9 @@ export const IDL: Msp = {
     },
     {
       "name": "allocate",
+      "docs": [
+        "Allocate units to a stream"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3873,6 +4115,9 @@ export const IDL: Msp = {
     },
     {
       "name": "closeStream",
+      "docs": [
+        "Close Stream"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -3954,6 +4199,9 @@ export const IDL: Msp = {
     },
     {
       "name": "closeTreasury",
+      "docs": [
+        "Close Treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -4030,6 +4278,9 @@ export const IDL: Msp = {
     },
     {
       "name": "treasuryWithdraw",
+      "docs": [
+        "Withdraw unallocated funds from treasury"
+      ],
       "accounts": [
         {
           "name": "payer",
@@ -4146,14 +4397,27 @@ export const IDL: Msp = {
           },
           {
             "name": "startUtc",
+            "docs": [
+              "The start timestamp in seconds"
+            ],
             "type": "u64"
           },
           {
             "name": "cliffVestAmountUnits",
+            "docs": [
+              "The amount availaible to withdraw inmidiately (without streaming)",
+              "once the money stream starts.",
+              "If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the former will be used."
+            ],
             "type": "u64"
           },
           {
             "name": "cliffVestPercent",
+            "docs": [
+              "The percent of the allocation assigned that is availaible to withdraw",
+              "inmidiately (without streaming) once the money stream starts.",
+              "If both 'cliff_vest_amount_units' and 'cliff_vest_percent' are provided, the second (this field) will be used."
+            ],
             "type": "u64"
           },
           {
@@ -4170,30 +4434,65 @@ export const IDL: Msp = {
           },
           {
             "name": "allocationAssignedUnits",
+            "docs": [
+              "Amount of tokens allocated to the stream on creation or top up. If the",
+              "treasurer decides to close the stream, the vested amount will be sent",
+              "to the benefifiary and the unvested amount will be sent to the",
+              "treasurer",
+              "",
+              "The allocation assigned will be affected by the following instructions:",
+              "`addFunds`"
+            ],
             "type": "u64"
           },
           {
             "name": "allocationReservedUnits",
+            "docs": [
+              "Amount of tokens reserved to the stream. If the treasurer decides to",
+              "close the stream, the total amount (vested and unvested) WILL be sent",
+              "to the beneficiary",
+              "",
+              "[deprecated] The allocation reserved will be affected by the following instructions:",
+              "`addFunds`"
+            ],
             "type": "u64"
           },
           {
             "name": "totalWithdrawalsUnits",
+            "docs": [
+              "Withdrawal tracking",
+              "The total amount that has been withdrawn by the beneficiary"
+            ],
             "type": "u64"
           },
           {
             "name": "lastWithdrawalUnits",
+            "docs": [
+              "The last amount withdrew by the beneficiary"
+            ],
             "type": "u64"
           },
           {
             "name": "lastWithdrawalSlot",
+            "docs": [
+              "The slot number when the last withdrawal was executed"
+            ],
             "type": "u64"
           },
           {
             "name": "lastWithdrawalBlockTime",
+            "docs": [
+              "The blocktime value when the last withdrawal was executed"
+            ],
             "type": "u64"
           },
           {
             "name": "lastManualStopWithdrawableUnitsSnap",
+            "docs": [
+              "How can a stream STOP? -> There are 2 ways:",
+              "1) by a Manual Action (recordable when it happens) or",
+              "2) by Running Out Of Funds (not recordable when it happens, needs to be calculated)"
+            ],
             "type": "u64"
           },
           {
@@ -4206,6 +4505,10 @@ export const IDL: Msp = {
           },
           {
             "name": "lastManualResumeRemainingAllocationUnitsSnap",
+            "docs": [
+              "The remaining allocation units at the moment of the last manual resume",
+              "must be set when calling the Resume Stream"
+            ],
             "type": "u64"
           },
           {
@@ -4218,10 +4521,18 @@ export const IDL: Msp = {
           },
           {
             "name": "lastKnownTotalSecondsInPausedStatus",
+            "docs": [
+              "The total seconds that have been paused since the start_utc",
+              "increment when resume is called manually"
+            ],
             "type": "u64"
           },
           {
             "name": "lastAutoStopBlockTime",
+            "docs": [
+              "The last blocktime when the stream was stopped",
+              "either manually or automaticaly (run out of funds)"
+            ],
             "type": "u64"
           },
           {
@@ -4230,18 +4541,32 @@ export const IDL: Msp = {
           },
           {
             "name": "startUtcInSeconds",
+            "docs": [
+              "The start timestamp blocktime"
+            ],
             "type": "u64"
           },
           {
             "name": "createdOnUtc",
+            "docs": [
+              "Unix timestamp (in seconds) when the stream was created"
+            ],
             "type": "u64"
           },
           {
             "name": "category",
+            "docs": [
+              "Indicates the main product category such as `Vesting(1)`",
+              "The default value is set to a `Default(0)` cateogry."
+            ],
             "type": "u8"
           },
           {
             "name": "subCategory",
+            "docs": [
+              "Indicates the sub product category such as `Advisor(1)`, Development(2)",
+              "The default value is set to a `Default(0)` sub_cateogry."
+            ],
             "type": "u8"
           }
         ]
@@ -4262,10 +4587,17 @@ export const IDL: Msp = {
           },
           {
             "name": "startUtcInSeconds",
+            "docs": [
+              "The start timestamp blocktime"
+            ],
             "type": "u64"
           },
           {
             "name": "cliffVestPercent",
+            "docs": [
+              "The percentage availaible to withdraw inmidiately (without streaming)",
+              "once the money stream starts."
+            ],
             "type": "u64"
           },
           {
@@ -4323,40 +4655,77 @@ export const IDL: Msp = {
           },
           {
             "name": "mintAddress",
+            "docs": [
+              "[deprecated] The address of the Mint of the treasury pool"
+            ],
             "type": "publicKey"
           },
           {
             "name": "labels",
+            "docs": [
+              "This field should not be used in its current form because it has a dynamic size",
+              "",
+              "The 4-bytes header can be repurposed in the future"
+            ],
             "type": {
               "vec": "string"
             }
           },
           {
             "name": "lastKnownBalanceUnits",
+            "docs": [
+              "Treasury balance tracking",
+              "The last known treasury balance (will be updated in the `refreshTreasuryData` instruction)"
+            ],
             "type": "u64"
           },
           {
             "name": "lastKnownBalanceSlot",
+            "docs": [
+              "The slot of the last time the treasury balance was updated"
+            ],
             "type": "u64"
           },
           {
             "name": "lastKnownBalanceBlockTime",
+            "docs": [
+              "The blocktime when the treasury balance was updated"
+            ],
             "type": "u64"
           },
           {
             "name": "allocationAssignedUnits",
+            "docs": [
+              "Treasury allocation tracking",
+              "The allocation assigned accross all the streams that belong to this treasury",
+              "",
+              "The allocation assined will be modified in the following instructions:",
+              "`createStream`, `allocate`, `withdraw` and `closeStream`"
+            ],
             "type": "u64"
           },
           {
             "name": "allocationReservedUnits",
+            "docs": [
+              "The allocation reserved accross all the streams that belong to this treasury",
+              "",
+              "[deprecated] The allocation reserved will be modified in the following instructions:",
+              "`createStream`, `withdraw` and `closeStream`"
+            ],
             "type": "u64"
           },
           {
             "name": "totalWithdrawalsUnits",
+            "docs": [
+              "The total amount withdrawn by all the streams that belong to this treasury"
+            ],
             "type": "u64"
           },
           {
             "name": "totalStreams",
+            "docs": [
+              "The current amount of streams in the treasury (will be updated in the `refreshTreasuryData` instruction)"
+            ],
             "type": "u64"
           },
           {
@@ -4365,22 +4734,41 @@ export const IDL: Msp = {
           },
           {
             "name": "treasuryType",
+            "docs": [
+              "The type of the treasury (Open, Locked)"
+            ],
             "type": "u8"
           },
           {
             "name": "autoClose",
+            "docs": [
+              "only used for filtering in the ui"
+            ],
             "type": "bool"
           },
           {
             "name": "solFeePayedByTreasury",
+            "docs": [
+              "Indicates whether program sol fees are payed from the `treasury`'s",
+              "lamports balance (when true) or by the `payer` account in the",
+              "transaction (when false)"
+            ],
             "type": "bool"
           },
           {
             "name": "category",
+            "docs": [
+              "Indicates the main product category such as `Vesting(1)`",
+              "The default value is set to a `Default(0)` cateogry."
+            ],
             "type": "u8"
           },
           {
             "name": "subCategory",
+            "docs": [
+              "Indicates the sub product category such as `Advisor(1)`, Development(2)",
+              "The default value is set to a `Default(0)` sub_cateogry."
+            ],
             "type": "u8"
           }
         ]
