@@ -317,7 +317,7 @@ export class MSP {
           beneficiaryToken,
           sender,
           [],
-          new u64(amountBN),
+          new u64(amountBN.toString()),
         ),
       );
     }
