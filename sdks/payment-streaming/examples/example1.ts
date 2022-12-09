@@ -141,7 +141,7 @@ async function runExample(): Promise<void> {
       new Date(), // startUtc
     );
 
-  // Send createStream1Tx and wait for confirmation
+  // Send createStream2Tx and wait for confirmation
   createStream2Tx.partialSign(ownerKey);
   const createStream2TxId = await connection.sendRawTransaction(
     createStream2Tx.serialize(),
