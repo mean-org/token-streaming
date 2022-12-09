@@ -1,6 +1,5 @@
 import {
   AccountInfo,
-  Commitment,
   ConfirmedSignaturesForAddress2Options,
   ConfirmOptions,
   Connection,
@@ -15,13 +14,12 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import { BN, BorshInstructionCoder, Idl, IdlAccounts, Program, ProgramAccount } from '@project-serum/anchor';
-/**
- * MSP
- */
-import { Constants, LATEST_IDL_FILE_VERSION } from './constants';
+import { CLIFF_PERCENT_DENOMINATOR, CLIFF_PERCENT_NUMERATOR, Constants, LATEST_IDL_FILE_VERSION, READONLY_PUBKEY } from './constants';
 import {
   Category,
   MSP_ACTIONS,
+  PaymentStreamingAccount,
+  AccountType,
   Stream,
   StreamActivity,
   StreamActivityRaw,
@@ -32,16 +30,18 @@ import {
   TransactionFees,
   Treasury,
   TreasuryType,
+  VestingAccountActivity,
+  VestingAccountActivityRaw,
   VestingTreasuryActivity,
   VestingTreasuryActivityAction,
   VestingTreasuryActivityRaw,
 } from './types';
-import { IDL, Msp } from './msp_idl_005'; // point to the latest IDL
+import { IDL, Msp as Ps } from './msp_idl_005'; // point to the latest IDL
 // Given an IDL type IDL we can derive Typescript types for its accounts 
 // using eg. IdlAccounts<IDL>['ACCOUNT_NAME']
-type RawStream = IdlAccounts<Msp>["stream"];
-type RawTreasury = IdlAccounts<Msp>["treasury"];
-type RawStreamTemplate = IdlAccounts<Msp>["streamTemplate"];
+type RawStream = IdlAccounts<Ps>["stream"];
+type RawTreasury = IdlAccounts<Ps>["treasury"];
+type RawStreamTemplate = IdlAccounts<Ps>["streamTemplate"];
 // Events are not possible yet.
 // See https://github.com/coral-xyz/anchor/issues/2050
 // See https://github.com/coral-xyz/anchor/pull/2185
@@ -68,15 +68,18 @@ String.prototype.toPublicKey = function (): PublicKey {
 
 export const createProgram = (
   connection: Connection,
-  programId: string,
-): Program<Msp> => {
+  programId: string | PublicKey,
+  ): Program<Ps> => {
+
+  // we are not confirming transactions here
   const opts: ConfirmOptions = {
     preflightCommitment: 'finalized',
     commitment: 'finalized',
   };
 
+  // dummy wallet only to configure the provider, we are not doing any signing
   const wallet: Wallet = {
-    publicKey: Constants.READONLY_PUBKEY,
+    publicKey: READONLY_PUBKEY,
     signAllTransactions: async txs => txs,
     signTransaction: async tx => tx,
   };
@@ -87,7 +90,7 @@ export const createProgram = (
 };
 
 export const getStream = async (
-  program: Program<Msp>,
+  program: Program<Ps>,
   address: PublicKey,
 ): Promise<Stream | null> => {
   try {
@@ -96,7 +99,6 @@ export const getStream = async (
       return null;
 
     const streamInfo = parseStreamEventData(event, address);
-    console.log('getStream result after parse:', streamInfo);
 
     return streamInfo;
   } catch (error: any) {
@@ -106,7 +108,7 @@ export const getStream = async (
 };
 
 export async function getStreamEventData(
-  program: Program<Msp>,
+  program: Program<Ps>,
   address: PublicKey,
 ): Promise<StreamEventData | null> {
   try {
@@ -155,9 +157,9 @@ export const getStreamCached = async (
 };
 
 export const listStreams = async (
-  program: Program<Msp>,
-  treasurer?: PublicKey | undefined,
-  treasury?: PublicKey | undefined,
+  program: Program<Ps>,
+  psAccountOwner?: PublicKey | undefined,
+  psAccount?: PublicKey | undefined,
   beneficiary?: PublicKey | undefined,
   category?: Category,
   subCategory?: SubCategory,
@@ -165,8 +167,8 @@ export const listStreams = async (
   const streamInfoList: Stream[] = [];
   const accounts = await getFilteredStreamAccounts(
     program,
-    treasurer,
-    treasury,
+    psAccountOwner,
+    psAccount,
     beneficiary,
     category,
     subCategory,
@@ -187,7 +189,13 @@ export const listStreams = async (
   }
 
   const orderedStreams = streamInfoList.sort(
-    (a, b) => b.createdBlockTime - a.createdBlockTime,
+    (a, b) => a.createdBlockTime !== b.createdBlockTime
+      ? b.createdBlockTime - a.createdBlockTime
+      : (
+          a.name !== b.name
+            ? a.name.localeCompare(b.name)
+            : a.id.toBase58().localeCompare(b.id.toBase58())
+        )
   );
 
   return orderedStreams;
@@ -216,7 +224,7 @@ export const listStreamsCached = async (
 };
 
 export const listStreamActivity = async (
-  program: Program<Msp>,
+  program: Program<Ps>,
   address: PublicKey,
   before = '',
   limit = 10,
@@ -264,8 +272,11 @@ export const listStreamActivity = async (
   return activity;
 };
 
+/**
+ * @deprecated Use {@link getAccount} instead.
+ */
 export const getTreasury = async (
-  program: Program<Msp>,
+  program: Program<Ps>,
   address: PublicKey,
 ): Promise<Treasury> => {
   const treasury = await program.account.treasury.fetch(address);
@@ -274,8 +285,18 @@ export const getTreasury = async (
   return parsedTreasury;
 };
 
+export const getAccount = async (
+  program: Program<Ps>,
+  address: PublicKey,
+): Promise<PaymentStreamingAccount> => {
+  const psAccount = await program.account.treasury.fetch(address);
+  const parsedAccount = parseAccountData(psAccount, address);
+
+  return parsedAccount;
+};
+
 export const getStreamTemplate = async (
-  program: Program<Msp>,
+  program: Program<Ps>,
   address: PublicKey,
 ): Promise<StreamTemplate> => {
   const template = await program.account.streamTemplate.fetch(address);
@@ -283,17 +304,20 @@ export const getStreamTemplate = async (
 };
 
 export const findStreamTemplateAddress = async (
-  treasury: PublicKey,
+  psAccount: PublicKey,
   programId: PublicKey,
 ): Promise<[PublicKey, number]> => {
   return anchor.web3.PublicKey.findProgramAddress(
-    [anchor.utils.bytes.utf8.encode('template'), treasury.toBuffer()],
+    [anchor.utils.bytes.utf8.encode('template'), psAccount.toBuffer()],
     programId,
   );
 };
 
+/**
+ * @deprecated Deprecated in 3.2.0. Please use {@link listAccounts} instead.
+ */
 export const listTreasuries = async (
-  program: Program<Msp>,
+  program: Program<Ps>,
   treasurer?: PublicKey | undefined,
   excludeAutoClose?: boolean,
   category?: Category,
@@ -350,6 +374,66 @@ export const listTreasuries = async (
   const sortedTreasuries = treasuries.sort((a, b) => b.slot - a.slot);
 
   return sortedTreasuries;
+};
+
+export const listAccounts = async (
+  program: Program<Ps>,
+  owner?: PublicKey | undefined,
+  excludeAutoClose?: boolean,
+  category?: Category,
+  subCategory?: SubCategory,
+): Promise<PaymentStreamingAccount[]> => {
+  const psAccounts: PaymentStreamingAccount[] = [];
+  const memcmpFilters: GetProgramAccountsFilter[] = [];
+
+  if (owner) {
+    memcmpFilters.push({
+      memcmp: { offset: 8 + 43, bytes: owner.toBase58() },
+    });
+  }
+
+  if (excludeAutoClose) {
+    memcmpFilters.push({
+      memcmp: { offset: 216, bytes: bs58.encode([0]) },
+    });
+  }
+
+  if (category !== undefined) {
+    memcmpFilters.push({
+      memcmp: { offset: 218, bytes: bs58.encode([category]) },
+    });
+  }
+
+  if (subCategory !== undefined) {
+    memcmpFilters.push({
+      memcmp: { offset: 219, bytes: bs58.encode([subCategory]) },
+    });
+  }
+
+  const accounts = await program.account.treasury.all(memcmpFilters);
+
+  if (accounts.length) {
+    for (const item of accounts) {
+      if (item.account !== undefined) {
+        const parsedAccount = parseAccountData(
+          item.account,
+          item.publicKey,
+        );
+        const info = Object.assign({}, parsedAccount);
+
+        if (
+          (owner && owner.equals(info.owner)) ||
+          !owner
+        ) {
+          psAccounts.push(info);
+        }
+      }
+    }
+  }
+
+  const sortedAccounts = psAccounts.sort((a, b) => b.slot - a.slot);
+
+  return sortedAccounts;
 };
 
 export const calculateActionFees = async (
@@ -423,6 +507,9 @@ export const calculateActionFees = async (
   return txFees;
 };
 
+/**
+ * @deprecated Deprecated in v3.2.0. Please use {@link calculateAllocationAmount} instead.
+ */
 export const getValidTreasuryAllocation = async (
   connection: Connection,
   treasury: Treasury,
@@ -431,9 +518,9 @@ export const getValidTreasuryAllocation = async (
   //TODO: BN check
   const fees = await calculateActionFees(connection, MSP_ACTIONS.withdraw);
   //
-  const BASE_100_TO_BASE_1_MULTIPLIER = Constants.CLIFF_PERCENT_NUMERATOR;
+  const BASE_100_TO_BASE_1_MULTIPLIER = CLIFF_PERCENT_NUMERATOR;
   const feeNumerator = fees.mspPercentFee * BASE_100_TO_BASE_1_MULTIPLIER;
-  const feeDenaminator = Constants.CLIFF_PERCENT_DENOMINATOR;
+  const feeDenaminator = CLIFF_PERCENT_DENOMINATOR;
   const unallocatedBalance = new BN(treasury.balance).sub(
     new BN(treasury.allocationAssigned),
   );
@@ -455,10 +542,42 @@ export const getValidTreasuryAllocation = async (
   return goodStreamMaxAllocation;
 };
 
+export const calculateAllocationAmount = async (
+  connection: Connection,
+  psAccount: PaymentStreamingAccount,
+  allocation: string | number,
+) => {
+  //TODO: BN check
+  const fees = await calculateActionFees(connection, MSP_ACTIONS.withdraw);
+  //
+  const BASE_100_TO_BASE_1_MULTIPLIER = CLIFF_PERCENT_NUMERATOR;
+  const feeNumerator = fees.mspPercentFee * BASE_100_TO_BASE_1_MULTIPLIER;
+  const feeDenaminator = CLIFF_PERCENT_DENOMINATOR;
+  const unallocatedBalance = new BN(psAccount.balance).sub(
+    new BN(psAccount.allocationAssigned),
+  );
+  const allocationAmountBn = new BN(allocation).add(unallocatedBalance);
+  const badStreamAllocationAmount = allocationAmountBn
+    .mul(new BN(feeDenaminator))
+    .div(new BN(feeNumerator + feeDenaminator));
+
+  const feeAmount = badStreamAllocationAmount
+    .mul(new BN(feeNumerator))
+    .div(new BN(feeDenaminator));
+
+  if (unallocatedBalance.gte(feeAmount)) {
+    return badStreamAllocationAmount;
+  }
+
+  const goodStreamMaxAllocation = allocationAmountBn.sub(feeAmount);
+
+  return goodStreamMaxAllocation;
+};
+
 export const getFilteredStreamAccounts = async (
-  program: Program<Msp>,
-  treasurer?: PublicKey | undefined,
-  treasury?: PublicKey | undefined,
+  program: Program<Ps>,
+  psAccountOwner?: PublicKey | undefined,
+  psAccount?: PublicKey | undefined,
   beneficiary?: PublicKey | undefined,
   category?: Category,
   subCategory?: SubCategory,
@@ -480,9 +599,9 @@ export const getFilteredStreamAccounts = async (
     });
   }
 
-  if (treasury) {
+  if (psAccount) {
     const memcmpFilters: MemcmpFilter[] = [
-      { memcmp: { offset: 8 + 170, bytes: treasury.toBase58() } },
+      { memcmp: { offset: 8 + 170, bytes: psAccount.toBase58() } },
       ...categoryFilters,
     ];
     const accs = await program.account.stream.all(memcmpFilters);
@@ -491,9 +610,9 @@ export const getFilteredStreamAccounts = async (
       accounts.push(...accs);
     }
   } else {
-    if (treasurer) {
+    if (psAccountOwner) {
       const memcmpFilters: MemcmpFilter[] = [
-        { memcmp: { offset: 8 + 34, bytes: treasurer.toBase58() } },
+        { memcmp: { offset: 8 + 34, bytes: psAccountOwner.toBase58() } },
         ...categoryFilters,
       ];
       const accs = await program.account.stream.all(memcmpFilters);
@@ -589,14 +708,17 @@ const parseStreamEventData = (
     id: address,
     version: event.version,
     initialized: event.initialized,
-    name: new TextDecoder().decode(nameBuffer),
+    name: new TextDecoder().decode(nameBuffer).trim(),
     startUtc: new Date(event.startUtc.toNumber() * 1000).toString(), // event.startUtc is guaranteed to be in seconds
     treasurer: event.treasurerAddress,
+    psAccountOwner: event.treasurerAddress,
     treasury: event.treasuryAddress,
+    psAccount: event.treasuryAddress,
     beneficiary: event.beneficiaryAddress,
-    associatedToken: event.beneficiaryAssociatedToken,
+    associatedToken: event.beneficiaryAssociatedToken, // @deprecated in 3.2.0 and scheduled for removal
+    mint: event.beneficiaryAssociatedToken,
     cliffVestAmount: event.cliffVestAmountUnits,
-    cliffVestPercent: event.cliffVestPercent.toNumber() / Constants.CLIFF_PERCENT_NUMERATOR,
+    cliffVestPercent: event.cliffVestPercent.toNumber() / CLIFF_PERCENT_NUMERATOR,
     allocationAssigned: event.allocationAssignedUnits,
     secondsSinceStart: event.currentBlockTime.sub(new BN(event.startUtc)).toNumber(),
     estimatedDepletionDate: (new Date(event.estDepletionTime.toNumber() * 1000)).toString(),
@@ -613,6 +735,7 @@ const parseStreamEventData = (
     lastRetrievedBlockTime: event.currentBlockTime.toNumber(),
     lastRetrievedTimeInSeconds: parseInt((Date.now() / 1_000).toString()),
     feePayedByTreasurer: event.feePayedByTreasurer,
+    tokenFeePayedFromAccount: event.feePayedByTreasurer,
     createdBlockTime: effectiveCreatedOnUtcInSeconds,
     createdOnUtc: new Date(effectiveCreatedOnUtcInSeconds * 1000).toString(),
     category: event.category as Category,
@@ -656,14 +779,17 @@ export const parseRawStreamAccount = (
     id: address,
     version: rawStream.version,
     initialized: rawStream.initialized,
-    name: new TextDecoder().decode(nameBuffer),
+    name: new TextDecoder().decode(nameBuffer).trim(),
     startUtc: startUtc.toString(),
-    treasurer: rawStream.treasurerAddress,
-    treasury: rawStream.treasuryAddress,
+    treasurer: rawStream.treasurerAddress, // @deprecated in v3.2.0 and scheduled for removal
+    psAccountOwner: rawStream.treasurerAddress,
+    treasury: rawStream.treasuryAddress, // @deprecated in v3.2.0 and scheduled for removal
+    psAccount: rawStream.treasuryAddress,
     beneficiary: rawStream.beneficiaryAddress,
-    associatedToken: rawStream.beneficiaryAssociatedToken,
+    associatedToken: rawStream.beneficiaryAssociatedToken, // @deprecated in 3.2.0 and scheduled for removal
+    mint: rawStream.beneficiaryAssociatedToken,
     cliffVestAmount: rawStream.cliffVestAmountUnits,
-    cliffVestPercent: rawStream.cliffVestPercent.toNumber() / Constants.CLIFF_PERCENT_NUMERATOR,
+    cliffVestPercent: rawStream.cliffVestPercent.toNumber() / CLIFF_PERCENT_NUMERATOR,
     allocationAssigned: rawStream.allocationAssignedUnits,
     secondsSinceStart: blockTime - startUtcInSeconds,
     estimatedDepletionDate: depletionDate.toString(),
@@ -679,8 +805,8 @@ export const parseRawStreamAccount = (
     status: streamStatus,
     lastRetrievedBlockTime: blockTime,
     lastRetrievedTimeInSeconds: parseInt((Date.now() / 1_000).toString()),
-    totalWithdrawals: rawStream.totalWithdrawalsUnits,
     feePayedByTreasurer: rawStream.feePayedByTreasurer,
+    tokenFeePayedFromAccount: rawStream.feePayedByTreasurer,
     category: rawStream.category as Category,
     subCategory: rawStream.subCategory as SubCategory,
     transactionSignature: '',
@@ -1126,6 +1252,9 @@ export async function parseStreamTransactions(
   return parsedActivities;
 }
 
+/**
+ * @deprecated Use {@link parseAccountData} instead.
+ */
 export const parseTreasuryData = (
   treasury: RawTreasury,
   address: PublicKey,
@@ -1169,6 +1298,39 @@ export const parseTreasuryData = (
     subCategory: treasury.subCategory as SubCategory,
     data: treasury,
   } as Treasury;
+};
+
+export const parseAccountData = (
+  rawAccount: RawTreasury,
+  accountAddress: PublicKey,
+) => {
+
+  const nameBuffer = Buffer.from(rawAccount.name);
+  const psAccountCreatedUtc =
+    rawAccount.createdOnUtc.toString().length > 10
+      ? parseInt(rawAccount.createdOnUtc.toString().substring(0, 10))
+      : rawAccount.createdOnUtc.toNumber();
+
+  return {
+    id: accountAddress,
+    version: rawAccount.version,
+    initialized: rawAccount.initialized,
+    name: new TextDecoder().decode(nameBuffer).trim(),
+    bump: rawAccount.bump,
+    slot: rawAccount.slot.toNumber(),
+    autoClose: rawAccount.autoClose,
+    createdOnUtc: new Date(psAccountCreatedUtc * 1_000),
+    accountType: rawAccount.treasuryType === 0 ? AccountType.Open : AccountType.Lock,
+    owner: rawAccount.treasurerAddress,
+    mint: rawAccount.associatedTokenAddress,
+    balance: rawAccount.lastKnownBalanceUnits,
+    allocationAssigned: rawAccount.allocationAssignedUnits,
+    totalWithdrawals: rawAccount.totalWithdrawalsUnits,
+    totalStreams: rawAccount.totalStreams.toNumber(),
+    category: rawAccount.category as Category,
+    subCategory: rawAccount.subCategory as SubCategory,
+    data: rawAccount,
+  } as PaymentStreamingAccount;
 };
 
 export const parseStreamTemplateData = (
@@ -1220,7 +1382,7 @@ export const getStreamCliffAmount = (stream: RawStream) => {
   if (stream.cliffVestPercent.gtn(0)) {
     return stream.cliffVestPercent
       .mul(stream.allocationAssignedUnits)
-      .div(new BN(Constants.CLIFF_PERCENT_DENOMINATOR));
+      .div(new BN(CLIFF_PERCENT_DENOMINATOR));
   }
 
   return stream.cliffVestAmountUnits;;
@@ -1584,14 +1746,27 @@ export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * @deprecated Deprecated in 3.2.0. Please use {@link listVestingAccountActivity} instead.
+ */
 export const listVestingTreasuryActivity = async (
-  program: Program<Msp>,
+  program: Program<Ps>,
   address: PublicKey,
   before = '',
   limit = 10,
   commitment?: Finality | undefined,
 ): Promise<VestingTreasuryActivityRaw[] | VestingTreasuryActivity[]> => {
-  let activityRaw: VestingTreasuryActivityRaw[] = [];
+  return await listVestingAccountActivity(program, address, before, limit, commitment);
+}
+
+export const listVestingAccountActivity = async (
+  program: Program<Ps>,
+  address: PublicKey,
+  before = '',
+  limit = 10,
+  commitment?: Finality | undefined,
+): Promise<VestingAccountActivityRaw[] | VestingTreasuryActivity[]> => {
+  let activityRaw: VestingAccountActivityRaw[] = [];
   const finality = commitment !== undefined ? commitment : 'finalized';
   const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
   if (before) {
@@ -1642,11 +1817,15 @@ export const listVestingTreasuryActivity = async (
       destinationTokenAccount: i.destinationTokenAccount?.toBase58(),
       stream: i.stream?.toBase58(),
       utcDate: i.utcDate,
-    } as VestingTreasuryActivity;
+    } as VestingAccountActivity;
   });
 
   return activity;
 };
+
+export function toUnixTimestamp(date: Date): number {
+  return Math.round(date.getTime() / 1000);
+}
 
 async function parseVestingTreasuryTransactions(
   treasuryAddress: PublicKey,

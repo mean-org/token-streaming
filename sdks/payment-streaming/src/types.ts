@@ -5,10 +5,10 @@ import { IdlAccounts } from '@project-serum/anchor';
 import { Commitment, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { IDL, Msp } from './msp_idl_005'; // point to the latest IDL
-// Given an IDL type IDL we can derive Typescript types for its accounts 
+// Given an IDL type IDL we can derive Typescript types for its accounts
 // using eg. IdlAccounts<IDL>['ACCOUNT_NAME']
-type RawStream = IdlAccounts<Msp>["stream"];
-type RawTreasury = IdlAccounts<Msp>["treasury"];
+type RawStream = IdlAccounts<Msp>['stream'];
+type RawAccount = IdlAccounts<Msp>['treasury'];
 
 declare global {
   export interface String {
@@ -35,6 +35,8 @@ export enum MSP_ACTIONS {
   transferStream = 13,
   treasuryWithdraw = 14,
 }
+
+
 
 /**
  * Transaction fees
@@ -67,8 +69,16 @@ export type TransactionMessage = {
 };
 
 export interface ListStreamParams {
+  /**
+   * @deprecated Depracated in v3.2.0. Please use {@link psAccountOwner} instead.
+   */
   treasurer?: PublicKey;
+  psAccountOwner?: PublicKey;
+  /**
+   * @deprecated Depracated in v3.2.0. Please use {@link psAccount} instead.
+   */
   treasury?: PublicKey;
+  psAccount?: PublicKey;
   beneficiary?: PublicKey;
   commitment?: Commitment;
   category?: Category;
@@ -103,6 +113,7 @@ export type StreamActivityRaw = {
 
 /**
  *  Vesting treasury activity
+ * @deprecated Deprecated in 3.2.0. Please use {@link VestingAccountActivity} instead.
  */
 export type VestingTreasuryActivity = {
   signature: string;
@@ -123,9 +134,52 @@ export type VestingTreasuryActivity = {
 };
 
 /**
+ *  Vesting account activity
+ */
+export type VestingAccountActivity = {
+  signature: string;
+  action: VestingTreasuryActivityAction;
+  initializer?: string;
+  mint?: string;
+  blockTime?: number;
+  template?: string;
+  // createStream - allocation amount
+  // addFunds - deposited amount
+  // withdraw - withdrawn amount
+  amount?: string;
+  beneficiary?: string; // create stream
+  destination?: string; // withdraw
+  destinationTokenAccount?: string; // withdrawn associated token account
+  stream?: string; // vesting stream activities
+  utcDate: string;
+};
+
+/**
  *  Vesting treasury activity
+ * @deprecated Deprecated in 3.2.0. Please use {@link VestingAccountActivityRaw} instead.
  */
 export type VestingTreasuryActivityRaw = {
+  signature: string;
+  action: VestingTreasuryActivityAction;
+  initializer?: PublicKey;
+  mint?: PublicKey;
+  blockTime?: number;
+  template?: PublicKey;
+  // createStream - allocation amount
+  // addFunds - deposited amount
+  // withdraw - withdrawn amount
+  amount: BN | undefined;
+  beneficiary?: PublicKey; // create stream
+  destination?: PublicKey; // withdraw
+  destinationTokenAccount?: PublicKey; // withdrawn associated token account
+  stream?: PublicKey; // vesting stream activities
+  utcDate: string;
+};
+
+/**
+ *  Vesting account activity
+ */
+export type VestingAccountActivityRaw = {
   signature: string;
   action: VestingTreasuryActivityAction;
   initializer?: PublicKey;
@@ -159,6 +213,9 @@ export enum VestingTreasuryActivityAction {
 
 /**
  * Treasury type
+ *
+ * @deprecated Deprecated in v3.2.0. Please use {@link AccountType} instead.
+ *
  */
 export enum TreasuryType {
   Open = 0,
@@ -166,7 +223,17 @@ export enum TreasuryType {
 }
 
 /**
+ * Treasury type
+ */
+export enum AccountType {
+  Open = 0,
+  Lock = 1,
+}
+
+/**
  * Treasury info
+ * @deprecated Deprecated in v3.2.0. Use {@link PaymentStreamingAccount} 
+ * instead.
  */
 export type Treasury = {
   id: PublicKey | string;
@@ -189,7 +256,31 @@ export type Treasury = {
   autoClose: boolean;
   category: Category;
   subCategory: SubCategory;
-  data: RawTreasury;
+  data: RawAccount;
+};
+
+/**
+ * Payment Streaming account
+ */
+export type PaymentStreamingAccount = {
+  id: PublicKey;
+  version: number;
+  initialized: boolean;
+  bump: number;
+  slot: number;
+  name: string;
+  owner: PublicKey;
+  mint: PublicKey;
+  balance: BN;
+  allocationAssigned: BN;
+  totalWithdrawals: BN;
+  totalStreams: number;
+  createdOnUtc: Date;
+  accountType: AccountType;
+  autoClose: boolean;
+  category: Category;
+  subCategory: SubCategory;
+  data: RawAccount;
 };
 
 /**
@@ -218,6 +309,7 @@ export enum STREAM_STATUS {
 
 /**
  * Allocation type
+ * @deprecated Deprecated in v3.2.0.
  */
 export enum AllocationType {
   All = 0,
@@ -226,15 +318,32 @@ export enum AllocationType {
 }
 
 /**
- * Stream info
+ * Stream
  */
 export type Stream = {
-  // Public keys
   id: PublicKey;
+  /**
+   * @deprecated Deprecated in v3.2.0. Use {@link psAccountOwner} 
+   * instead.
+   */
   treasurer: PublicKey;
+  psAccountOwner: PublicKey;
+  /**
+   * @deprecated Deprecated in v3.2.0. Use {@link psAccount} 
+   * instead.
+   */
   treasury: PublicKey;
+  psAccount: PublicKey;
   beneficiary: PublicKey;
+  /**
+   * @deprecated Deprecated in v3.2.0. Use {@link psAccount} 
+   * instead.
+   */
   associatedToken: PublicKey;
+  /**
+   * The mint being streamed
+   */
+  mint: PublicKey;
   // Amounts
   cliffVestAmount: BN;
   rateAmount: BN;
@@ -263,7 +372,12 @@ export type Stream = {
   upgradeRequired: boolean;
   status: STREAM_STATUS | string;
   isManuallyPaused: boolean;
+  /**
+   * @deprecated Deprecated in v3.2.0. Use {@link tokenFeePayedFromAccount} 
+   * instead.
+   */
   feePayedByTreasurer: boolean;
+  tokenFeePayedFromAccount: boolean;
   category: Category;
   subCategory: SubCategory;
   data: RawStream;
@@ -317,12 +431,12 @@ export enum TimeUnit {
   Year = 31557000,
 }
 
-// Given an IDL type IDL we can derive Typescript types for its accounts 
+// Given an IDL type IDL we can derive Typescript types for its accounts
 // using eg. IdlAccounts<IDL>['ACCOUNT_NAME']
 // Events are not possible yet.
 // See https://github.com/coral-xyz/anchor/issues/2050
 // See https://github.com/coral-xyz/anchor/pull/2185
-// So we need to manually keep this type synchronized with 
+// So we need to manually keep this type synchronized with
 // MSP IDL -> events -> StreamEvent
 export type StreamEventData = {
   version: number;
@@ -374,4 +488,4 @@ export type StreamEventData = {
   createdOnUtc: BN;
   category: number;
   subCategory: number;
-}
+};
