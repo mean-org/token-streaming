@@ -20,7 +20,7 @@ import {
   NATIVE_SOL_MINT,
   CLIFF_PERCENT_DENOMINATOR,
   FEE_ACCOUNT,
-  READONLY_PUBKEY,
+  SIMULATION_PUBKEY,
 } from '../src';
 import {
   Category,
@@ -220,7 +220,7 @@ describe('PS Tests\n', async () => {
     await connection.confirmTransaction(
       {
         signature: await connection.requestAirdrop(
-          READONLY_PUBKEY,
+          SIMULATION_PUBKEY,
           LAMPORTS_PER_SOL,
         ),
         blockhash,

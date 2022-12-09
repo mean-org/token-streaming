@@ -1,10 +1,28 @@
+/*
+
+How to use:
+
+1. start a `solana-test-validator` while cloning the
+necessary account from devnet:
+
+solana-test-validator -r\
+  --clone MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ\
+  --clone 5KRiDycCTp4HrHBJc15pjbPYquVbKYcHduJKeZieUXtD\
+  --clone 3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw
+  --clone 3KmMEv7A8R3MMhScQceXBQe69qLmnFfxSM3q8HyzkrSx
+  --url devnet
+
+2. Run this script:
+npx ts-node examples/example1.ts
+
+*/
+
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import {
   PaymentStreaming,
   PAYMENT_STREAMING_PROGRAM_ID_DEVNET,
   AccountType,
   NATIVE_SOL_MINT,
-  READONLY_PUBKEY,
   PaymentStreamingAccount,
   Stream,
 } from '../src';
@@ -34,12 +52,6 @@ async function runExample(): Promise<void> {
 
   await connection.confirmTransaction({
     signature: await connection.requestAirdrop(owner, 1_000_000_000),
-    blockhash,
-    lastValidBlockHeight,
-  });
-
-  await connection.confirmTransaction({
-    signature: await connection.requestAirdrop(READONLY_PUBKEY, 1_000_000_000),
     blockhash,
     lastValidBlockHeight,
   });
@@ -151,6 +163,11 @@ async function runExample(): Promise<void> {
     psAccount: psAccount,
   });
   console.log(streams.map(prettifyStream));
+
+  // Get a single stream
+  console.log('\nGetting stream1...');
+  const stream1Fetched = await psClient.getStream(stream1);
+  console.log(prettifyStream(stream1Fetched!));
 }
 
 runExample().then().catch();

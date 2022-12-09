@@ -21,7 +21,14 @@ export const FEE_ACCOUNT = new PublicKey(
 export const CLIFF_PERCENT_NUMERATOR = 10_000;
 export const CLIFF_PERCENT_DENOMINATOR = 1_000_000;
 
-export const READONLY_PUBKEY = new PublicKey(
+/**
+ * Dummy account used to configure the Anchor wallet in order to use
+ * program getters by parsing the logs of a simulation. This account
+ * needs to exist in the blockchain (i.e. needs to have SOL balance)
+ * to avoid a SimulateError (AccountNotFound). No signing is done with
+ * this account.
+ */
+export const SIMULATION_PUBKEY = new PublicKey(
   '3KmMEv7A8R3MMhScQceXBQe69qLmnFfxSM3q8HyzkrSx',
 );
 
