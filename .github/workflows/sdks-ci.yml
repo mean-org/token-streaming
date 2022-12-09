@@ -6,11 +6,12 @@ on:
     branches:
       - main
     paths:
-      - 'sdks/msp/**.js'
-      - 'sdks/msp/**.ts'
-      - 'sdks/msp/package.json'
-      - 'sdks/msp/tsconfig.json'
-      - 'sdks/msp/yarn.lock'
+      - 'sdks/payment-streaming/**.js'
+      - 'sdks/payment-streaming/**.ts'
+      - 'sdks/payment-streaming/package.json'
+      - 'sdks/payment-streaming/tsconfig.json'
+      - 'sdks/payment-streaming/yarn.lock'
+      - 'sdks/payment-streaming/run-tests.sh'
 
 env:
   SOLANA_VERSION: "1.13.4"
@@ -31,8 +32,8 @@ jobs:
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           node-version: ${{ env.NODE_VERSION }}
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
-      - run: cd sdks/msp && yarn install
-      - run: cd sdks/msp && yarn build
+      - run: cd sdks/payment-streaming && yarn install
+      - run: cd sdks/payment-streaming && yarn build
   sonar-scan:
     name: "Sonar Scan"
     needs: [build]
@@ -49,7 +50,7 @@ jobs:
           args: >
             -Dsonar.verbose=false
             -Dsonar.projectKey=payment-streaming-sdk
-            -Dsonar.sources=sdks/msp/src/
+            -Dsonar.sources=sdks/payment-streaming/src/
   run-sdk-tests:
     name: Run SDK tests
     needs: [sonar-scan]
@@ -63,11 +64,5 @@ jobs:
           rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
           node-version: ${{ env.NODE_VERSION }}
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
-
-      - run: solana-test-validator -r --quiet &
-        name: Start validator
-      - run: anchor build -- --features test
-      - run: echo ${{ secrets.MSP_ID_KEYPAIR }} > target/deploy/msp-keypair.json
-      - run: solana program deploy --program-id ./target/deploy/msp-keypair.json --url localhost target/deploy/msp.so
-      - run: cd sdks/msp && yarn build && yarn test
+      - run: cd sdks/payment-streaming && ./run-tests.sh
         name: Run Tests
