@@ -175,7 +175,7 @@ const mint = NATIVE_SOL_MINT;
   console.log(accounts.map(prettifyAccount));
 ```
 Output:
-```
+```ts
 [
   {
     id: 'A6APsTFJZH7jcn3YmgRhnqUoHS9HSEUd8N59oP4zrpuy',
@@ -201,7 +201,7 @@ Output:
   console.log(streams.map(prettifyStream));
 ```
 Output:
-```
+```ts
 [
   {
     id: '97GKbgibzSSNSPZ9pgZJ5bToep5a3nKRSFeBy3nfcVKA',
@@ -252,6 +252,40 @@ Output:
     createdOnUtc: 'Fri Dec 09 2022 15:15:19 GMT+0100 (Central European Standard Time)'
   }
 ]
+```
+
+### Get a single stream
+```ts
+  console.log('\nGetting stream1...');
+  const stream1Fetched = await psClient.getStream(stream1);
+  console.log(prettifyStream(stream1Fetched!));
+```
+Output:
+```ts
+  {
+    id: '97GKbgibzSSNSPZ9pgZJ5bToep5a3nKRSFeBy3nfcVKA',
+    name: 'Airdrop for Alice',
+    startUtc: 'Fri Dec 09 2022 15:15:20 GMT+0100 (Central European Standard Time)',
+    psAccountOwner: 'Vb6AjHGNU9DHA98MMWNM7a8NPzFpKwZFSeAPz5ZrKt3',
+    psAccount: 'A6APsTFJZH7jcn3YmgRhnqUoHS9HSEUd8N59oP4zrpuy',
+    beneficiary: 'A6APsTFJZH7jcn3YmgRhnqUoHS9HSEUd8N59oP4zrpuy',
+    mint: 'So11111111111111111111111111111111111111112',
+    cliffVestAmount: '0',
+    cliffVestPercent: 0,
+    allocationAssigned: '1000000',
+    rateAmount: '1000',
+    rateIntervalInSeconds: 1,
+    totalWithdrawalsAmount: '0',
+    fundsLeftInStream: '1000000',
+    fundsSentToBeneficiary: '0',
+    remainingAllocationAmount: '1000000',
+    withdrawableAmount: '0',
+    streamUnitsPerSecond: 1000,
+    isManuallyPaused: 'false',
+    status: 1,
+    tokenFeePayedFromAccount: false,
+    createdOnUtc: 'Fri Dec 09 2022 15:15:19 GMT+0100 (Central European Standard Time)'
+  }
 ```
 
 ### Full example
