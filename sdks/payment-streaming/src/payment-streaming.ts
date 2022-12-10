@@ -423,9 +423,11 @@ export class PaymentStreaming {
       psAccountToken: psAccountToken,
     } = await instructions.buildCreateAccountInstruction(
       this.program,
-      owner,
-      owner,
-      mint,
+      {
+        owner,
+        feePayer,
+        mint,
+      },
       streamName ? `${streamName} (account)` : streamName,
       AccountType.Open,
       true,
@@ -437,13 +439,15 @@ export class PaymentStreaming {
     const { instruction: addFundsIx, feeAccountToken } =
       await instructions.buildAddFundsInstruction(
         this.program,
-        psAccount,
-        mint,
-        owner,
-        owner,
+        {
+          psAccount,
+          psAccountMint: mint,
+          contributor: owner,
+          feePayer: owner,
+          psAccountToken,
+          contributorToken: ownerToken,
+        },
         new BN(amount),
-        psAccountToken,
-        ownerToken,
       );
     ixs.push(addFundsIx);
 
@@ -459,11 +463,13 @@ export class PaymentStreaming {
       streamKey,
     } = await instructions.buildCreateStreamInstruction(
       this.program,
-      psAccount,
-      mint,
-      owner,
-      owner,
-      beneficiary,
+      {
+        psAccount,
+        psAccountMint: mint,
+        owner,
+        feePayer,
+        beneficiary,
+      },
       streamName ?? '',
       new BN(0),
       new BN(0),
@@ -533,13 +539,15 @@ export class PaymentStreaming {
     // Add create PS account instruction
     const {
       instruction: createAccountIx,
-      psAccount: psAccount,
-      psAccountToken: psAccountToken,
+      psAccount,
+      psAccountToken,
     } = await instructions.buildCreateAccountInstruction(
       this.program,
-      owner,
-      owner,
-      mint,
+      {
+        owner,
+        feePayer,
+        mint,
+      },
       streamName ? `${streamName} (account)` : streamName,
       AccountType.Open,
       true,
@@ -569,15 +577,17 @@ export class PaymentStreaming {
     );
 
     // add AddFunds instruction
-    const { instruction: addFundsIx, feeAccountToken } =
+    const { instruction: addFundsIx } =
       await instructions.buildAddFundsInstruction(
         this.program,
-        psAccount,
-        mint,
-        owner,
-        owner,
+        {
+          psAccount,
+          psAccountMint: mint,
+          psAccountToken,
+          contributor: owner,
+          feePayer,
+        },
         new BN(allocationAssigned),
-        psAccountToken,
       );
     ixs.push(addFundsIx);
 
@@ -591,11 +601,13 @@ export class PaymentStreaming {
       streamKey,
     } = await instructions.buildCreateStreamInstruction(
       this.program,
-      psAccount,
-      mint,
-      owner,
-      owner,
-      beneficiary,
+      {
+        psAccount,
+        psAccountMint: mint,
+        owner,
+        beneficiary,
+        feePayer,
+      },
       streamName ?? '',
       new BN(startUtcInSeconds),
       new BN(rateAmount),
@@ -652,9 +664,11 @@ export class PaymentStreaming {
       psAccountToken,
     } = await instructions.buildCreateAccountInstruction(
       this.program,
-      owner,
-      feePayer,
-      mint,
+      {
+        owner,
+        feePayer,
+        mint,
+      },
       name || '',
       type,
       false,
@@ -742,11 +756,7 @@ export class PaymentStreaming {
       stream,
     } = await instructions.buildCreateStreamInstruction(
       this.program,
-      psAccount,
-      psAccountMint,
-      owner,
-      feePayer,
-      beneficiary,
+      { psAccount, psAccountMint, owner, feePayer, beneficiary },
       streamName,
       new BN(rateAmount),
       new BN(rateIntervalInSeconds),
@@ -847,9 +857,7 @@ export class PaymentStreaming {
       template,
     } = await instructions.buildCreateAccountAndTemplateInstruction(
       this.program,
-      owner,
-      feePayer,
-      mint,
+      { owner, mint, feePayer },
       name,
       type,
       solFeePayedFromAccount,
@@ -892,13 +900,15 @@ export class PaymentStreaming {
       const { instruction: addFundsToVestingAccountIx } =
         await instructions.buildAddFundsInstruction(
           this.program,
-          psAccount,
-          mint,
-          owner,
-          feePayer,
+          {
+            psAccount,
+            psAccountToken,
+            psAccountMint: mint,
+            contributor: owner,
+            contributorToken: ownerToken,
+            feePayer,
+          },
           fundingAmountBN,
-          psAccountToken,
-          ownerToken,
         );
       ixs.push(addFundsToVestingAccountIx);
     }
@@ -918,7 +928,7 @@ export class PaymentStreaming {
    */
   public async buildUpdateVestingAccountTemplate(
     owner: PublicKey,
-    payer: PublicKey,
+    feePayer: PublicKey,
     vestingAccount: PublicKey,
     numberOfIntervals?: number,
     intervalUnit?: TimeUnit,
@@ -985,10 +995,7 @@ export class PaymentStreaming {
     const { instruction: updateTemplateInstruction } =
       await instructions.buildUpdateStreamTemplateInstruction(
         this.program,
-        vestingAccount,
-        template,
-        owner,
-        payer,
+        { psAccount: vestingAccount, template, owner, feePayer },
         new BN(newRateIntervalInSeconds),
         new BN(newNumberOfIntervals),
         new BN(newStartTs),
@@ -996,7 +1003,10 @@ export class PaymentStreaming {
         newTokenFeePayedFromVestingAccount,
       );
 
-    const tx = await this.createTransaction([updateTemplateInstruction], payer);
+    const tx = await this.createTransaction(
+      [updateTemplateInstruction],
+      feePayer,
+    );
     return { transaction: tx };
   }
 
@@ -1165,12 +1175,14 @@ export class PaymentStreaming {
       stream,
     } = await instructions.buildCreateStreamWithTemplateInstruction(
       this.program,
-      vestingAccount,
-      psAccountMint,
-      template,
-      owner,
-      feePayer,
-      beneficiary,
+      {
+        psAccount: vestingAccount,
+        psAccountMint,
+        template,
+        owner,
+        feePayer,
+        beneficiary,
+      },
       new BN(allocationAssigned),
       streamName,
       usePda,
@@ -1257,13 +1269,15 @@ export class PaymentStreaming {
     const { instruction: createAddFundsInstruction } =
       await instructions.buildAddFundsInstruction(
         this.program,
-        psAccount,
-        psAccountMint,
-        contributor,
-        feePayer,
+        {
+          psAccount,
+          psAccountMint,
+          psAccountToken,
+          contributor,
+          contributorToken,
+          feePayer,
+        },
         new BN(amount),
-        psAccountToken,
-        contributorToken,
       );
     ixs.push(createAddFundsInstruction);
 
@@ -1325,13 +1339,15 @@ export class PaymentStreaming {
     const { instruction: allocateFundsToStreamInstruction } =
       await instructions.buildAllocateFundsToStreamInstruction(
         this.program,
-        psAccount,
-        psAccountInfo.mint,
-        owner,
-        feePayer,
-        stream,
+        {
+          psAccount,
+          psAccountMint: psAccountInfo.mint,
+          psAccountToken,
+          owner,
+          feePayer,
+          stream,
+        },
         new BN(amount),
-        psAccountToken,
       );
 
     const tx = await this.createTransaction(
@@ -1413,13 +1429,14 @@ export class PaymentStreaming {
     const { instruction: addFundsInstruction, psAccountToken } =
       await instructions.buildAddFundsInstruction(
         this.program,
-        psAccount,
-        psAccountInfo.mint,
-        owner,
-        feePayer,
+        {
+          psAccount,
+          psAccountMint: psAccountInfo.mint,
+          contributor: owner,
+          contributorToken: ownerToken,
+          feePayer,
+        },
         new BN(amount),
-        undefined,
-        ownerToken,
       );
     ixs.push(addFundsInstruction);
 
@@ -1438,13 +1455,15 @@ export class PaymentStreaming {
     const { instruction: allocateInstruction } =
       await instructions.buildAllocateFundsToStreamInstruction(
         this.program,
-        psAccount,
-        psAccountInfo.mint,
-        owner,
-        feePayer,
-        stream,
+        {
+          psAccount,
+          psAccountMint: psAccountInfo.mint,
+          psAccountToken,
+          owner,
+          feePayer,
+          stream,
+        },
         allocationAmountBn,
-        psAccountToken,
       );
     ixs.push(allocateInstruction);
 
@@ -1488,11 +1507,13 @@ export class PaymentStreaming {
     const { instruction: withdrawFromAccountInstruction, destinationToken } =
       await instructions.buildWithdrawFromAccountInstruction(
         this.program,
-        psAccount,
-        psAccountInfo.mint,
-        psAccountInfo.owner,
-        feePayer,
-        destination,
+        {
+          psAccount,
+          psAccountMint: psAccountInfo.mint,
+          owner: psAccountInfo.owner,
+          feePayer,
+          destination,
+        },
         amountBn,
       );
     ixs.push(withdrawFromAccountInstruction);
@@ -1529,11 +1550,10 @@ export class PaymentStreaming {
     }
 
     const { instruction: refreshAccountDataInstruction } =
-      await instructions.buildRefreshAccountDataInstruction(
-        this.program,
+      await instructions.buildRefreshAccountDataInstruction(this.program, {
         psAccount,
-        psAccountInfo.mint,
-      );
+        psAccountMint: psAccountInfo.mint,
+      });
 
     const tx = await this.createTransaction(
       [refreshAccountDataInstruction],
@@ -1582,14 +1602,13 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
 
     const { instruction: closeAccountInstruction } =
-      await instructions.buildCloseFromAccountInstruction(
-        this.program,
+      await instructions.buildCloseFromAccountInstruction(this.program, {
         psAccount,
         psAccountMint,
-        psAccountInfo.owner,
+        owner: psAccountInfo.owner,
         feePayer,
         destination,
-      );
+      });
     ixs.push(closeAccountInstruction);
 
     if (
@@ -1663,13 +1682,15 @@ export class PaymentStreaming {
     const { instruction: withdrawFromStreamInstruction } =
       await instructions.buildWithdrawFromStreamInstruction(
         this.program,
-        psAccount,
-        psAccountMint,
-        stream,
-        beneficiary,
-        feePayer,
+        {
+          psAccount,
+          psAccountMint,
+          stream,
+          beneficiary,
+          beneficiaryToken,
+          feePayer,
+        },
         new BN(amount),
-        beneficiaryToken,
       );
     ixs.push(withdrawFromStreamInstruction);
 
@@ -1718,12 +1739,11 @@ export class PaymentStreaming {
     }
 
     const { instruction: pauseStreamInstruction } =
-      await instructions.buildPauseStreamInstruction(
-        this.program,
+      await instructions.buildPauseStreamInstruction(this.program, {
         psAccount,
         owner,
         stream,
-      );
+      });
 
     const tx = await this.createTransaction([pauseStreamInstruction], feePayer);
     return {
@@ -1758,12 +1778,11 @@ export class PaymentStreaming {
     }
 
     const { instruction: resumeStreamInstruction } =
-      await instructions.buildResumeStreamInstruction(
-        this.program,
+      await instructions.buildResumeStreamInstruction(this.program, {
         psAccount,
         owner,
         stream,
-      );
+      });
 
     const tx = await this.createTransaction(
       [resumeStreamInstruction],
@@ -1801,12 +1820,11 @@ export class PaymentStreaming {
     }
 
     const { instruction: transferStreamInstruction } =
-      await instructions.buildTransferStreamInstruction(
-        this.program,
+      await instructions.buildTransferStreamInstruction(this.program, {
         stream,
         beneficiary,
         newBeneficiary,
-      );
+      });
 
     const tx = await this.createTransaction(
       [transferStreamInstruction],
@@ -1858,27 +1876,25 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
 
     const { instruction: closeStreamInstruction } =
-      await instructions.buildCloseStreamInstruction(
-        this.program,
+      await instructions.buildCloseStreamInstruction(this.program, {
         psAccount,
         psAccountMint,
         owner,
         stream,
         beneficiary,
         feePayer,
-      );
+      });
     ixs.push(closeStreamInstruction);
 
     if (autoCloseAccount && destination) {
       const { instruction: closeAccountInstruction, destinationToken } =
-        await instructions.buildCloseFromAccountInstruction(
-          this.program,
+        await instructions.buildCloseFromAccountInstruction(this.program, {
           psAccount,
           psAccountMint,
           owner,
           feePayer,
           destination,
-        );
+        });
       ixs.push(closeAccountInstruction);
 
       // unwrap all on exit and only if destination is also a signer

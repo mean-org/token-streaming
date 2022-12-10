@@ -1,6 +1,4 @@
 import { BN, Program, utils } from '@project-serum/anchor';
-import { program } from '@project-serum/anchor/dist/cjs/spl/token';
-import { token } from '@project-serum/anchor/dist/cjs/utils';
 import { Token } from '@solana/spl-token';
 import {
   PublicKey,
@@ -20,6 +18,23 @@ import {
 import { Msp as Ps } from './msp_idl_005';
 import { Category, AccountType, SubCategory } from './types';
 
+export type CreateAccountInstructionAccounts = {
+  /**
+   * Owner of the new account
+   */
+  owner: PublicKey;
+
+  /**
+   * Account paying for rent and protocol SOL fees
+   */
+  feePayer: PublicKey;
+
+  /**
+   * Mint that will be streamed out of this account
+   */
+  mint: PublicKey;
+};
+
 export type CreateAccountInstructionResult = {
   readonly instruction: TransactionInstruction;
   readonly psAccount: PublicKey;
@@ -27,12 +42,10 @@ export type CreateAccountInstructionResult = {
 };
 
 /**
- * Constructs a CreateAccount instruction
+ * Constructs a CreateAccount instruction.
  *
  * @param program - Anchor program created from the PS program IDL
- * @param owner - Owner of the new account
- * @param feePayer - Account paying rent and protocol SOL fees
- * @param mint - Mint that will be streamed out of this account
+ * @param accounts - Instruction accounts
  * @param name - Name for the new account
  * @param type - Either Open or Lock. Under locked accounts, once a stream
  * starts it cannot be paused or closed, they will run until out of funds
@@ -45,9 +58,7 @@ export type CreateAccountInstructionResult = {
  */
 export async function buildCreateAccountInstruction(
   program: Program<Ps>,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  mint: PublicKey,
+  { owner, mint, feePayer }: CreateAccountInstructionAccounts,
   name: string | undefined,
   type: AccountType,
   autoClose: boolean,
@@ -105,6 +116,43 @@ export async function buildCreateAccountInstruction(
   };
 }
 
+export type CreateAddFundsInstructionAccounts = {
+  /**
+   * The PS account to add funds to
+   */
+  psAccount: PublicKey;
+
+  /**
+   * The PS account ATA where funds will be deposited
+   */
+  psAccountToken?: PublicKey;
+
+  /**
+   * Mint of the PS account
+   */
+  psAccountMint: PublicKey;
+
+  /**
+   * The account providing the funds
+   */
+  contributor: PublicKey;
+
+  /**
+   * The contributor ATA
+   */
+  contributorToken?: PublicKey;
+
+  /**
+   * Account paying for rent and protocol SOL fees
+   */
+  feePayer: PublicKey;
+
+  /**
+   * The fee account ATA
+   */
+  feeAccountToken?: PublicKey;
+};
+
 export type CreateAddFundsInstructionResult = {
   readonly instruction: TransactionInstruction;
   readonly psAccountToken: PublicKey;
@@ -113,28 +161,24 @@ export type CreateAddFundsInstructionResult = {
 };
 
 /**
- * Constructs an AddFunds instruction
+ * Constructs an AddFunds instruction.
  *
  * @param program - Anchor program created from the PS program IDL
- * @param psAccount - The PS account to add funds to
- * @param psAccountMint - Mint of the PS account
- * @param contributor - The account providing the funds
- * @param feePayer - Account paying rent and protocol SOL fees
+ * @param accounts - Instruction accounts
  * @param amount - Token amount to add
- * @param psAccountToken - The PS account ATA where funds will be deposited
- * @param contributorToken - The contributor ATA
- * @param feeAccountToken - The fee account ATA
  */
 export async function buildAddFundsInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  contributor: PublicKey,
-  feePayer: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    psAccountToken,
+    contributor,
+    contributorToken,
+    feePayer,
+    feeAccountToken,
+  }: CreateAddFundsInstructionAccounts,
   amount: BN,
-  psAccountToken?: PublicKey,
-  contributorToken?: PublicKey,
-  feeAccountToken?: PublicKey,
 ): Promise<CreateAddFundsInstructionResult> {
   if (!psAccountToken) {
     psAccountToken = await Token.getAssociatedTokenAddress(
@@ -156,11 +200,13 @@ export async function buildAddFundsInstruction(
     );
   }
 
-  feeAccountToken = await getAssociatedToken(
-    feeAccountToken,
-    psAccountMint,
-    FEE_ACCOUNT,
-  );
+  if (!feeAccountToken) {
+    feeAccountToken = await getAssociatedToken(
+      feeAccountToken,
+      psAccountMint,
+      FEE_ACCOUNT,
+    );
+  }
 
   const instruction = await program.methods
     .addFunds(LATEST_IDL_FILE_VERSION, amount)
@@ -188,6 +234,43 @@ export async function buildAddFundsInstruction(
   };
 }
 
+export type CreateStreamInstructionAccounts = {
+  /**
+   * The PS account under the new stream will be created
+   */
+  psAccount: PublicKey;
+
+  /**
+   * Mint of the PS account
+   */
+  psAccountMint: PublicKey;
+
+  /**
+   * Owner of the PS account
+   */
+  owner: PublicKey;
+
+  /**
+   * Account paying for rent and protocol SOL fees
+   */
+  feePayer: PublicKey;
+
+  /**
+   * Destination account authorized to withdraw streamed tokens
+   */
+  beneficiary: PublicKey;
+
+  /**
+   * The PS account ATA where funds will be deposited
+   */
+  psAccountToken?: PublicKey;
+
+  /**
+   *  The fee account ATA
+   */
+  feeAccountToken?: PublicKey;
+};
+
 export type CreateStreamInstructionResult = {
   readonly instruction: TransactionInstruction;
   readonly stream: PublicKey;
@@ -198,15 +281,10 @@ export type CreateStreamInstructionResult = {
 };
 
 /**
- * Constructs a crate stream instruction
+ * Constructs a crate stream instruction.
  *
  * @param program - Anchor program created from the PS program IDL
- * @param psAccount - The PS account under the new stream will be created
- * @param psAccountMint - Mint of the PS account
- * @param owner - Owner of the PS account
- * @param feePayer - Account paying rent and protocol SOL fees
- * @param beneficiary - Destination account authorized to withdraw streamed
- * tokens
+ * @param accounts - Instruction accounts
  * @param name - A name for the new stream
  * @param rateAmount - Token amount that will be streamed in every
  * {@link rateIntervalInSeconds} period
@@ -216,7 +294,7 @@ export type CreateStreamInstructionResult = {
  * out of the containing PS account's unallocated balance
  * @param startTs - Unix timestamp when the stream will start
  * @param cliffVestAmount - Token amount that is immediatelly withdrawable
- *  by the {@link beneficiary} as soon as the stream starts. When
+ *  by the beneficiary as soon as the stream starts. When
  * {@link cliffVestPercent} is greater than zero, this value will be ignored
  * @param cliffVestPercent - Percentage of {@link allocationAssigned} that is
  * immediatelly withdrawable by the {@link beneficiary} as soon as the
@@ -229,16 +307,18 @@ export type CreateStreamInstructionResult = {
  * at withdraw time
  * @param usePda - If true, the new stream will be created at an address
  * derived from the program
- * @param psAccountToken - The PS account ATA where funds will be deposited
- * @param feeAccountToken - The fee account ATA
  */
 export async function buildCreateStreamInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  beneficiary: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    psAccountToken,
+    owner,
+    beneficiary,
+    feePayer,
+    feeAccountToken,
+  }: CreateStreamInstructionAccounts,
   name: string,
   rateAmount: BN,
   rateIntervalInSeconds: BN,
@@ -248,8 +328,6 @@ export async function buildCreateStreamInstruction(
   cliffVestPercent: BN,
   tokenFeePayedFromAccount: boolean,
   usePda: boolean,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
 ): Promise<CreateStreamInstructionResult> {
   if (!psAccountToken) {
     psAccountToken = await Token.getAssociatedTokenAddress(
@@ -355,6 +433,23 @@ export async function buildCreateStreamInstruction(
   };
 }
 
+export type CreateAccountAndTemplateInstructionAccounts = {
+  /**
+   * Owner of the new account
+   */
+  owner: PublicKey;
+
+  /**
+   * Mint that will be streamed out of this account
+   */
+  mint: PublicKey;
+
+  /**
+   * Account paying for rent and protocol SOL fees
+   */
+  feePayer: PublicKey;
+};
+
 export type CreateAccountAndTemplateInstructionResult = {
   readonly instruction: TransactionInstruction;
   readonly psAccount: PublicKey;
@@ -367,9 +462,7 @@ export type CreateAccountAndTemplateInstructionResult = {
  * configuration account (template) for creating streams.
  *
  * @param program - Anchor program created from the PS program IDL
- * @param owner - Owner of the new account
- * @param feePayer - Account paying rent and protocol SOL fees
- * @param mint - Mint that will be streamed out of this account
+ * @param accounts - Instruction accounts
  * @param name - Name for the new account
  * @param type - Either Open or Lock. Under locked accounts, once a stream
  * starts it cannot be paused or closed, they will run until out of funds
@@ -397,9 +490,7 @@ export type CreateAccountAndTemplateInstructionResult = {
  */
 export async function buildCreateAccountAndTemplateInstruction(
   program: Program<Ps>,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  mint: PublicKey,
+  { owner, mint, feePayer }: CreateAccountAndTemplateInstructionAccounts,
   name: string | undefined,
   type: AccountType,
   solFeePayedFromAccount: boolean,
@@ -474,18 +565,37 @@ export async function buildCreateAccountAndTemplateInstruction(
   };
 }
 
+export type UpdateStreamTemplateInstructionAccounts = {
+  /**
+   * The PS account to add funds to
+   */
+  psAccount: PublicKey;
+
+  /**
+   * The stream template to be updated
+   */
+  template: PublicKey;
+
+  /**
+   * Owner of the new account
+   */
+  owner: PublicKey;
+
+  /**
+   * Account paying for rent and protocol SOL fees
+   */
+  feePayer: PublicKey;
+};
+
 export type UpdateStreamTemplateInstructionResult = {
   readonly instruction: TransactionInstruction;
 };
 
 /**
- * Constructs an instruction to update a stream template
+ * Constructs an instruction to update a stream template.
  *
  * @param program - Anchor program created from the PS program IDL
- * @param psAccount - The PS account to add funds to
- * @param template - The stream template to be updated
- * @param owner - Owner of the new account
- * @param feePayer - Account paying rent and protocol SOL fees
+ * @param accounts - Instruction accounts
  * @param newRateIntervalInSeconds
  * @param newNumberOfIntervals
  * @param newStartTs
@@ -494,10 +604,12 @@ export type UpdateStreamTemplateInstructionResult = {
  */
 export async function buildUpdateStreamTemplateInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  template: PublicKey,
-  owner: PublicKey,
-  feePayer: PublicKey,
+  {
+    psAccount,
+    template,
+    owner,
+    feePayer,
+  }: UpdateStreamTemplateInstructionAccounts,
   newRateIntervalInSeconds: BN,
   newNumberOfIntervals: BN,
   newStartTs: BN,
@@ -526,6 +638,13 @@ export async function buildUpdateStreamTemplateInstruction(
   };
 }
 
+export type CreateStreamWithTemplateInstructionAccounts = {
+  /**
+   * Template account with the configuration for new streams
+   */
+  template: PublicKey;
+} & CreateStreamInstructionAccounts;
+
 /**
  * Constructs a crate stream instruction using the configuration
  * from a template account. This is similar to
@@ -534,34 +653,28 @@ export async function buildUpdateStreamTemplateInstruction(
  * is taken from the template.
  *
  * @param program - Anchor program created from the PS program IDL
- * @param psAccount - The PS account under the new stream will be created
- * @param psAccountMint - Mint of the PS account
- * @param template - Template account with the configuration for new streams
- * @param owner - Owner of the PS account
- * @param feePayer - Account paying rent and protocol SOL fees
- * @param beneficiary - Destination account authorized to withdraw streamed
- * tokens
+ * @param accounts - Instruction accounts
  * @param allocationAssigned - Total token amount allocated to the new stream
  * out of the containing PS account's unallocated balance
  * @param name - A name for the new stream
  * @param usePda - If true, the new stream will be created at an address
  * derived from the program
- * @param psAccountToken - The PS account ATA where funds will be deposited
- * @param feeAccountToken - The fee account ATA
  */
 export async function buildCreateStreamWithTemplateInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  template: PublicKey,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  beneficiary: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    psAccountToken,
+    template,
+    owner,
+    feePayer,
+    beneficiary,
+    feeAccountToken,
+  }: CreateStreamWithTemplateInstructionAccounts,
   allocationAssigned: BN,
   name: string,
   usePda: boolean,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
 ): Promise<CreateStreamInstructionResult> {
   if (!psAccountToken) {
     psAccountToken = await Token.getAssociatedTokenAddress(
@@ -656,33 +769,40 @@ export async function buildCreateStreamWithTemplateInstruction(
   };
 }
 
+export type AllocateFundsToStreamInstructionAccounts = {
+  psAccount: PublicKey;
+  psAccountMint: PublicKey;
+  owner: PublicKey;
+  feePayer: PublicKey;
+  stream: PublicKey;
+  psAccountToken?: PublicKey;
+  feeAccountToken?: PublicKey;
+};
+
 export type AllocateFundsToStreamInstructionResult = {
   instruction: TransactionInstruction;
 };
 
 /**
- * Constructs an Allocate instruction
+ * Constructs an Allocate instruction.
  *
- * @param program
- * @param psAccount
- * @param psAccountMint
- * @param owner
- * @param feePayer
- * @param stream
- * @param amount
- * @param psAccountToken
- * @param feeAccountToken
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
+ * @param amount - Token amount to allocate out of the containing PS account
+ * unallocated balance.
  */
 export async function buildAllocateFundsToStreamInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  stream: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    owner,
+    feePayer,
+    stream,
+    psAccountToken,
+    feeAccountToken,
+  }: AllocateFundsToStreamInstructionAccounts,
   amount: BN,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
 ): Promise<AllocateFundsToStreamInstructionResult> {
   psAccountToken = await getAssociatedToken(
     psAccountToken,
@@ -719,6 +839,17 @@ export async function buildAllocateFundsToStreamInstruction(
   };
 }
 
+export type WithdrawFromAccountInstructionAccounts = {
+  psAccount: PublicKey;
+  psAccountMint: PublicKey;
+  owner: PublicKey;
+  feePayer: PublicKey;
+  destination: PublicKey;
+  destinationToken?: PublicKey;
+  psAccountToken?: PublicKey;
+  feeAccountToken?: PublicKey;
+};
+
 export type WithdrawFromAccountInstructionResult = {
   instruction: TransactionInstruction;
   destinationToken: PublicKey;
@@ -727,30 +858,25 @@ export type WithdrawFromAccountInstructionResult = {
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param psAccountMint
- * @param owner
- * @param feePayer
- * @param destination
- * @param amount
- * @param destinationToken
- * @param psAccountToken
- * @param feeAccountToken
- * @returns
+ * Constructs an instruction to withdraw funs from a Payment Streaing account.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
+ * @param amount - Token amount to withdraw
  */
 export async function buildWithdrawFromAccountInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  destination: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    owner,
+    feePayer,
+    destination,
+    destinationToken,
+    psAccountToken,
+    feeAccountToken,
+  }: WithdrawFromAccountInstructionAccounts,
   amount: BN,
-  destinationToken?: PublicKey,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
 ): Promise<WithdrawFromAccountInstructionResult> {
   destinationToken = await getAssociatedToken(
     destinationToken,
@@ -797,24 +923,32 @@ export async function buildWithdrawFromAccountInstruction(
   };
 }
 
+export type RefreshAccountDataInstructionAccounts = {
+  psAccount: PublicKey;
+  psAccountMint: PublicKey;
+  psAccountToken?: PublicKey;
+};
+
 export type RefreshAccountDataInstructionResult = {
   instruction: TransactionInstruction;
   psAccountToken: PublicKey;
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param psAccountMint
- * @param psAccountToken
- * @returns
+ * Constructs an instruction to refresh a Payment Streaming account after
+ * funds are sent to it from outside of the program, i.e. using the
+ * Token program directly.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  */
 export async function buildRefreshAccountDataInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  psAccountToken?: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    psAccountToken,
+  }: RefreshAccountDataInstructionAccounts,
 ): Promise<RefreshAccountDataInstructionResult> {
   psAccountToken = await getAssociatedToken(
     psAccountToken,
@@ -837,6 +971,17 @@ export async function buildRefreshAccountDataInstruction(
   };
 }
 
+export type CloseAccountInstructionAccounts = {
+  psAccount: PublicKey;
+  psAccountMint: PublicKey;
+  owner: PublicKey;
+  feePayer: PublicKey;
+  destination: PublicKey;
+  destinationToken?: PublicKey;
+  psAccountToken?: PublicKey;
+  feeAccountToken?: PublicKey;
+};
+
 export type CloseAccountInstructionResult = {
   instruction: TransactionInstruction;
   destinationToken: PublicKey;
@@ -845,28 +990,23 @@ export type CloseAccountInstructionResult = {
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param psAccountMint
- * @param owner
- * @param feePayer
- * @param destination
- * @param destinationToken
- * @param psAccountToken
- * @param feeAccountToken
- * @returns
+ * Constructs an instruction to close a Payment Streaming account.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  */
 export async function buildCloseFromAccountInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  owner: PublicKey,
-  feePayer: PublicKey,
-  destination: PublicKey,
-  destinationToken?: PublicKey,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    owner,
+    feePayer,
+    destination,
+    destinationToken,
+    psAccountToken,
+    feeAccountToken,
+  }: CloseAccountInstructionAccounts,
 ): Promise<CloseAccountInstructionResult> {
   destinationToken = await getAssociatedToken(
     destinationToken,
@@ -913,6 +1053,17 @@ export async function buildCloseFromAccountInstruction(
   };
 }
 
+export type WithdrawFromStreamInstructionAccounts = {
+  psAccount: PublicKey;
+  psAccountMint: PublicKey;
+  stream: PublicKey;
+  beneficiary: PublicKey;
+  feePayer: PublicKey;
+  beneficiaryToken?: PublicKey;
+  psAccountToken?: PublicKey;
+  feeAccountToken?: PublicKey;
+};
+
 export type WithdrawFromStreamInstructionResult = {
   instruction: TransactionInstruction;
   beneficiaryToken: PublicKey;
@@ -921,30 +1072,25 @@ export type WithdrawFromStreamInstructionResult = {
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param psAccountMint
- * @param stream
- * @param beneficiary
- * @param feePayer
+ * Constructs an instruction to withdraw funs from a stream.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  * @param amount
- * @param beneficiaryToken
- * @param psAccountToken
- * @param feeAccountToken
- * @returns
  */
 export async function buildWithdrawFromStreamInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  stream: PublicKey,
-  beneficiary: PublicKey,
-  feePayer: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    stream,
+    beneficiary,
+    feePayer,
+    beneficiaryToken,
+    psAccountToken,
+    feeAccountToken,
+  }: WithdrawFromStreamInstructionAccounts,
   amount: BN,
-  beneficiaryToken?: PublicKey,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
 ): Promise<WithdrawFromStreamInstructionResult> {
   beneficiaryToken = await getAssociatedToken(
     beneficiaryToken,
@@ -991,22 +1137,25 @@ export async function buildWithdrawFromStreamInstruction(
   };
 }
 
+export type PauseOrResumeStreamInstructionAccounts = {
+  psAccount: PublicKey;
+  owner: PublicKey;
+  stream: PublicKey;
+};
+
 export type PauseStreamInstructionResult = {
   instruction: TransactionInstruction;
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param stream
- * @param owner
+ * Constructs an instruction to pause a running stream.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  */
 export async function buildPauseStreamInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  owner: PublicKey,
-  stream: PublicKey,
+  { psAccount, owner, stream }: PauseOrResumeStreamInstructionAccounts,
 ): Promise<PauseStreamInstructionResult> {
   const instruction = await program.methods
     .pauseStream(LATEST_IDL_FILE_VERSION)
@@ -1027,17 +1176,14 @@ export type ResumeStreamInstructionResult = {
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param stream
- * @param owner
+ * Constructs an instruction to resume a paused stream.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  */
 export async function buildResumeStreamInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  owner: PublicKey,
-  stream: PublicKey,
+  { psAccount, owner, stream }: PauseOrResumeStreamInstructionAccounts,
 ): Promise<ResumeStreamInstructionResult> {
   const instruction = await program.methods
     .resumeStream(LATEST_IDL_FILE_VERSION)
@@ -1053,22 +1199,25 @@ export async function buildResumeStreamInstruction(
   };
 }
 
+export type TansferStreamInstructionAccounts = {
+  stream: PublicKey;
+  beneficiary: PublicKey;
+  newBeneficiary: PublicKey;
+};
+
 export type TansferStreamInstructionResult = {
   instruction: TransactionInstruction;
 };
 
 /**
- * TODO
- * @param program
- * @param stream
- * @param beneficiary
- * @param newBeneficiary
+ * Constructs an instruction to transfer a stream to a new beneficiary.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  */
 export async function buildTransferStreamInstruction(
   program: Program<Ps>,
-  stream: PublicKey,
-  beneficiary: PublicKey,
-  newBeneficiary: PublicKey,
+  { stream, beneficiary, newBeneficiary }: TansferStreamInstructionAccounts,
 ): Promise<ResumeStreamInstructionResult> {
   const instruction = await program.methods
     .transferStream(LATEST_IDL_FILE_VERSION, newBeneficiary)
@@ -1085,6 +1234,18 @@ export async function buildTransferStreamInstruction(
   };
 }
 
+export type CloseStreamInstructionAccounts = {
+  psAccount: PublicKey;
+  psAccountMint: PublicKey;
+  owner: PublicKey;
+  stream: PublicKey;
+  beneficiary: PublicKey;
+  feePayer: PublicKey;
+  beneficiaryToken?: PublicKey;
+  psAccountToken?: PublicKey;
+  feeAccountToken?: PublicKey;
+};
+
 export type CloseStreamInstructionResult = {
   instruction: TransactionInstruction;
   beneficiaryToken: PublicKey;
@@ -1093,30 +1254,24 @@ export type CloseStreamInstructionResult = {
 };
 
 /**
- * TODO
- * @param program
- * @param psAccount
- * @param psAccountMint
- * @param owner
- * @param stream
- * @param beneficiary
- * @param feePayer
- * @param beneficiaryToken
- * @param psAccountToken
- * @param feeAccountToken
- * @returns
+ * Constructs an instruction to close a stream.
+ *
+ * @param program - Anchor program created from the PS program IDL
+ * @param accounts - Instruction accounts
  */
 export async function buildCloseStreamInstruction(
   program: Program<Ps>,
-  psAccount: PublicKey,
-  psAccountMint: PublicKey,
-  owner: PublicKey,
-  stream: PublicKey,
-  beneficiary: PublicKey,
-  feePayer: PublicKey,
-  beneficiaryToken?: PublicKey,
-  psAccountToken?: PublicKey,
-  feeAccountToken?: PublicKey,
+  {
+    psAccount,
+    psAccountMint,
+    owner,
+    stream,
+    beneficiary,
+    feePayer,
+    beneficiaryToken,
+    psAccountToken,
+    feeAccountToken,
+  }: CloseStreamInstructionAccounts,
 ): Promise<CloseStreamInstructionResult> {
   beneficiaryToken = await getAssociatedToken(
     beneficiaryToken,
@@ -1197,7 +1352,7 @@ async function getAssociatedToken(
   if (associatedToken) {
     return associatedToken;
   }
-  return await Token.getAssociatedTokenAddress(
+  return Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
     mint,
