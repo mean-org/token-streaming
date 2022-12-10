@@ -1431,7 +1431,7 @@ export class MSP {
 
   /**
    * Creates a vesting stream based on the vesting contract template
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildCreateVestingStreamWithTemplateTransaction` instead.
+   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildCreateVestingStreamTransaction` instead.
    * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer

@@ -450,6 +450,39 @@ export type CreateAccountAndTemplateInstructionAccounts = {
   feePayer: PublicKey;
 };
 
+export type StreamTemplateOptions = {
+  /** Period of time in seconds in which the rate amount will be streamed
+   * progressively second by second. When a stream is created using this
+   * template, the allocation asigned to the stream will be provided. Then the
+   * rate amount will be calculated as
+   * `(allocationAssigned - cliff) / numberOfIntervals`
+   */
+  rateIntervalInSeconds: BN;
+
+  /**
+   * Number of intervals of duration {@link rateIntervalInSeconds} in which
+   * the allocation assigned will be streamed
+   */
+  numberOfIntervals: BN;
+
+  /** Unix timestamp when the stream will start */
+  startTs: BN;
+
+  /**
+   * Percentage of allocation assigned that is immediatelly withdrawable by
+   * the beneficiary as soon as a stream created with this template starts.
+   * This value will be provided in a range from 0 (0%) to 1_000_000 (100%)
+   */
+  cliffVestPercent: BN;
+
+  /**
+   * If true, the protocol token fees will be paid from PS account ATA and
+   * deposited upfront during stream creation or allocation. If false, 
+   * the beneficiary will pay for token fees at withdraw time
+   */
+  tokenFeePayedFromAccount: boolean;
+};
+
 export type CreateAccountAndTemplateInstructionResult = {
   readonly instruction: TransactionInstruction;
   readonly psAccount: PublicKey;
@@ -463,44 +496,30 @@ export type CreateAccountAndTemplateInstructionResult = {
  *
  * @param program - Anchor program created from the PS program IDL
  * @param accounts - Instruction accounts
- * @param name - Name for the new account
- * @param type - Either Open or Lock. Under locked accounts, once a stream
+ * @param accountName - Name for the new account
+ * @param accountType - Either Open or Lock. Under locked accounts, once a stream
  * starts it cannot be paused or closed, they will run until out of funds
  * @param solFeePayedFromAccount - If true, protocol SOL fees will be payed
  * from the newly created account, otherwise from the {@link feePayer} account
+ * @param streamTemplateOptions - Parameters for the stream template account
  * @param category - Category of the new account
  * @param subCategory  - Subcategory of the new account
- * @param rateIntervalInSeconds - Period of time in seconds in which the
- * rate amount will be streamed progressively second by second. When a stream
- * is created using this template, the allocation asigned to the stream will
- * be provided. Then the rate amount will be calculated as
- * `(allocationAssigned - cliff) / numberOfIntervals`
- * @param numberOfIntervals - Number of intervals of duration
- * {@link rateIntervalInSeconds} in which the allocation assigned will be
- * streamed
- * @param startTs - Unix timestamp when the stream will start
- * @param cliffVestPercent - Percentage of allocation assigned that is
- * immediatelly withdrawable by the beneficiary as soon as a
- * stream created with this template starts. This value will be provided in a
- * range from 0 (0%) to 1_000_000 (100%)
- * @param tokenFeePayedFromAccount - If true, the protocol token fees will be
- * paid from PS account ATA and deposited upfront during stream
- * creation or allocation. If false, the beneficiary will pay for token fees
- * at withdraw time
  */
 export async function buildCreateAccountAndTemplateInstruction(
   program: Program<Ps>,
   { owner, mint, feePayer }: CreateAccountAndTemplateInstructionAccounts,
-  name: string | undefined,
-  type: AccountType,
+  accountName: string | undefined,
+  accountType: AccountType,
   solFeePayedFromAccount: boolean,
+  {
+    rateIntervalInSeconds,
+    numberOfIntervals,
+    startTs,
+    cliffVestPercent,
+    tokenFeePayedFromAccount,
+  }: StreamTemplateOptions,
   category: Category = Category.default,
   subCategory: SubCategory = SubCategory.default,
-  rateIntervalInSeconds: BN,
-  numberOfIntervals: BN,
-  startTs: BN,
-  cliffVestPercent: BN,
-  tokenFeePayedFromAccount: boolean,
 ): Promise<CreateAccountAndTemplateInstructionResult> {
   const [slotBn, psAccountSeeds] = await getAccountSeeds(
     program.provider.connection,
@@ -529,8 +548,8 @@ export async function buildCreateAccountAndTemplateInstruction(
   const instruction = await program.methods
     .createTreasuryAndTemplate(
       LATEST_IDL_FILE_VERSION,
-      name || '',
-      type,
+      accountName || '',
+      accountType,
       false,
       solFeePayedFromAccount,
       { [Category[category]]: {} },

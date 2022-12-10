@@ -606,7 +606,7 @@ describe('PS Tests\n', async () => {
     // create vesting stream 1
     const vestingStream1Name = 'VESTING-STREAM-1';
     const { transaction: createStreamTx, stream: vestingAccountStream1 } =
-      await ps.buildCreateVestingStreamWithTemplateTransaction(
+      await ps.buildCreateVestingStreamTransaction(
         vestingAccount,
         user1Wallet.publicKey,
         user1Wallet.publicKey,
@@ -626,7 +626,7 @@ describe('PS Tests\n', async () => {
     // create vesting stream 2
     const vestingStream2Name = 'VESTING-STREAM-2';
     const { transaction: createStreamTx2, stream: vestingAccountStream2 } =
-      await ps.buildCreateVestingStreamWithTemplateTransaction(
+      await ps.buildCreateVestingStreamTransaction(
         vestingAccount,
         user1Wallet.publicKey,
         user1Wallet.publicKey,
@@ -873,7 +873,7 @@ describe('PS Tests\n', async () => {
 
     console.log('Creating vesting stream...');
     const { transaction: createStreamTx, stream } =
-      await ps.buildCreateVestingStreamWithTemplateTransaction(
+      await ps.buildCreateVestingStreamTransaction(
         user1Wallet.publicKey,
         user1Wallet.publicKey,
         vestingAccount,
@@ -906,7 +906,7 @@ describe('PS Tests\n', async () => {
 
     console.log('Creating vesting stream...');
     const { transaction: createStreamTx, stream } =
-      await ps.buildCreateVestingStreamWithTemplateTransaction(
+      await ps.buildCreateVestingStreamTransaction(
         user1Wallet.publicKey,
         user1Wallet.publicKey,
         treasury,
@@ -989,7 +989,7 @@ describe('PS Tests\n', async () => {
 
     console.log('Creating vesting stream...');
     const { transaction: createStreamTx, stream } =
-      await ps.buildCreateVestingStreamWithTemplateTransaction(
+      await ps.buildCreateVestingStreamTransaction(
         user1Wallet.publicKey,
         user1Wallet.publicKey,
         treasury,

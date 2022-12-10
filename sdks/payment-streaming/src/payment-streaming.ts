@@ -848,7 +848,7 @@ export class PaymentStreaming {
     const now = new Date();
     const startDate =
       startUtc && startUtc.getTime() >= now.getTime() ? startUtc : now;
-    const startUtcInSeconds = toUnixTimestamp(startDate);
+    const startTs = toUnixTimestamp(startDate);
 
     const {
       instruction: createAccountAndTemplateInstruction,
@@ -861,13 +861,15 @@ export class PaymentStreaming {
       name,
       type,
       solFeePayedFromAccount,
+      {
+        rateIntervalInSeconds: new BN(rateIntervalInSeconds),
+        numberOfIntervals: new BN(numberOfIntervals),
+        startTs: new BN(startTs),
+        cliffVestPercent: new BN(cliffVestPercentValue),
+        tokenFeePayedFromAccount,
+      },
       Category.vesting,
       vestingCategory,
-      new BN(rateIntervalInSeconds),
-      new BN(numberOfIntervals),
-      new BN(startUtcInSeconds),
-      new BN(cliffVestPercentValue),
-      tokenFeePayedFromAccount,
     );
     ixs.push(createAccountAndTemplateInstruction);
 
@@ -1124,7 +1126,7 @@ export class PaymentStreaming {
 
   /**
    *
-   * Creates a vesting stream based on the vesting contract template
+   * Creates a vesting stream based on the vesting contract template.
    *
    * @param vestingAccount - The vesting account under the new stream will be
    * created
@@ -1136,7 +1138,7 @@ export class PaymentStreaming {
    * @param allocationAssigned - Total token amount allocated to the new stream
    * out of the containing vesting account's unallocated balance
    */
-  public async buildCreateVestingStreamWithTemplateTransaction(
+  public async buildCreateVestingStreamTransaction(
     vestingAccount: PublicKey,
     owner: PublicKey,
     feePayer: PublicKey,
