@@ -1340,18 +1340,6 @@ export async function buildCloseStreamInstruction(
 
 //#region UTILS
 
-// async function getFeeAccountAssocaitedTokenAddress(
-//   mint: PublicKey,
-// ): Promise<PublicKey> {
-//   return await Token.getAssociatedTokenAddress(
-//     ASSOCIATED_TOKEN_PROGRAM_ID,
-//     TOKEN_PROGRAM_ID,
-//     mint,
-//     FEE_ACCOUNT,
-//     true,
-//   );
-// }
-
 async function getAccountSeeds(
   connection: Connection,
   owner: PublicKey,
