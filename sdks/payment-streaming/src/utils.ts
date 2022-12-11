@@ -12,6 +12,7 @@ import {
   PublicKey,
   SystemProgram,
   TransactionInstruction,
+  MemcmpFilter,
 } from '@solana/web3.js';
 import { BN, BorshInstructionCoder, Idl, IdlAccounts, Program, ProgramAccount } from '@project-serum/anchor';
 import { CLIFF_PERCENT_DENOMINATOR, CLIFF_PERCENT_NUMERATOR, LATEST_IDL_FILE_VERSION, SIMULATION_PUBKEY } from './constants';
@@ -59,7 +60,6 @@ import {
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 import * as anchor from '@project-serum/anchor';
-import { MemcmpFilter } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 
 String.prototype.toPublicKey = function (): PublicKey {
@@ -137,7 +137,7 @@ export async function getStreamEventData(
     console.log(error);
     return null;
   }
-};
+}
 
 export const getStreamCached = async (
   streamInfo: Stream,
@@ -188,24 +188,24 @@ export const listStreams = async (
     }
   }
 
-  const orderedStreams = streamInfoList.sort(
-    (a, b) => a.createdBlockTime !== b.createdBlockTime
-      ? b.createdBlockTime - a.createdBlockTime
-      : (
-          a.name !== b.name
-            ? a.name.localeCompare(b.name)
-            : a.id.toBase58().localeCompare(b.id.toBase58())
-        )
+  streamInfoList.sort(
+    (a, b) => {
+      if (a.createdBlockTime !== b.createdBlockTime) {
+        return b.createdBlockTime - a.createdBlockTime;
+      }
+      return a.name !== b.name
+        ? a.name.localeCompare(b.name)
+        : a.id.toBase58().localeCompare(b.id.toBase58());
+    }
   );
 
-  return orderedStreams;
+  return streamInfoList;
 };
 
 export const listStreamsCached = async (
   streamInfoList: Stream[],
 ): Promise<Stream[]> => {
   const streamList: Stream[] = [];
-  //TODO: BN check
   for (const streamInfo of streamInfoList) {
     const timeDiff = streamInfo.lastRetrievedTimeInSeconds - streamInfo.lastRetrievedBlockTime;
     const blockTime = parseInt((Date.now() / 1_000).toString()) - timeDiff;
@@ -371,7 +371,7 @@ export const listTreasuries = async (
     }
   }
 
-  const sortedTreasuries = treasuries.sort((a, b) => b.slot - a.slot);
+  const sortedTreasuries = [...treasuries].sort((a, b) => b.slot - a.slot);
 
   return sortedTreasuries;
 };
@@ -493,7 +493,6 @@ export const calculateActionFees = async (
       break;
     }
     case MSP_ACTIONS.treasuryWithdraw: {
-      // txFees.mspFlatFee = 0.00001;
       txFees.mspPercentFee = 0.25;
       break;
     }
@@ -515,7 +514,6 @@ export const getValidTreasuryAllocation = async (
   treasury: Treasury,
   allocation: string | number,
 ) => {
-  //TODO: BN check
   const fees = await calculateActionFees(connection, MSP_ACTIONS.withdraw);
   //
   const BASE_100_TO_BASE_1_MULTIPLIER = CLIFF_PERCENT_NUMERATOR;
@@ -547,7 +545,6 @@ export const calculateAllocationAmount = async (
   psAccount: PaymentStreamingAccount,
   allocation: string | number,
 ) => {
-  //TODO: BN check
   const fees = await calculateActionFees(connection, MSP_ACTIONS.withdraw);
   //
   const BASE_100_TO_BASE_1_MULTIPLIER = CLIFF_PERCENT_NUMERATOR;
@@ -731,7 +728,7 @@ const parseStreamEventData = (
     withdrawableAmount: event.beneficiaryWithdrawableAmount,
     streamUnitsPerSecond: getStreamUnitsPerSecond(rawStream.rateAmountUnits, rawStream.rateIntervalInSeconds),
     isManuallyPaused: event.isManualPause,
-    status: event.status, // TODO: before it was STREAM_STATUS[event.status], this need checking
+    status: event.status,
     lastRetrievedBlockTime: event.currentBlockTime.toNumber(),
     lastRetrievedTimeInSeconds: parseInt((Date.now() / 1_000).toString()),
     feePayedByTreasurer: event.feePayedByTreasurer,
@@ -848,7 +845,6 @@ async function parseStreamInstructionAfter1645224519(
     if (!decodedIx) return null;
 
     const ixName = decodedIx.name;
-    // console.log(`ixName: ${ixName}`);
     if (['createStream', 'allocate', 'withdraw'].indexOf(ixName) === -1)
       return null;
 
@@ -857,15 +853,13 @@ async function parseStreamInstructionAfter1645224519(
     });
 
     const formattedIx = coder.format(decodedIx, ixAccountMetas);
-    // console.log(formattedIx);
-    // console.table(formattedIx?.accounts.map(a => { return { name: a.name, pk: a.pubkey.toBase58() } }));
 
     const stream = formattedIx?.accounts.find(a => a.name === 'Stream')?.pubkey;
     if (!stream || !stream.equals(streamAddress)) {
       return null;
     }
 
-    const blockTime = (transactionBlockTimeInSeconds as number) * 1000; // mult by 1000 to add milliseconds
+    const blockTime = transactionBlockTimeInSeconds * 1000; // mult by 1000 to add milliseconds
     const action =
       decodedIx.name === 'createStream' || decodedIx.name === 'allocate'
         ? 'deposited'
@@ -875,7 +869,6 @@ async function parseStreamInstructionAfter1645224519(
     let mint: PublicKey | undefined;
     let amountBN: BN | undefined;
 
-    //TODO: BN check + better switch-case here?
     if (decodedIx.name === 'createStream') {
       initializer = formattedIx?.accounts.find(
         a => a.name === 'Treasurer',
@@ -955,7 +948,6 @@ async function parseStreamInstructionBefore1645224519(
     if (!decodedIx) return null;
 
     const ixName = decodedIx.name;
-    // console.log(`ixName: ${ixName}`);
     if (['createStream', 'addFunds', 'withdraw'].indexOf(ixName) === -1)
       return null;
 
@@ -964,8 +956,6 @@ async function parseStreamInstructionBefore1645224519(
     });
 
     const formattedIx = coder.format(decodedIx, ixAccountMetas);
-    // console.log(formattedIx);
-    // console.table(formattedIx?.accounts.map(a => { return { name: a.name, pk: a.pubkey.toBase58() } }));
 
     const stream = formattedIx?.accounts.find(a => a.name === 'Stream')?.pubkey;
     if (!stream || !stream.equals(streamAddress)) {
@@ -984,7 +974,6 @@ async function parseStreamInstructionBefore1645224519(
 
     if (decodedIx.name === 'createStream') {
       if (ixAccountMetas.length !== 14) {
-        // console.log(`this createStream instruction corresponds to an IDL that is not supported`);
         return null;
       }
       initializer = formattedIx?.accounts.find(
@@ -999,7 +988,6 @@ async function parseStreamInstructionBefore1645224519(
       amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
     } else if (decodedIx.name === 'addFunds') {
       if (ixAccountMetas.length !== 14) {
-        // console.log(`this addFunds instruction corresponds to an IDL that is not supported`);
         return null;
       }
       const allocationType = formattedIx?.args.find(
@@ -1021,7 +1009,6 @@ async function parseStreamInstructionBefore1645224519(
       amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
     } else if (decodedIx.name === 'withdraw') {
       if (ixAccountMetas.length !== 13) {
-        // console.log(`this withdraw instruction corresponds to an IDL that is not supported`);
         return null;
       }
       initializer = formattedIx?.accounts.find(
@@ -1099,7 +1086,6 @@ async function parseVersionedStreamInstruction(
     if (!decodedIx) return null;
 
     const ixName = decodedIx.name;
-    // console.log(`ixName: ${ixName}`);
     if (
       [
         'createStream',
@@ -1117,8 +1103,6 @@ async function parseVersionedStreamInstruction(
     });
 
     const formattedIx = coder.format(decodedIx, ixAccountMetas);
-    // console.log(formattedIx);
-    // console.table(formattedIx?.accounts.map(a => { return { name: a.name, pk: a.pubkey.toBase58() } }));
 
     const stream = formattedIx?.accounts.find(a => a.name === 'Stream')?.pubkey;
     if (!stream || !stream.equals(streamAddress)) {
@@ -1215,7 +1199,6 @@ export async function parseStreamTransactions(
         decodedIxData.length >= 9 ? decodedIxData.slice(8, 9)[0] : 0;
       let activity: StreamActivityRaw | null = null;
       if (ixIdlFileVersion > 0 && ixIdlFileVersion <= LATEST_IDL_FILE_VERSION) {
-        // TODO: hardcoded
         activity = await parseVersionedStreamInstruction(
           ix,
           streamAddress,
@@ -1625,7 +1608,6 @@ export async function createAtaCreateInstructionIfNotExists(
   try {
     const ata = await connection.getAccountInfo(ataAddress);
     if (!ata) {
-      // console.log("ATA: %s for mint: %s was not found. Generating 'create' instruction...", ataAddress.toBase58(), mintAddress.toBase58());
       const [, createIx] = await createAtaCreateInstruction(
         ataAddress,
         mintAddress,
@@ -1635,7 +1617,6 @@ export async function createAtaCreateInstructionIfNotExists(
       return createIx;
     }
 
-    // console.log("ATA: %s for mint: %s already exists", ataAddress.toBase58(), mintAddress.toBase58());
     return null;
   } catch (err) {
     console.log('Unable to find associated account: %s', err);
@@ -1909,7 +1890,6 @@ async function parseVestingTreasuryInstruction(
     if (!decodedIx) return null;
 
     const ixName = decodedIx.name;
-    // console.log(`ixName: ${ixName}`);
     if (
       [
         'createTreasuryAndTemplate',
@@ -1932,12 +1912,6 @@ async function parseVestingTreasuryInstruction(
     });
 
     const formattedIx = coder.format(decodedIx, ixAccountMetas);
-    // console.log(formattedIx);
-    // console.table(
-    //   formattedIx?.accounts.map(a => {
-    //     return { name: a.name, pk: a.pubkey.toBase58() };
-    //   }),
-    // );
     const treasury = formattedIx?.accounts.find(
       a => a.name === 'Treasury',
     )?.pubkey;
@@ -1956,7 +1930,7 @@ async function parseVestingTreasuryInstruction(
     let destination: PublicKey | undefined;
     let destinationTokenAccount: PublicKey | undefined;
     let stream: PublicKey | undefined;
-    //TODO: BN check + switch-case better here?
+
     if (decodedIx.name === 'createTreasuryAndTemplate') {
       action = VestingTreasuryActivityAction.TreasuryCreate;
       initializer = formattedIx?.accounts.find(
