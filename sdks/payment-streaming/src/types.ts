@@ -1,10 +1,7 @@
-/**
- * Solana
- */
 import { IdlAccounts } from '@project-serum/anchor';
 import { Commitment, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { IDL, Msp } from './msp_idl_005'; // point to the latest IDL
+import { Msp } from './msp_idl_005'; // point to the latest IDL
 // Given an IDL type IDL we can derive Typescript types for its accounts
 // using eg. IdlAccounts<IDL>['ACCOUNT_NAME']
 type RawStream = IdlAccounts<Msp>['stream'];
@@ -35,8 +32,6 @@ export enum MSP_ACTIONS {
   transferStream = 13,
   treasuryWithdraw = 14,
 }
-
-
 
 /**
  * Transaction fees
@@ -245,11 +240,11 @@ export type Treasury = {
   treasurer: PublicKey | string;
   associatedToken: PublicKey | string;
   mint: PublicKey | string;
-  labels: string[]; //max 5 labels per treasury
-  balance: string; // TODO: change to BN?
-  allocationReserved: string; // TODO: change to BN?
-  allocationAssigned: string; // TODO: change to BN?
-  totalWithdrawals: string; // TODO: change to BN?
+  labels: string[];
+  balance: string;
+  allocationReserved: string;
+  allocationAssigned: string;
+  totalWithdrawals: string;
   totalStreams: number;
   createdOnUtc: Date | string;
   treasuryType: TreasuryType;
@@ -489,3 +484,189 @@ export type StreamEventData = {
   category: number;
   subCategory: number;
 };
+
+type FeepayerAccounts = {
+  /** Account paying for rent and protocol SOL fees */
+  feePayer: PublicKey;
+}
+
+export type TransferTransactionAccounts = {
+  /** The account providing the tokens to transfer */
+  sender: PublicKey;
+
+  /** The beneficiary receiving the tokens */
+  beneficiary: PublicKey;
+
+  /**
+   * The token mint to be sent. Pass the special `NATIVE_SOL_MINT`
+   * here to crate a System program native SOL transfer.
+   */
+  mint: PublicKey;
+} & FeepayerAccounts
+
+export type ScheduleTransferTransactionAccounts = {
+  /** The account providing the tokens to transfer */
+  owner: PublicKey;
+  
+  /** The account receiving the tokens */
+  beneficiary: PublicKey;
+  
+  /** The token mint to be sent */
+  mint: PublicKey;
+} & FeepayerAccounts
+
+export type StreamPaymentTransactionAccounts = {
+  /** The account providing the tokens to transfer */
+  owner: PublicKey;
+
+  /** The account receiving the tokens */
+  beneficiary: PublicKey;
+
+  /** The token mint to be sent */
+  mint: PublicKey;
+} & FeepayerAccounts
+
+export type CreateAccountTransactionAccounts = {
+  /** Owner of the new account */
+  owner: PublicKey;
+
+  /** Mint that will be streamed out of this account */
+  mint: PublicKey;
+} & FeepayerAccounts
+
+export type CreateStreamTransactionAccounts = {
+  /** The PS account under the new stream will be created */
+  psAccount: PublicKey;
+
+  /** Owner of the PS account */
+  owner: PublicKey;
+
+  /** Destination account authorized to withdraw streamed tokens */
+  beneficiary: PublicKey;
+} & FeepayerAccounts
+
+export type CreateVestingAccountTransactionAccounts = {
+  /** Owner of the vesting contract account */
+  owner: PublicKey;
+
+  /** Mint that will be vested */
+  mint: PublicKey;
+} & FeepayerAccounts
+
+export type UpdateVestingTemplateTransactionAccounts = {
+  /** Owner of the vesting contract account */
+  owner: PublicKey;
+
+  /** Mint that will be vested */
+  vestingAccount: PublicKey;
+} & FeepayerAccounts
+
+export type CreateVestingStreamTransactionAccounts = {
+  /** The vesting account under the new stream will be created */
+  vestingAccount: PublicKey;
+
+  /** Owner of the vesting account */
+  owner: PublicKey;
+  
+  /** Account paying for rent and protocol SOL fees */
+  feePayer: PublicKey;
+  
+  /** Destination account authorized to withdraw streamed tokens */
+  beneficiary: PublicKey;
+}
+
+export type AddFundsToAccountTransactionAccounts = {
+  /** The PS account to add funds to */
+  psAccount: PublicKey;
+
+  /** Mint of the PS account */
+  psAccountMint: PublicKey
+
+  /** The account providing the funds */
+  contributor: PublicKey
+} & FeepayerAccounts
+
+export type AllocateFundsToStreamTransactionAccounts = {
+  /** The PS account containing the stream */
+  psAccount: PublicKey;
+
+  /** Owner of the new account */
+  owner: PublicKey;
+
+  /** Stream to allocate funds to */
+  stream: PublicKey;
+} & FeepayerAccounts
+
+export type FundStreamTransactionAccounts = {
+  /** The PS account to withdraw funds from */
+  psAccount: PublicKey;
+
+  /**  Owner of the Payment Streaming account */
+  owner: PublicKey;
+
+  /** Stream to add funds to */
+  stream: PublicKey;
+} & FeepayerAccounts
+
+export type WithdrawFromAccountTransactionAccounts = {
+  /** The PS account to withdraw funds from */
+  psAccount: PublicKey;
+
+  /** Owner of the associated token account where the withdrawn funds will be
+   * deposited.
+   */
+  destination: PublicKey;
+} & FeepayerAccounts
+
+export type RefreshAccountDataTransactionAccounts = {
+  /** The PS account to withdraw funds from */
+  psAccount: PublicKey;
+} & FeepayerAccounts
+
+export type CloseAccountTransactionAccounts = {
+  /** The PS account to withdraw funds from */
+  psAccount: PublicKey;
+
+  /**
+   * Owner of the associated token account where the remaining funds will be
+   * deposited.
+   */
+  destination: PublicKey;
+} & FeepayerAccounts
+
+export type WithdrawFromStreamTransactionAccounts = {
+  /** The stream to withdraw fund from */
+  stream: PublicKey;
+} & FeepayerAccounts
+
+export type PauseResumeStreamTransactionAccounts = {
+  /** The stream to be paused/resumed */
+  stream: PublicKey;
+
+  /**
+   * The owner of the Payment Streaming account containing the stream that
+   * will be paused/resumed.
+   */
+  owner: PublicKey;
+} & FeepayerAccounts
+
+export type TransferStreamTransactionAccounts = {
+  /** The stream to be transferred */
+  stream: PublicKey;
+
+  /** Current beneficiary of the stream. The account authorizing the
+   * transfer. */
+  beneficiary: PublicKey;
+
+  /**  New beneficiary for the stream */
+  newBeneficiary: PublicKey;
+} & FeepayerAccounts
+
+export type CloseStreamTransactionAccounts = {
+  /** The stream to be closed */
+  stream: PublicKey;
+
+  /**  Account that will receive any remaining withdrawable amount on the
+   * stream. If ommited, remaining funds will be sent to the beneficiary. */
+  destination?: PublicKey;
+} & FeepayerAccounts

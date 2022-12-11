@@ -14,7 +14,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import { BN, BorshInstructionCoder, Idl, IdlAccounts, Program, ProgramAccount } from '@project-serum/anchor';
-import { CLIFF_PERCENT_DENOMINATOR, CLIFF_PERCENT_NUMERATOR, Constants, LATEST_IDL_FILE_VERSION, SIMULATION_PUBKEY } from './constants';
+import { CLIFF_PERCENT_DENOMINATOR, CLIFF_PERCENT_NUMERATOR, LATEST_IDL_FILE_VERSION, SIMULATION_PUBKEY } from './constants';
 import {
   Category,
   MSP_ACTIONS,

@@ -434,9 +434,11 @@ describe('PS Tests\n', async () => {
       psAccount,
       psAccountToken,
     } = await ps.buildCreateAccountTransaction(
-      user1Wallet.publicKey,
-      user1Wallet.publicKey,
-      NATIVE_SOL_MINT,
+      {
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        mint: NATIVE_SOL_MINT,
+      },
       psAccountName,
       AccountType.Open,
     );
@@ -451,10 +453,12 @@ describe('PS Tests\n', async () => {
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
       await ps.buildAddFundsToAccountTransaction(
-        psAccount,
-        NATIVE_SOL_MINT,
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
+        {
+          psAccount,
+          psAccountMint: NATIVE_SOL_MINT,
+          contributor: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+        },
         3 * LAMPORTS_PER_SOL,
       );
     addFundsToAccountTx.partialSign(user1Wallet);
@@ -470,10 +474,12 @@ describe('PS Tests\n', async () => {
     const stream1Name = 'STREAM-1';
     const { transaction: createStream1Tx, stream: psAccountStream1 } =
       await ps.buildCreateStreamTransaction(
-        psAccount,
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        user2Wallet.publicKey,
+        {
+          psAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         stream1Name,
         0.1 * LAMPORTS_PER_SOL,
         1,
@@ -495,10 +501,12 @@ describe('PS Tests\n', async () => {
     const stream2Name = 'STREAM-2';
     const { transaction: createStream2Tx, stream: psAccountStream2 } =
       await ps.buildCreateStreamTransaction(
-        psAccount,
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        user2Wallet.publicKey,
+        {
+          psAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         stream2Name,
         0.2 * LAMPORTS_PER_SOL,
         1,
@@ -520,10 +528,12 @@ describe('PS Tests\n', async () => {
     const stream3Name = 'STREAM-3';
     const { transaction: createStream3Tx, stream: psAccountStream3 } =
       await ps.buildCreateStreamTransaction(
-        psAccount,
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        user2Wallet.publicKey,
+        {
+          psAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         stream3Name,
         0.1 * LAMPORTS_PER_SOL,
         1,
@@ -580,9 +590,11 @@ describe('PS Tests\n', async () => {
       vestingAccountToken,
       template: vestingAccountTemplate,
     } = await ps.buildCreateVestingAccountTransaction(
-      user1Wallet.publicKey,
-      user1Wallet.publicKey,
-      NATIVE_SOL_MINT,
+      {
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        mint: NATIVE_SOL_MINT,
+      },
       vestingAccountName,
       AccountType.Open,
       false,
@@ -607,10 +619,12 @@ describe('PS Tests\n', async () => {
     const vestingStream1Name = 'VESTING-STREAM-1';
     const { transaction: createStreamTx, stream: vestingAccountStream1 } =
       await ps.buildCreateVestingStreamTransaction(
-        vestingAccount,
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        user2Wallet.publicKey,
+        {
+          vestingAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         1 * LAMPORTS_PER_SOL,
         vestingStream1Name,
       );
@@ -627,10 +641,12 @@ describe('PS Tests\n', async () => {
     const vestingStream2Name = 'VESTING-STREAM-2';
     const { transaction: createStreamTx2, stream: vestingAccountStream2 } =
       await ps.buildCreateVestingStreamTransaction(
-        vestingAccount,
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        user2Wallet.publicKey,
+        {
+          vestingAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         1 * LAMPORTS_PER_SOL,
         vestingStream2Name,
       );
@@ -766,248 +782,6 @@ describe('PS Tests\n', async () => {
       'nonStopEarningUnits and more: ',
       nonStopEarningUnits.toString(),
       missedEarningUnitsWhilePaused.toString(),
-    );
-  });
-
-  // xit('Cliff calculation limit', () => {
-  //   const PERCENT_DENOMINATOR = 1_000_000;
-  //   const rateAmount = "29207750000000";
-  //   const allocationAssigned = "368940000000000";
-  //   const cliffMul = new BigNumber(rateAmount).multipliedBy(new BigNumber(allocationAssigned));
-  //   console.log(`effective_cliff_units multiplied: ${cliffMul.toFixed(0)}, length: ${cliffMul.toFixed(0).length}`);
-  //   const cliff = cliffMul.dividedBy(new BigNumber(PERCENT_DENOMINATOR));
-  //   console.log(`effective_cliff_units final result: ${cliff.toFixed(0)}, length: ${cliff.toFixed(0).length}`);
-
-  //   const cliffMulBn = new BN(rateAmount).mul(new BN(allocationAssigned));
-  //   console.log(`multiplied: ${cliffMulBn.toString()}, length: ${cliffMulBn.toString().length}`);
-  //   const cliffBn = cliffMulBn.div(new BN(PERCENT_DENOMINATOR));
-  //   console.log(`final result: ${cliffBn.toString()}, length: ${cliffBn.toString().length}`);
-  // });
-
-  xit('Withdraw VC funds from 12-decimals token', async () => {
-    const decimals = 12;
-    const fundingAmount = 1_000_000;
-    const fundingAmountRaw = toTokenAmountBn(fundingAmount, decimals);
-    const streamPk = new PublicKey(
-      '78BH68vvd5B2WKpWckiSaohko8T8jwnYTFeW1QAx5DK7',
-    );
-
-    console.log('Withdrawing from stream1');
-    const { transaction: withdrawStreamTx } =
-      await ps.buildWithdrawFromAccountTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        streamPk,
-        fundingAmountRaw.toString(),
-      );
-    const withdrawStreamTxId = await sendAndConfirmTransaction(
-      connection,
-      withdrawStreamTx,
-      [user1Wallet],
-      { commitment: commitment },
-    );
-    console.log(
-      `Withdraw from stream1 success. TX_ID: ${withdrawStreamTxId}\n`,
-    );
-  });
-
-  xit('Create VC for 12-decimals token', async () => {
-    const decimals = 12;
-    const fundingAmount = 1_000_000;
-    const fundingAmountRaw = toTokenAmountBn(fundingAmount, decimals);
-    const mintWith12Decimals = new PublicKey(
-      'Dma8Hv94ByVHMXDU8ioh6iW3P1gWTYk6PerAnGCtZMpv',
-    );
-
-    console.log('Creating a vesting treasury');
-    const {
-      transaction: createVestingTreasuryTx,
-      vestingAccount: vestingAccount,
-    } = await ps.buildCreateVestingAccountTransaction(
-      user1Wallet.publicKey,
-      user1Wallet.publicKey,
-      mintWith12Decimals,
-      `${decimals}D CreateVestingTreasury ${Date.now()}`.slice(0, 32),
-      AccountType.Open,
-      false,
-      12,
-      TimeUnit.Minute,
-      fundingAmountRaw.toString(),
-      SubCategory.seed,
-      new Date(),
-    );
-    createVestingTreasuryTx.partialSign(user1Wallet);
-    const createVestingTreasuryTxSerialized = createVestingTreasuryTx.serialize(
-      { verifySignatures: true },
-    );
-    console.log(createVestingTreasuryTxSerialized.toString('base64'));
-    const createVestingTreasuryTxId = await sendAndConfirmRawTransaction(
-      connection,
-      createVestingTreasuryTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(
-      `Created a vesting treasury: ${vestingAccount.toBase58()} TX_ID: ${createVestingTreasuryTxId}\n`,
-    );
-
-    console.log('Adding funds to the treasury');
-    const { transaction: addFundsTx } =
-      await ps.buildAddFundsToAccountTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        vestingAccount,
-        mintWith12Decimals,
-        fundingAmountRaw.toString(),
-      );
-    addFundsTx.partialSign(user1Wallet);
-    const addFundsTxSerialized = addFundsTx.serialize({
-      verifySignatures: true,
-    });
-    console.log(addFundsTxSerialized.toString('base64'));
-    const addFundsTxId = await sendAndConfirmRawTransaction(
-      connection,
-      addFundsTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(`Funds added TX_ID: ${addFundsTxId}\n`);
-
-    console.log('Creating vesting stream...');
-    const { transaction: createStreamTx, stream } =
-      await ps.buildCreateVestingStreamTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        vestingAccount,
-        user2Wallet.publicKey,
-        fundingAmountRaw.toString(),
-        `${decimals}D StreamWithTemplate at ${Date.now()}`.slice(0, 30),
-      );
-    createStreamTx.partialSign(user1Wallet);
-    const createStreamTxSerialized = createStreamTx.serialize({
-      verifySignatures: true,
-    });
-    console.log(createStreamTxSerialized.toString('base64'));
-    const createStreamTxId = await sendAndConfirmRawTransaction(
-      connection,
-      createStreamTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(
-      `Stream created: ${stream.toBase58()} TX_ID: ${createStreamTxId}\n`,
-    );
-  });
-
-  xit('Create VC Stream for 12-decimals token', async () => {
-    const decimals = 12;
-    const fundingAmount = 368.94;
-    const fundingAmountRaw = toTokenAmountBn(fundingAmount, decimals);
-    const treasury = new PublicKey(
-      'CRNkS5tdh5w4DubU1jX7XDAMjLYnxYgw6Ey1Hfs35Sx5',
-    );
-
-    console.log('Creating vesting stream...');
-    const { transaction: createStreamTx, stream } =
-      await ps.buildCreateVestingStreamTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        treasury,
-        user2Wallet.publicKey,
-        fundingAmountRaw.toString(),
-        `${decimals}D StreamWithTemplate at ${Date.now()}`.slice(0, 30),
-      );
-    createStreamTx.partialSign(user1Wallet);
-    const createStreamTxSerialized = createStreamTx.serialize({
-      verifySignatures: true,
-    });
-    console.log(createStreamTxSerialized.toString('base64'));
-    const createStreamTxId = await sendAndConfirmRawTransaction(
-      connection,
-      createStreamTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(
-      `Stream created: ${stream.toBase58()} TX_ID: ${createStreamTxId}\n`,
-    );
-  });
-
-  xit('Create VC for 9-decimals token', async () => {
-    const decimals = 9;
-    const fundingAmount = 1_000_000;
-    const fundingAmountRaw = toTokenAmountBn(fundingAmount, decimals);
-    const mintWith12Decimals = new PublicKey(
-      'G1QahEecVmBhYibu8ZxPRqBSZQNYF8PRAXBLZpuVzRk9',
-    );
-
-    console.log('Creating a vesting treasury');
-    const { transaction: createVestingTreasuryTx, vestingAccount: treasury } =
-      await ps.buildCreateVestingAccountTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        mintWith12Decimals,
-        `MSP createVestingTreasury ${Date.now()}`.slice(0, 32),
-        AccountType.Open,
-        false,
-        12,
-        TimeUnit.Minute,
-        fundingAmountRaw.toString(),
-        SubCategory.seed,
-        new Date(),
-      );
-    createVestingTreasuryTx.partialSign(user1Wallet);
-    const createVestingTreasuryTxSerialized = createVestingTreasuryTx.serialize(
-      { verifySignatures: true },
-    );
-    console.log(createVestingTreasuryTxSerialized.toString('base64'));
-    const createVestingTreasuryTxId = await sendAndConfirmRawTransaction(
-      connection,
-      createVestingTreasuryTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(
-      `Created a vesting treasury: ${treasury.toBase58()} TX_ID: ${createVestingTreasuryTxId}\n`,
-    );
-
-    console.log('Adding funds to the treasury');
-    const { transaction: addFundsTx } =
-      await ps.buildAddFundsToAccountTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        treasury,
-        mintWith12Decimals,
-        fundingAmountRaw.toString(),
-      );
-    addFundsTx.partialSign(user1Wallet);
-    const addFundsTxSerialized = addFundsTx.serialize({
-      verifySignatures: true,
-    });
-    console.log(addFundsTxSerialized.toString('base64'));
-    const addFundsTxId = await sendAndConfirmRawTransaction(
-      connection,
-      addFundsTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(`Funds added TX_ID: ${addFundsTxId}\n`);
-
-    console.log('Creating vesting stream...');
-    const { transaction: createStreamTx, stream } =
-      await ps.buildCreateVestingStreamTransaction(
-        user1Wallet.publicKey,
-        user1Wallet.publicKey,
-        treasury,
-        user2Wallet.publicKey,
-        fundingAmountRaw.toString(),
-        `MSP StreamWithTemplate at ${Date.now()}`.slice(0, 32),
-      );
-    createStreamTx.partialSign(user1Wallet);
-    const createStreamTxSerialized = createStreamTx.serialize({
-      verifySignatures: true,
-    });
-    const createStreamTxId = await sendAndConfirmRawTransaction(
-      connection,
-      createStreamTxSerialized,
-      { commitment: commitment },
-    );
-    console.log(
-      `Stream created: ${stream.toBase58()} TX_ID: ${createStreamTxId}\n`,
     );
   });
 

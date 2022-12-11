@@ -60,9 +60,11 @@ async function runExample(): Promise<void> {
   console.log('\nCreating Payment Streaming account...');
   const { transaction: createAccountTx, psAccount } =
     await psClient.buildCreateAccountTransaction(
-      owner, // owner (authority over the newly created account)
-      owner, // feePayer (the account paying for rent and SOL protocol fees
-      mint, // mint (token mint that will be streamed out of this account)
+      {
+        owner: owner, // authority over the newly created account
+        feePayer: owner, // account paying for rent and SOL protocol fees
+        mint: mint, // mint that will be streamed out of this account
+      },
       'Airdrop', // name (label for the new account)
       AccountType.Open, // type (account type)
       true, // solFeePayedFromAccount (whether SOL protocol fees will be
@@ -83,10 +85,12 @@ async function runExample(): Promise<void> {
   console.log('\nAdding funds to the Payment Streaming account...');
   const { transaction: addFundsTx } =
     await psClient.buildAddFundsToAccountTransaction(
-      psAccount,
-      mint,
-      owner, // owner (authority over the newly created account)
-      owner, // feePayer (the account paying for rent and SOL protocol fees
+      {
+        psAccount: psAccount,
+        psAccountMint: mint,
+        contributor: owner, // account authorizing the funds to be added
+        feePayer: owner,
+      }, // account paying for rent and SOL protocol fees
       500_000_000,
     );
   // Send transaction and wait for confirmation
@@ -104,10 +108,12 @@ async function runExample(): Promise<void> {
   console.log('\nCreating stream 1...');
   const { transaction: createStream1Tx, stream: stream1 } =
     await psClient.buildCreateStreamTransaction(
-      psAccount,
-      owner, // owner (authority over the newly created account)
-      owner, // feePayer (the account paying for rent and SOL protocol fees
-      beneficiary1,
+      {
+        psAccount: psAccount,
+        owner: owner, // owner of the cointaining PS account
+        feePayer: owner, // account paying for rent and SOL protocol fees
+        beneficiary: beneficiary1,
+      },
       'Airdrop for Alice', // name
       1000, // rateAmount
       1, // rateIntervalInSeconds
@@ -128,12 +134,14 @@ async function runExample(): Promise<void> {
 
   // create stream 2
   console.log('\nCreating stream 2...');
-  const { transaction: createStream2Tx, stream: stream2 } =
+  const { transaction: createStream2Tx } =
     await psClient.buildCreateStreamTransaction(
-      psAccount,
-      owner, // owner (authority over the newly created account)
-      owner, // feePayer (the account paying for rent and SOL protocol fees
-      beneficiary1,
+      {
+        psAccount: psAccount,
+        owner: owner, // owner of the cointaining PS account
+        feePayer: owner, // account paying for rent and SOL protocol fees
+        beneficiary: beneficiary1,
+      },
       'Airdrop for Bob', // name
       1000, // rateAmount
       1, // rateIntervalInSeconds

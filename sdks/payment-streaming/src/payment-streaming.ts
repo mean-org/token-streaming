@@ -42,6 +42,24 @@ import {
   VestingAccountActivityRaw,
   StreamActivityRaw,
   StreamActivity,
+  TransferTransactionAccounts,
+  ScheduleTransferTransactionAccounts,
+  StreamPaymentTransactionAccounts,
+  CreateAccountTransactionAccounts,
+  CreateStreamTransactionAccounts,
+  CreateVestingAccountTransactionAccounts,
+  UpdateVestingTemplateTransactionAccounts,
+  CreateVestingStreamTransactionAccounts,
+  AddFundsToAccountTransactionAccounts,
+  AllocateFundsToStreamTransactionAccounts,
+  FundStreamTransactionAccounts,
+  WithdrawFromAccountTransactionAccounts,
+  RefreshAccountDataTransactionAccounts,
+  CloseAccountTransactionAccounts,
+  WithdrawFromStreamTransactionAccounts,
+  PauseResumeStreamTransactionAccounts,
+  TransferStreamTransactionAccounts,
+  CloseStreamTransactionAccounts,
 } from './types';
 import {
   calculateAllocationAmount,
@@ -250,18 +268,11 @@ export class PaymentStreaming {
    * Contructs a transaction to perform a simple transfer of tokens to a
    * beneficiary using the Token program.
    *
-   * @param sender - The account providing the tokens to transfer
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param beneficiary - The beneficiary receiving the tokens
-   * @param mint - The token mint to be sent. Pass the special
-   * {@link NATIVE_SOL_MINT} here to crate a System program native SOL transfer
+   * @param accounts - Transaction accounts
    * @param amount - The token amount to be sent
    */
   public async buildTransferTransaction(
-    sender: PublicKey,
-    feePayer: PublicKey,
-    beneficiary: PublicKey,
-    mint: PublicKey,
+    { sender, feePayer, beneficiary, mint }: TransferTransactionAccounts,
     amount: string | number, // Allow both types for compatibility
   ): Promise<Transaction> {
     const ixs: TransactionInstruction[] = [];
@@ -360,10 +371,7 @@ export class PaymentStreaming {
   /**
    * Returns a transaction for scheduling a transfer as a stream without rate.
    *
-   * @param owner - The account providing the tokens to transfer
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param beneficiary - The account receiving the tokens
-   * @param mint - The token mint to be sent
+   * @param accounts - Transaction accoutns
    * @param amount - The token amount to be allocated to the stream
    * @param startUtc - The date on which the transfer will be executed
    * @param streamName - The name of the transfer
@@ -371,10 +379,7 @@ export class PaymentStreaming {
    * {@link owner}, otherwise by the {@link beneficiary} at withdraw time
    */
   public async buildScheduleTransferTransaction(
-    owner: PublicKey,
-    feePayer: PublicKey,
-    beneficiary: PublicKey,
-    mint: PublicKey,
+    { owner, feePayer, beneficiary, mint }: ScheduleTransferTransactionAccounts,
     amount: string | number,
     startUtc?: Date,
     streamName?: string,
@@ -464,7 +469,7 @@ export class PaymentStreaming {
         owner,
         feePayer,
         beneficiary,
-        feeAccountToken
+        feeAccountToken,
       },
       streamName ?? '',
       new BN(0),
@@ -487,11 +492,8 @@ export class PaymentStreaming {
    * Constructs a transaction to create a recurring payment at a given rate to
    * start immediately or scheduled.
    *
-   * @param owner - The account providing the tokens to stream
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param beneficiary - The account receiving the tokens
-   * @param mint - The token mint to be sent
-   * @param streamName - The name of the transfer.
+   * @param owner - Transaction accounts
+   * @param streamName - The name of the transfer
    * @param rateAmount - Token amount that will be streamed in every
    * {@link rateIntervalInSeconds} period
    * @param rateIntervalInSeconds - Period of time in seconds in which the
@@ -503,10 +505,7 @@ export class PaymentStreaming {
    * false, the beneficiary will paid the token fees at withdraw time
    */
   public async buildStreamPaymentTransaction(
-    owner: PublicKey,
-    feePayer: PublicKey,
-    beneficiary: PublicKey,
-    mint: PublicKey,
+    { owner, feePayer, beneficiary, mint }: StreamPaymentTransactionAccounts,
     streamName: string,
     rateAmount: string | number,
     rateIntervalInSeconds: number,
@@ -624,9 +623,7 @@ export class PaymentStreaming {
   /**
    * Constructs a transaction for creating a PS account.
    *
-   * @param owner - Owner of the new account
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param mint - Mint that will be streamed out of this account
+   * @param accounts - Transaction accounts
    * @param name - Name for the new account
    * @param type - Either Open or Lock. Under locked accounts, once a stream
    * starts it cannot be paused or closed, they will run until out of funds
@@ -636,9 +633,7 @@ export class PaymentStreaming {
    * @returns
    */
   public async buildCreateAccountTransaction(
-    owner: PublicKey,
-    feePayer: PublicKey,
-    mint: PublicKey,
+    { owner, feePayer, mint }: CreateAccountTransactionAccounts,
     name: string,
     type: AccountType,
     solFeePayedFromAccount = false,
@@ -680,11 +675,7 @@ export class PaymentStreaming {
   /**
    * Constructs a transaction for creating a stream under a PS account.
    *
-   * @param psAccount - The PS account under the new stream will be created
-   * @param owner - Owner of the PS account
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param beneficiary - Destination account authorized to withdraw streamed
-   * tokens
+   * @param accounts - Transaction accounts
    * @param streamName - A name for the new stream
    * @param rateAmount - Token amount that will be streamed in every
    * {@link rateIntervalInSeconds} period
@@ -709,10 +700,12 @@ export class PaymentStreaming {
    * derived from the program
    */
   public async buildCreateStreamTransaction(
-    psAccount: PublicKey,
-    owner: PublicKey,
-    feePayer: PublicKey,
-    beneficiary: PublicKey,
+    {
+      psAccount,
+      owner,
+      feePayer,
+      beneficiary,
+    }: CreateStreamTransactionAccounts,
     streamName: string,
     rateAmount: number | string,
     rateIntervalInSeconds: number,
@@ -779,9 +772,7 @@ export class PaymentStreaming {
    * Constructs a transaction to create vesting contract account together with a
    * configuration account (template) for creating vesting streams.
    *
-   * @param owner - Owner of the vesting contract account
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param mint - Mint that will be vested
+   * @param accounts - Transaction accounts
    * @param name - Name for the vesting contract account
    * @param type - Either Open or Lock. Under locked accounts, once a stream
    * starts it cannot be paused or closed, they will run until out of funds
@@ -807,9 +798,7 @@ export class PaymentStreaming {
    * at withdraw time
    */
   public async buildCreateVestingAccountTransaction(
-    owner: PublicKey,
-    feePayer: PublicKey,
-    mint: PublicKey,
+    { owner, feePayer, mint }: CreateVestingAccountTransactionAccounts,
     name: string,
     type: AccountType,
     solFeePayedFromAccount: boolean,
@@ -923,11 +912,20 @@ export class PaymentStreaming {
   /**
    * Constructs a transaction for updating values of vesting account
    * template if no streams have been created yet.
+   *
+   * @param accounts - Transaction accounts
+   * @param numberOfIntervals - The new number of intervals
+   * @param intervalUnit - The new interval unit
+   * @param startUtc - The new start date
+   * @param cliffVestPercent - The new cliff percentage
+   * @param tokenFeePayedFromAccount - The new tokenFeePayedFromAccount
    */
-  public async buildUpdateVestingAccountTemplate(
-    owner: PublicKey,
-    feePayer: PublicKey,
-    vestingAccount: PublicKey,
+  public async buildUpdateVestingTemplateTransaction(
+    {
+      owner,
+      feePayer,
+      vestingAccount,
+    }: UpdateVestingTemplateTransactionAccounts,
     numberOfIntervals?: number,
     intervalUnit?: TimeUnit,
     startUtc?: Date,
@@ -1009,12 +1007,12 @@ export class PaymentStreaming {
   }
 
   /**
+   * Returns a list with the activity of a vesting account.
    *
    * @param vestingAccount - The vesting account
-   * @param before The signature to start searching backwards from.
-   * @param limit The max amount of elements to retrieve
-   * @param commitment Commitment to query the vesting account activity
-   * @returns
+   * @param before - The signature to start searching backwards from.
+   * @param limit - The max amount of elements to retrieve
+   * @param commitment - Commitment to query the vesting account activity
    */
   public async listVestingAccountActivity(
     vestingAccount: PublicKey,
@@ -1042,6 +1040,7 @@ export class PaymentStreaming {
 
   /**
    * Gets the flowing rate of a vesting contract.
+   *
    * @param vestingAccount - The address of the vesting contract account
    * @param onlyRunning - If true, only running streams will be accounted
    */
@@ -1121,24 +1120,20 @@ export class PaymentStreaming {
   }
 
   /**
-   *
    * Creates a vesting stream based on the vesting contract template.
    *
-   * @param vestingAccount - The vesting account under the new stream will be
-   * created
-   * @param owner - Owner of the PS account
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param beneficiary - Destination account authorized to withdraw streamed
-   * tokens
+   * @param accounts - Transaction accounts
    * @param streamName - A name for the new stream
    * @param allocationAssigned - Total token amount allocated to the new stream
    * out of the containing vesting account's unallocated balance
    */
   public async buildCreateVestingStreamTransaction(
-    vestingAccount: PublicKey,
-    owner: PublicKey,
-    feePayer: PublicKey,
-    beneficiary: PublicKey,
+    {
+      vestingAccount,
+      owner,
+      feePayer,
+      beneficiary,
+    }: CreateVestingStreamTransactionAccounts,
     allocationAssigned: string | number,
     streamName = '',
     usePda: boolean = false,
@@ -1202,17 +1197,16 @@ export class PaymentStreaming {
    * Constructs a transaction to add funds to a PS account. The funds are
    * added as unallocated balance.
    *
-   * @param psAccount - The PS account to add funds to
-   * @param psAccountMint - Mint of the PS account
-   * @param contributor - The account providing the funds
-   * @param feePayer - Account paying rent and protocol SOL fees
+   * @param accounts - Transaction accounts
    * @param amount - Token amount to add
    */
   public async buildAddFundsToAccountTransaction(
-    psAccount: PublicKey,
-    psAccountMint: PublicKey,
-    contributor: PublicKey,
-    feePayer: PublicKey,
+    {
+      psAccount,
+      psAccountMint,
+      contributor,
+      feePayer,
+    }: AddFundsToAccountTransactionAccounts,
     amount: string | number,
   ): Promise<{
     transaction: Transaction;
@@ -1284,19 +1278,18 @@ export class PaymentStreaming {
 
   /**
    * Constructs a transaction to allocate funds to a stream from the PS
-   * account unallocated balance
+   * account unallocated balance.
    *
-   * @param psAccount - The PS account containing the stream
-   * @param owner - Owner of the new account
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param stream - Stream to allocate funds to
+   * @param accounts - Transaction accounts
    * @param amount - Token amount to allocate
    */
   public async buildAllocateFundsToStreamTransaction(
-    psAccount: PublicKey,
-    owner: PublicKey,
-    feePayer: PublicKey,
-    stream: PublicKey,
+    {
+      psAccount,
+      owner,
+      feePayer,
+      stream,
+    }: AllocateFundsToStreamTransactionAccounts,
     amount: string | number,
   ): Promise<{ transaction: Transaction }> {
     if (!amount) {
@@ -1358,19 +1351,13 @@ export class PaymentStreaming {
    * Constructs a transaction which does both: adding funds to a PS account
    * and allocating the funds to the specified stream.
    *
-   * @param psAccount
-   * @param owner
-   * @param feePayer
-   * @param stream
+   * @param accounts - Transaction accounts
    * @param amount
    * @param autoWSol - Whether a wrap SOL instruction should be included in
    * the transaction if necessary
    */
   public async buildFundStreamTransaction(
-    psAccount: PublicKey,
-    owner: PublicKey,
-    feePayer: PublicKey,
-    stream: PublicKey,
+    { psAccount, owner, feePayer, stream }: FundStreamTransactionAccounts,
     amount: string | number,
     autoWSol = false,
   ): Promise<{ transaction: Transaction }> {
@@ -1469,18 +1456,17 @@ export class PaymentStreaming {
    * Constructs a transaction to withdraw funds from a Payment Streaming
    * account.
    *
-   * @param psAccount - The PS account to withdraw funds from
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param destination - Owner of the associated token account where the
-   * withdrawn funds will be deposited
+   * @param accounts - Transaction accounts
    * @param amount - Token amount to withdraw
    * @param autoWSol - Whether a wrap SOL instruction should be included in
    * the transaction if necessary
    */
   public async buildWithdrawFromAccountTransaction(
-    psAccount: PublicKey,
-    feePayer: PublicKey,
-    destination: PublicKey,
+    {
+      psAccount,
+      feePayer,
+      destination,
+    }: WithdrawFromAccountTransactionAccounts,
     amount: number | string,
     autoWSol = false,
   ): Promise<{ transaction: Transaction }> {
@@ -1531,10 +1517,19 @@ export class PaymentStreaming {
     };
   }
 
-  public async buildRefreshAccountDataTransaction(
-    psAccount: PublicKey,
-    feePayer: PublicKey,
-  ): Promise<{ transaction: Transaction }> {
+  /**
+   * Constructs a transaction to refresh a Payment Streaming account after
+   * funds are sent to it from outside of the program, i.e. using the
+   * Token program directly.
+   *
+   * @param accounts - Transaction accounts
+   */
+  public async buildRefreshAccountDataTransaction({
+    psAccount,
+    feePayer,
+  }: RefreshAccountDataTransactionAccounts): Promise<{
+    transaction: Transaction;
+  }> {
     const psAccountInfo = await getAccount(this.program, psAccount);
 
     if (!psAccountInfo) {
@@ -1559,17 +1554,12 @@ export class PaymentStreaming {
   /**
    * Constructs a transaction to close a Payment Streaming account.
    *
-   * @param psAccount - The PS account to withdraw funds from
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param destination - Owner of the associated token account where the
-   * remaining funds will be deposited
+   * @param accounts - Transaction accounts
    * @param autoWSol - Whether a wrap SOL instruction should be included in
    * the transaction if necessary
    */
   public async buildCloseAccountTransaction(
-    psAccount: PublicKey,
-    feePayer: PublicKey,
-    destination: PublicKey,
+    { psAccount, feePayer, destination }: CloseAccountTransactionAccounts,
     autoWSol = false,
   ): Promise<{ transaction: Transaction }> {
     const psAccountInfo = await getAccount(this.program, psAccount);
@@ -1627,15 +1617,13 @@ export class PaymentStreaming {
   /**
    * Constructs a transaction to withdraw funds from a stream.
    *
-   * @param stream - The stream to withdraw fund from
-   * @param feePayer - Account paying rent and protocol SOL fees
+   * @param accounts - Transaction accounts
    * @param amount - The token amount to withdraw
    * @param autoWSol - Whether a wrap SOL instruction should be included in
    * the transaction if necessary
    */
   public async buildWithdrawFromStreamTransaction(
-    stream: PublicKey,
-    feePayer: PublicKey,
+    { stream, feePayer }: WithdrawFromStreamTransactionAccounts,
     amount: number | string,
     autoWSol = false,
   ): Promise<{ transaction: Transaction }> {
@@ -1705,18 +1693,17 @@ export class PaymentStreaming {
   }
 
   /**
-   * Constructs a transaction to pause a stream
+   * Constructs a transaction to pause a running stream.
    *
-   * @param stream - The stream to be paused
-   * @param owner - The owner of the Payment Streaming account containing
-   * the stream that will be paused
-   * @param feePayer - Account paying rent and protocol SOL fees
+   * @param accounts - Transaction accounts
    */
-  public async buildPauseStreamTransaction(
-    stream: PublicKey,
-    owner: PublicKey,
-    feePayer: PublicKey,
-  ): Promise<{ transaction: Transaction }> {
+  public async buildPauseStreamTransaction({
+    stream,
+    owner,
+    feePayer,
+  }: PauseResumeStreamTransactionAccounts): Promise<{
+    transaction: Transaction;
+  }> {
     const streamInfo = (await this.getStream(stream)) as Stream;
 
     if (!streamInfo) {
@@ -1744,18 +1731,17 @@ export class PaymentStreaming {
   }
 
   /**
-   * Constructs a transaction to resume a stream
+   * Constructs a transaction to resume a paused stream.
    *
-   * @param stream - The stream to be resumed
-   * @param owner - The owner of the Payment Streaming account containing
-   * the stream that will be resume
-   * @param feePayer - Account paying rent and protocol SOL fees
+   * @param accounts - Transaction accounts
    */
-  public async buildResumeStreamTransaction(
-    stream: PublicKey,
-    owner: PublicKey,
-    feePayer: PublicKey,
-  ): Promise<{ transaction: Transaction }> {
+  public async buildResumeStreamTransaction({
+    stream,
+    owner,
+    feePayer,
+  }: PauseResumeStreamTransactionAccounts): Promise<{
+    transaction: Transaction;
+  }> {
     const streamInfo = (await this.getStream(stream)) as Stream;
 
     if (!streamInfo) {
@@ -1786,19 +1772,16 @@ export class PaymentStreaming {
   }
 
   /**
-   * Constructs a transaction to transfer a stream
+   * Constructs a transaction to transfer a stream.
    *
-   * @param stream - The stream to be transferred
-   * @param beneficiary - Current beneficiary of the stream
-   * @param newBeneficiary - New beneficiary for the stream
-   * @param feePayer - Account paying rent and protocol SOL fees
+   * @param accounts - Transaction accounts
    */
-  public async buildTransferStreamTransaction(
-    stream: PublicKey,
-    beneficiary: PublicKey,
-    newBeneficiary: PublicKey,
-    feePayer: PublicKey,
-  ): Promise<{ transaction: Transaction }> {
+  public async buildTransferStreamTransaction({
+    stream,
+    beneficiary,
+    newBeneficiary,
+    feePayer,
+  }: TransferStreamTransactionAccounts): Promise<{ transaction: Transaction }> {
     const streamInfo = (await this.getStream(stream)) as Stream;
 
     if (!streamInfo) {
@@ -1828,21 +1811,17 @@ export class PaymentStreaming {
   }
 
   /**
-   * Constructs a transaction to close a stream
+   * Constructs a transaction to close a stream.
    *
-   * @param stream - The stream to be transferred
-   * @param feePayer - Account paying rent and protocol SOL fees
-   * @param destination - Account where the remaining funds will be deposited
+   * @param accounts - Transaction accounts
    * @param autoWSol - Whether a wrap SOL instruction should be included in
    * the transaction if necessary
    * @param autoCloseAccount - If true, an instruction will be included in
    * the resulting transaction to close the containing PS account
    */
   public async buildCloseStreamTransaction(
-    stream: PublicKey,
-    feePayer: PublicKey,
+    { stream, feePayer, destination }: CloseStreamTransactionAccounts,
     autoCloseAccount = false,
-    destination?: PublicKey,
     autoWSol = false,
   ): Promise<{ transaction: Transaction }> {
     const streamInfo = (await this.getStream(stream)) as Stream;
