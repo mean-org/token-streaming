@@ -8,8 +8,8 @@ necessary account from devnet:
 solana-test-validator -r\
   --clone MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ\
   --clone 5KRiDycCTp4HrHBJc15pjbPYquVbKYcHduJKeZieUXtD\
-  --clone 3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw
-  --clone 3KmMEv7A8R3MMhScQceXBQe69qLmnFfxSM3q8HyzkrSx
+  --clone 3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw\
+  --clone 3KmMEv7A8R3MMhScQceXBQe69qLmnFfxSM3q8HyzkrSx\
   --url devnet
 
 2. Run this script:
@@ -168,6 +168,11 @@ async function runExample(): Promise<void> {
   console.log('\nGetting stream1...');
   const stream1Fetched = await psClient.getStream(stream1);
   console.log(prettifyStream(stream1Fetched!));
+
+  // List stream activity
+  console.log('\nGetting stream1 activity...');
+  const stream1Activity = await psClient.listStreamActivity(stream1);
+  console.log(stream1Activity);
 }
 
 runExample().then().catch();

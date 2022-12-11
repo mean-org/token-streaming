@@ -40,6 +40,8 @@ import {
   TimeUnit,
   VestingAccountActivity,
   VestingAccountActivityRaw,
+  StreamActivityRaw,
+  StreamActivity,
 } from './types';
 import {
   calculateAllocationAmount,
@@ -59,7 +61,6 @@ import {
   toUnixTimestamp,
 } from './utils';
 import {
-  Constants,
   WARNING_TYPES,
   PAYMENT_STREAMING_PROGRAM_ID,
   NATIVE_SOL_MINT,
@@ -115,7 +116,7 @@ export class PaymentStreaming {
           ? new PublicKey(copyStreamInfo.id)
           : (copyStreamInfo.id as PublicKey);
 
-      return await getStream(this.program, streamId);
+      return getStream(this.program, streamId);
     }
 
     return getStreamCached(copyStreamInfo);
@@ -148,12 +149,7 @@ export class PaymentStreaming {
     hardUpdate = false,
   ): Promise<Stream[]> {
     if (hardUpdate) {
-      return await listStreams(
-        this.program,
-        psAccountOwner,
-        psAccount,
-        beneficiary,
-      );
+      await listStreams(this.program, psAccountOwner, psAccount, beneficiary);
     }
 
     return listStreamsCached(streamInfoList);
@@ -169,15 +165,14 @@ export class PaymentStreaming {
    */
   public async listStreamActivity(
     id: PublicKey,
-    before: string,
+    before: string = '',
     limit = 10,
     commitment?: Finality | undefined,
-  ): Promise<any[]> {
-    // TODO: Remove any
+  ): Promise<StreamActivityRaw[] | StreamActivity[]> {
     const accountInfo = await this.connection.getAccountInfo(id, commitment);
 
     if (!accountInfo) {
-      throw Error("Stream doesn't exists");
+      throw Error('Stream not found');
     }
 
     return listStreamActivity(this.program, id, before, limit, commitment);
@@ -272,12 +267,12 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
     const amountBN = new BN(amount);
 
-    if (mint.equals(Constants.SOL_MINT) || mint.equals(NATIVE_SOL_MINT)) {
+    if (mint.equals(NATIVE_SOL_MINT)) {
       ixs.push(
         SystemProgram.transfer({
           fromPubkey: sender,
           toPubkey: beneficiary,
-          lamports: amountBN.toNumber(), // TODO: Convert to bignint
+          lamports: BigInt(amountBN.toString()),
         }),
       );
     } else {
@@ -389,7 +384,7 @@ export class PaymentStreaming {
     stream: PublicKey;
   }> {
     let autoWSol = false;
-    if (mint.equals(Constants.SOL_MINT) || mint.equals(NATIVE_SOL_MINT)) {
+    if (mint.equals(NATIVE_SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
       autoWSol = true;
     }
@@ -469,6 +464,7 @@ export class PaymentStreaming {
         owner,
         feePayer,
         beneficiary,
+        feeAccountToken
       },
       streamName ?? '',
       new BN(0),
@@ -528,7 +524,7 @@ export class PaymentStreaming {
     }
 
     let autoWSol = false;
-    if (mint.equals(Constants.SOL_MINT) || mint.equals(NATIVE_SOL_MINT)) {
+    if (mint.equals(NATIVE_SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
       autoWSol = true;
     }
@@ -653,7 +649,7 @@ export class PaymentStreaming {
     psAccount: PublicKey;
     psAccountToken: PublicKey;
   }> {
-    if (mint.equals(Constants.SOL_MINT) || mint.equals(NATIVE_SOL_MINT)) {
+    if (mint.equals(NATIVE_SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
     }
 
@@ -800,7 +796,7 @@ export class PaymentStreaming {
    * @param fundingAmount - The token amount to fund the newly creawted
    * vesting account if a value greater than 0 is provided
    * @param vestingCategory - Category for the vesting contract account
-   * @param startUtc - The vesting contract start date. TODO
+   * @param startUtc - The vesting contract start date
    * @param cliffVestPercent - When a vesting stream is created using this
    * template, this is the 0-100 percentage of the allocation assigned to the
    * stream that is immediatelly withdrawable by the beneficiary as soon as the
@@ -834,7 +830,7 @@ export class PaymentStreaming {
     const rateIntervalInSeconds: number = intervalUnit as number;
 
     let autoWSol = false;
-    if (mint.equals(Constants.SOL_MINT) || mint.equals(NATIVE_SOL_MINT)) {
+    if (mint.equals(NATIVE_SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
       autoWSol = true;
     }
@@ -1226,10 +1222,7 @@ export class PaymentStreaming {
     }
 
     let autoWSol = false;
-    if (
-      psAccountMint.equals(Constants.SOL_MINT) ||
-      psAccountMint.equals(NATIVE_SOL_MINT)
-    ) {
+    if (psAccountMint.equals(NATIVE_SOL_MINT)) {
       psAccountMint = NATIVE_WSOL_MINT;
       autoWSol = true;
     }
@@ -1413,10 +1406,7 @@ export class PaymentStreaming {
       true,
     );
 
-    const ownerTokenInfo = await this.connection.getAccountInfo(
-      ownerToken,
-      'recent',
-    ); // TODO: standarized commitment
+    const ownerTokenInfo = await this.connection.getAccountInfo(ownerToken);
     await this.ensureAutoWrapSolInstructions(
       autoWSol,
       amount,

@@ -51,6 +51,7 @@ jobs:
             -Dsonar.verbose=false
             -Dsonar.projectKey=payment-streaming-sdk
             -Dsonar.sources=sdks/payment-streaming/src/
+            -Dsonar.exclusions=sdks/payment-streaming/src/msp*.ts
   run-sdk-tests:
     name: Run SDK tests
     needs: [sonar-scan]

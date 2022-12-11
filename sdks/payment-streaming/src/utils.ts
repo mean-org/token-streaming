@@ -231,7 +231,7 @@ export const listStreamActivity = async (
   commitment?: Finality | undefined,
 ): Promise<StreamActivityRaw[] | StreamActivity[]> => {
   let activityRaw: StreamActivityRaw[] = [];
-  const finality = commitment !== undefined ? commitment : 'finalized';
+  const finality = commitment !== undefined ? commitment : 'confirmed';
   const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
   if (before) {
     filter['before'] = before;

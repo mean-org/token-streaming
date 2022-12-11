@@ -477,7 +477,7 @@ export type StreamTemplateOptions = {
 
   /**
    * If true, the protocol token fees will be paid from PS account ATA and
-   * deposited upfront during stream creation or allocation. If false, 
+   * deposited upfront during stream creation or allocation. If false,
    * the beneficiary will pay for token fees at withdraw time
    */
   tokenFeePayedFromAccount: boolean;
