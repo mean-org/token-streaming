@@ -290,7 +290,8 @@ Output:
     withdrawableAmount: '0',
     streamUnitsPerSecond: 1000,
     isManuallyPaused: 'false',
-    status: 1,
+    statusCode: 1,
+    statusName: 'Running',
     tokenFeePayedFromAccount: false,
     createdOnUtc: 'Fri Dec 09 2022 15:15:19 GMT+0100 (Central European Standard Time)'
   }

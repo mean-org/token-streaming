@@ -58,6 +58,7 @@ import {
   PauseResumeStreamTransactionAccounts,
   TransferStreamTransactionAccounts,
   CloseStreamTransactionAccounts,
+  STREAM_STATUS_CODE,
 } from './types';
 import {
   calculateAllocationAmount,
@@ -1087,9 +1088,9 @@ export class PaymentStreaming {
 
     for (const stream of streams) {
       totalAllocation = totalAllocation.add(stream.allocationAssigned);
-      switch (stream.status) {
-        case STREAM_STATUS.Paused:
-        case STREAM_STATUS.Scheduled:
+      switch (stream.statusCode) {
+        case STREAM_STATUS_CODE.Paused:
+        case STREAM_STATUS_CODE.Scheduled:
           if (onlyRunning) continue;
       }
       if (stream.remainingAllocationAmount.lten(0)) {
@@ -1635,7 +1636,7 @@ export class PaymentStreaming {
       throw Error("Stream doesn't exist");
     }
 
-    if (streamInfo.status === STREAM_STATUS.Scheduled) {
+    if (streamInfo.statusCode === STREAM_STATUS_CODE.Scheduled) {
       throw Error('Stream has not started');
     }
 

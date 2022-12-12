@@ -347,12 +347,22 @@ export type StreamTemplate = {
 
 /**
  * Stream states
+ * @deprecated Deprecated in v3.2.0. Please use {@link STREAM_STATUS_CODE} instead.
  */
-// TODO: why this enum is different than the program's enum ?
 export enum STREAM_STATUS {
   Scheduled = 1,
   Running = 2,
   Paused = 3,
+}
+
+/**
+ * Stream status codes.
+ */
+export enum STREAM_STATUS_CODE {
+  Scheduled = 0,
+  Running = 1,
+  Paused = 2,
+  Unknown = 99,
 }
 
 /**
@@ -418,7 +428,10 @@ export type Stream = {
   streamUnitsPerSecond: number;
   cliffVestPercent: number;
   upgradeRequired: boolean;
+  /** @deprecated Deprecated in v3.2.0. */
   status: STREAM_STATUS | string;
+  statusCode: STREAM_STATUS_CODE;
+  statusName: string;
   isManuallyPaused: boolean;
   /**
    * @deprecated Deprecated in v3.2.0. Use {@link tokenFeePayedFromAccount} 

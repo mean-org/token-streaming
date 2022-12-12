@@ -222,7 +222,8 @@ function prettifyStream(stream: Stream) {
     withdrawableAmount: stream.withdrawableAmount.toString(),
     streamUnitsPerSecond: stream.streamUnitsPerSecond,
     isManuallyPaused: stream.isManuallyPaused.toString(),
-    status: stream.status,
+    statusCode: stream.statusCode,
+    statusName: stream.statusName,
     tokenFeePayedFromAccount: stream.tokenFeePayedFromAccount,
     createdOnUtc: stream.createdOnUtc,
   };

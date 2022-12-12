@@ -38,6 +38,7 @@ import {
   ActivityRaw,
   ActivityActionCode,
   MSP_ACTIONS,
+  STREAM_STATUS_CODE,
 } from './types';
 import { IDL, Msp as Ps } from './msp_idl_005'; // point to the latest IDL
 // Given an IDL type IDL we can derive Typescript types for its accounts 
@@ -775,6 +776,23 @@ const parseStreamEventData = (
     subCategory: event.subCategory,
   } as RawStream;
 
+  let statusCode = STREAM_STATUS_CODE.Running;
+  switch(event.status){
+    case 'Scheduled':
+      STREAM_STATUS_CODE.Scheduled;
+      break;
+    case 'Running':
+      STREAM_STATUS_CODE.Running;
+      break;
+    case 'Paused':
+      STREAM_STATUS_CODE.Paused;
+      break;
+    default: {
+      STREAM_STATUS_CODE.Unknown;
+      break;
+    }
+  }
+
   const stream = {
     id: address,
     version: event.version,
@@ -803,6 +821,8 @@ const parseStreamEventData = (
     streamUnitsPerSecond: getStreamUnitsPerSecond(rawStream.rateAmountUnits, rawStream.rateIntervalInSeconds),
     isManuallyPaused: event.isManualPause,
     status: event.status,
+    statusCode: statusCode,
+    statusName: event.status,
     lastRetrievedBlockTime: event.currentBlockTime.toNumber(),
     lastRetrievedTimeInSeconds: parseInt((Date.now() / 1_000).toString()),
     feePayedByTreasurer: event.feePayedByTreasurer,
@@ -843,7 +863,8 @@ export const parseRawStreamAccount = (
   
   const startUtc = new Date(startUtcInSeconds * 1000);
   const depletionDate = getStreamEstDepletionDate(rawStream);
-  const streamStatus = getStreamStatus(rawStream, timeDiff);
+  const streamStatusDeprecated = getStreamStatus(rawStream, timeDiff);
+  const streamStatus = getStreamStatusCode(rawStream, timeDiff);
   const streamWithdrawableAmount = getStreamWithdrawableAmount(rawStream, timeDiff);
 
   const parsedStream = {
@@ -873,7 +894,9 @@ export const parseRawStreamAccount = (
     withdrawableAmount: streamWithdrawableAmount,
     streamUnitsPerSecond: getStreamUnitsPerSecond(rawStream.rateAmountUnits, rawStream.rateIntervalInSeconds),
     isManuallyPaused: isStreamManuallyPaused(rawStream),
-    status: streamStatus,
+    status: streamStatusDeprecated,
+    statusCode: streamStatus,
+    statusName: STREAM_STATUS_CODE[streamStatus],
     lastRetrievedBlockTime: blockTime,
     lastRetrievedTimeInSeconds: parseInt((Date.now() / 1_000).toString()),
     feePayedByTreasurer: rawStream.feePayedByTreasurer,
@@ -1569,6 +1592,8 @@ export const getStreamWithdrawableAmount = (stream: RawStream, timeDiff = 0) => 
 
 /**
  * Mimics msp program -> `stream.get_status()`
+ * @deprecated Deprecated in v3.2.0. Please use {@link getStreamStatusCode} instead.
+ * 
  * @param stream Raw stream as defined in IDL
  * @param timeDiff 
  * @returns 
@@ -1593,10 +1618,6 @@ export const getStreamStatus = (stream: RawStream, timeDiff: number) => {
   const cliffUnits = getStreamCliffAmount(stream);
   const secondsSinceStart = new BN(blocktimeRelativeNow - startUtcInSeconds);
 
-  const nonStopStreamedUnitsSinceStarted = getStreamedUnits(stream, secondsSinceStart);
-  const nonStopEarningUnits = cliffUnits
-    .add(nonStopStreamedUnitsSinceStarted);
-
   const actualStreamedSeconds = secondsSinceStart
     .sub(stream.lastKnownTotalSecondsInPausedStatus);
   const actualStreamedUnits = getStreamedUnits(stream, actualStreamedSeconds);
@@ -1609,6 +1630,45 @@ export const getStreamStatus = (stream: RawStream, timeDiff: number) => {
 
   // Automatically paused (ran out of funds)
   return STREAM_STATUS.Paused;
+};
+
+/**
+ * Mimics msp program -> `stream.get_status()`
+ * @param stream Raw stream as defined in IDL
+ * @param timeDiff 
+ */
+export const getStreamStatusCode = (stream: RawStream, timeDiff: number) => {
+  // Get the blockchain kind of "now" given the client timeDiff
+  const blocktimeRelativeNow = (Date.now() / 1_000) - timeDiff;
+  const startUtcInSeconds = getStreamStartUtcInSeconds(stream);
+
+  // Scheduled
+  if (startUtcInSeconds > blocktimeRelativeNow) {
+    return STREAM_STATUS_CODE.Scheduled;
+  }
+
+  // Manually paused
+  const manuallyPaused = isStreamManuallyPaused(stream);
+  if (manuallyPaused) {
+    return STREAM_STATUS_CODE.Paused;
+  }
+
+  // Running or automatically paused (ran out of funds)
+  const cliffUnits = getStreamCliffAmount(stream);
+  const secondsSinceStart = new BN(blocktimeRelativeNow - startUtcInSeconds);
+
+  const actualStreamedSeconds = secondsSinceStart
+    .sub(stream.lastKnownTotalSecondsInPausedStatus);
+  const actualStreamedUnits = getStreamedUnits(stream, actualStreamedSeconds);
+  const actualEarnedUnits = cliffUnits
+    .add(actualStreamedUnits);
+
+  if(stream.allocationAssignedUnits.gt(actualEarnedUnits)) {
+    return STREAM_STATUS_CODE.Running;
+  }
+
+  // Automatically paused (ran out of funds)
+  return STREAM_STATUS_CODE.Paused;
 };
 
 export const isStreamManuallyPaused = (stream: RawStream) => {
