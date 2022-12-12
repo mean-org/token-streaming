@@ -2353,7 +2353,7 @@ async function parseProgramInstruction(
     }
 
     // mult by 1000 to add milliseconds
-    const blockTime = (transactionBlockTimeInSeconds as number) * 1000;
+    const blockTime = transactionBlockTimeInSeconds * 1000;
 
     let action: ActivityActionCode = ActivityActionCode.Unknown;
     let initializer: PublicKey | undefined;

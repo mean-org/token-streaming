@@ -35,7 +35,6 @@ import {
   Stream,
   StreamEventData,
   StreamTemplate,
-  STREAM_STATUS,
   SubCategory,
   TimeUnit,
   VestingAccountActivity,
