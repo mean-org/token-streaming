@@ -446,6 +446,10 @@ export const listAccounts = async (
   return sortedAccounts;
 };
 
+/**
+ * @deprecated Deprecated in v3.2.0. Please use {@link calculateFeesForAction}
+ * instead.
+ */
 export const calculateActionFees = async (
   connection: Connection,
   action: MSP_ACTIONS,
