@@ -98,7 +98,7 @@ const mint = NATIVE_SOL_MINT;
 
 ### Add funds to the Payment Streaming account
 ```ts
-  cconst { transaction: addFundsTx } =
+  const { transaction: addFundsTx } =
     await psClient.buildAddFundsToAccountTransaction(
       {
         psAccount: psAccount,

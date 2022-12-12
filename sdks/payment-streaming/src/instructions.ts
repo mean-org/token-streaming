@@ -180,19 +180,19 @@ export async function buildAddFundsInstruction(
   }: CreateAddFundsInstructionAccounts,
   amount: BN,
 ): Promise<CreateAddFundsInstructionResult> {
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  contributorToken = await EnsureAssociatedTokenAddress(
+  contributorToken = await ensureAssociatedTokenAddress(
     contributorToken,
     psAccountMint,
     contributor,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -319,13 +319,13 @@ export async function buildCreateStreamInstruction(
   tokenFeePayedFromAccount: boolean,
   usePda: boolean,
 ): Promise<CreateStreamInstructionResult> {
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -681,13 +681,13 @@ export async function buildCreateStreamWithTemplateInstruction(
   name: string,
   usePda: boolean,
 ): Promise<CreateStreamInstructionResult> {
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -805,13 +805,13 @@ export async function buildAllocateFundsToStreamInstruction(
   }: AllocateFundsToStreamInstructionAccounts,
   amount: BN,
 ): Promise<AllocateFundsToStreamInstructionResult> {
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -879,19 +879,19 @@ export async function buildWithdrawFromAccountInstruction(
   }: WithdrawFromAccountInstructionAccounts,
   amount: BN,
 ): Promise<WithdrawFromAccountInstructionResult> {
-  destinationToken = await EnsureAssociatedTokenAddress(
+  destinationToken = await ensureAssociatedTokenAddress(
     destinationToken,
     psAccountMint,
     destination,
   );
 
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -951,7 +951,7 @@ export async function buildRefreshAccountDataInstruction(
     psAccountToken,
   }: RefreshAccountDataInstructionAccounts,
 ): Promise<RefreshAccountDataInstructionResult> {
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
@@ -1009,19 +1009,19 @@ export async function buildCloseFromAccountInstruction(
     feeAccountToken,
   }: CloseAccountInstructionAccounts,
 ): Promise<CloseAccountInstructionResult> {
-  destinationToken = await EnsureAssociatedTokenAddress(
+  destinationToken = await ensureAssociatedTokenAddress(
     destinationToken,
     psAccountMint,
     destination,
   );
 
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -1093,19 +1093,19 @@ export async function buildWithdrawFromStreamInstruction(
   }: WithdrawFromStreamInstructionAccounts,
   amount: BN,
 ): Promise<WithdrawFromStreamInstructionResult> {
-  beneficiaryToken = await EnsureAssociatedTokenAddress(
+  beneficiaryToken = await ensureAssociatedTokenAddress(
     beneficiaryToken,
     psAccountMint,
     beneficiary,
   );
 
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -1274,19 +1274,19 @@ export async function buildCloseStreamInstruction(
     feeAccountToken,
   }: CloseStreamInstructionAccounts,
 ): Promise<CloseStreamInstructionResult> {
-  beneficiaryToken = await EnsureAssociatedTokenAddress(
+  beneficiaryToken = await ensureAssociatedTokenAddress(
     beneficiaryToken,
     psAccountMint,
     beneficiary,
   );
 
-  psAccountToken = await EnsureAssociatedTokenAddress(
+  psAccountToken = await ensureAssociatedTokenAddress(
     psAccountToken,
     psAccountMint,
     psAccount,
   );
 
-  feeAccountToken = await EnsureAssociatedTokenAddress(
+  feeAccountToken = await ensureAssociatedTokenAddress(
     feeAccountToken,
     psAccountMint,
     FEE_ACCOUNT,
@@ -1333,7 +1333,7 @@ async function getAccountSeeds(
   return [slotBn, psAccountSeeds];
 }
 
-async function EnsureAssociatedTokenAddress(
+async function ensureAssociatedTokenAddress(
   associatedToken: PublicKey | undefined,
   mint: PublicKey,
   owner: PublicKey,
