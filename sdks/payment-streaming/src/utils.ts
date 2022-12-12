@@ -776,19 +776,18 @@ const parseStreamEventData = (
     subCategory: event.subCategory,
   } as RawStream;
 
-  let statusCode = STREAM_STATUS_CODE.Running;
+  let statusCode = STREAM_STATUS_CODE.Unknown;
   switch(event.status){
     case 'Scheduled':
-      STREAM_STATUS_CODE.Scheduled;
+      statusCode = STREAM_STATUS_CODE.Scheduled;
       break;
     case 'Running':
-      STREAM_STATUS_CODE.Running;
+      statusCode = STREAM_STATUS_CODE.Running;
       break;
     case 'Paused':
-      STREAM_STATUS_CODE.Paused;
+      statusCode = STREAM_STATUS_CODE.Paused;
       break;
     default: {
-      STREAM_STATUS_CODE.Unknown;
       break;
     }
   }
