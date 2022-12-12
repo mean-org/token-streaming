@@ -434,11 +434,9 @@ describe('PS Tests\n', async () => {
       psAccount,
       psAccountToken,
     } = await ps.buildCreateAccountTransaction(
-      {
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        mint: NATIVE_SOL_MINT,
-      },
+      {owner: user1Wallet.publicKey,
+      feePayer: user1Wallet.publicKey,
+      mint: NATIVE_SOL_MINT},
       psAccountName,
       AccountType.Open,
     );
@@ -453,12 +451,10 @@ describe('PS Tests\n', async () => {
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
       await ps.buildAddFundsToAccountTransaction(
-        {
-          psAccount,
-          psAccountMint: NATIVE_SOL_MINT,
-          contributor: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
-        },
+        {psAccount,
+        psAccountMint: NATIVE_SOL_MINT,
+        contributor: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,},
         3 * LAMPORTS_PER_SOL,
       );
     addFundsToAccountTx.partialSign(user1Wallet);
@@ -474,12 +470,10 @@ describe('PS Tests\n', async () => {
     const stream1Name = 'STREAM-1';
     const { transaction: createStream1Tx, stream: psAccountStream1 } =
       await ps.buildCreateStreamTransaction(
-        {
-          psAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
-          beneficiary: user2Wallet.publicKey,
-        },
+        {psAccount,
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        beneficiary: user2Wallet.publicKey,},
         stream1Name,
         0.1 * LAMPORTS_PER_SOL,
         1,
@@ -501,12 +495,10 @@ describe('PS Tests\n', async () => {
     const stream2Name = 'STREAM-2';
     const { transaction: createStream2Tx, stream: psAccountStream2 } =
       await ps.buildCreateStreamTransaction(
-        {
-          psAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
-          beneficiary: user2Wallet.publicKey,
-        },
+        {psAccount,
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        beneficiary: user2Wallet.publicKey,},
         stream2Name,
         0.2 * LAMPORTS_PER_SOL,
         1,
@@ -528,12 +520,10 @@ describe('PS Tests\n', async () => {
     const stream3Name = 'STREAM-3';
     const { transaction: createStream3Tx, stream: psAccountStream3 } =
       await ps.buildCreateStreamTransaction(
-        {
-          psAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
-          beneficiary: user2Wallet.publicKey,
-        },
+        {psAccount,
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        beneficiary: user2Wallet.publicKey,},
         stream3Name,
         0.1 * LAMPORTS_PER_SOL,
         1,
@@ -590,11 +580,9 @@ describe('PS Tests\n', async () => {
       vestingAccountToken,
       template: vestingAccountTemplate,
     } = await ps.buildCreateVestingAccountTransaction(
-      {
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        mint: NATIVE_SOL_MINT,
-      },
+      {owner: user1Wallet.publicKey,
+      feePayer: user1Wallet.publicKey,
+      mint: NATIVE_SOL_MINT,},
       vestingAccountName,
       AccountType.Open,
       false,
@@ -619,12 +607,10 @@ describe('PS Tests\n', async () => {
     const vestingStream1Name = 'VESTING-STREAM-1';
     const { transaction: createStreamTx, stream: vestingAccountStream1 } =
       await ps.buildCreateVestingStreamTransaction(
-        {
-          vestingAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
-          beneficiary: user2Wallet.publicKey,
-        },
+        {vestingAccount,
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        beneficiary: user2Wallet.publicKey,},
         1 * LAMPORTS_PER_SOL,
         vestingStream1Name,
       );
@@ -641,12 +627,10 @@ describe('PS Tests\n', async () => {
     const vestingStream2Name = 'VESTING-STREAM-2';
     const { transaction: createStreamTx2, stream: vestingAccountStream2 } =
       await ps.buildCreateVestingStreamTransaction(
-        {
-          vestingAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
-          beneficiary: user2Wallet.publicKey,
-        },
+        {vestingAccount,
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        beneficiary: user2Wallet.publicKey,},
         1 * LAMPORTS_PER_SOL,
         vestingStream2Name,
       );

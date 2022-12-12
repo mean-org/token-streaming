@@ -1036,7 +1036,7 @@ export class MSP {
 
   /**
    * Creates a vesting contract and the stream template
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildCreateVestingAccountTransaction` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateVestingAccountTransaction` instead.
    * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer
@@ -1223,7 +1223,7 @@ export class MSP {
   /**
    * This modifies values of vesting treasury
    * template if no streams have been created yet.
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildUpdateVestingAccountTemplate` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildUpdateVestingAccountTemplate` instead.
    */
   public async modifyVestingTreasuryTemplate(
     payer: PublicKey,
@@ -1323,7 +1323,7 @@ export class MSP {
   }
 
   /**
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.listVestingAccountActivity` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.listVestingAccountActivity` instead.
    * 
    * @param id The address of the treasury
    * @param before The signature to start searching backwards from.
@@ -1354,7 +1354,7 @@ export class MSP {
 
   /**
    * Gets the flowing rate of a vesting contract.
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.getVestingAccountFlowRate` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.getVestingAccountFlowRate` instead.
    * 
    * @param vestingTreasury The address of the treasury
    * @returns a tuple of the amount, the time unit ([20, TimeUnit.Week] == 20/week)
@@ -1431,7 +1431,7 @@ export class MSP {
 
   /**
    * Creates a vesting stream based on the vesting contract template
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildCreateVestingStreamTransaction` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateVestingStreamTransaction` instead.
    * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer
@@ -1571,7 +1571,7 @@ export class MSP {
   }
 
   /**
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildFundStreamTransaction` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildFundStreamTransaction` instead.
    */
   public async fundStream(
     payer: PublicKey,
@@ -1728,7 +1728,7 @@ export class MSP {
 
   /**
    * Add funds to a streaming account or a vesting contract
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildAddFundsToAccountTransaction` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildAddFundsToAccountTransaction` instead.
    * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param contributor {PublicKey} - The public key of the contributor
@@ -1835,7 +1835,7 @@ export class MSP {
 
   /**
    * Creates a stream by allocating funds from the streaming account or vesting contract
-   * @deprecated in 3.2.0. Please use `PaymentStreaming.buildAllocateFundsToStreamTransaction` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildAllocateFundsToStreamTransaction` instead.
    * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer

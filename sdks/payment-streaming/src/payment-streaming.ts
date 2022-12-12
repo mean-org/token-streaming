@@ -39,8 +39,6 @@ import {
   SubCategory,
   TimeUnit,
   VestingAccountActivity,
-  VestingAccountActivityRaw,
-  StreamActivityRaw,
   StreamActivity,
   TransferTransactionAccounts,
   ScheduleTransferTransactionAccounts,
@@ -186,7 +184,7 @@ export class PaymentStreaming {
     before: string = '',
     limit = 10,
     commitment?: Finality | undefined,
-  ): Promise<StreamActivityRaw[] | StreamActivity[]> {
+  ): Promise<StreamActivity[]> {
     const accountInfo = await this.connection.getAccountInfo(id, commitment);
 
     if (!accountInfo) {
@@ -1019,7 +1017,7 @@ export class PaymentStreaming {
     before: string,
     limit = 10,
     commitment?: Finality | undefined,
-  ): Promise<VestingAccountActivity[] | VestingAccountActivityRaw[]> {
+  ): Promise<VestingAccountActivity[]> {
     const accountInfo = await this.connection.getAccountInfo(
       vestingAccount,
       commitment,

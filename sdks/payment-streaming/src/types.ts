@@ -15,22 +15,57 @@ declare global {
 
 /**
  * MSP Instructions types
+ * @deprecated Deprecated in v3.2.0, use {@link ACTION_CODES}.
  */
 export enum MSP_ACTIONS {
+  /** @deprecated Use {@link ACTION_CODES.ScheduleOneTimePayment}. */
   scheduleOneTimePayment = 1,
+  /** @deprecated Use {@link ACTION_CODES.CreateStream}. */
   createStream = 2,
+  /** @deprecated Use {@link ACTION_CODES.CreateStreamWithFunds}. */
   createStreamWithFunds = 3,
+  /** @deprecated Use {@link ACTION_CODES.AddFundsToAccount}. */
   addFunds = 4,
+  /** @deprecated Use {@link ACTION_CODES.WithdrawFromStream}. */
   withdraw = 5,
+  /** @deprecated Use {@link ACTION_CODES.PauseStream}. */
   pauseStream = 6,
+  /** @deprecated Use {@link ACTION_CODES.ResumeStream}. */
   resumeStream = 7,
+  /** @deprecated Use {@link ACTION_CODES.ProposeUpdate}. */
   proposeUpdate = 8,
+  /** @deprecated Use {@link ACTION_CODES.AnswerUpdate}. */
   answerUpdate = 9,
+  /** @deprecated Use {@link ACTION_CODES.CreateAccount}. */
   createTreasury = 10,
+  /** @deprecated Use {@link ACTION_CODES.CloseStream}. */
   closeStream = 11,
+  /** @deprecated Use {@link ACTION_CODES.CloseAccount}. */
   closeTreasury = 12,
+  /** @deprecated Use {@link ACTION_CODES.TransferStream}. */
   transferStream = 13,
+  /** @deprecated Use {@link ACTION_CODES.WithdrawFromAccount}. */
   treasuryWithdraw = 14,
+}
+
+/**
+ * Codes for identifying user actions supported by this client.
+ */
+export enum ACTION_CODES {
+  ScheduleOneTimePayment = 1,
+  CreateStream = 2,
+  CreateStreamWithFunds = 3,
+  AddFundsToAccount = 4,
+  WithdrawFromStream = 5,
+  PauseStream = 6,
+  ResumeStream = 7,
+  ProposeUpdate = 8,
+  AnswerUpdate = 9,
+  CreateAccount = 10,
+  CloseStream = 11,
+  CloseAccount= 12,
+  TransferStream = 13,
+  WithdrawFromAccount= 14,
 }
 
 /**
@@ -49,7 +84,7 @@ export type TransactionFees = {
  * Transaction fees parameters
  */
 export type TransactionFeesParams = {
-  instruction: MSP_ACTIONS;
+  instruction: ACTION_CODES;
   signaturesAmount: number;
 };
 
@@ -86,7 +121,9 @@ export interface ListStreamParams {
 export type StreamActivity = {
   signature: string;
   initializer: string;
+  /** @deprecated Depracated in v3.2.0. Please use {@link actionCode} instead. */
   action: string;
+  actionCode: ActivityActionCode;
   amount: string;
   mint: string;
   blockTime: number;
@@ -107,8 +144,26 @@ export type StreamActivityRaw = {
 };
 
 /**
+ *  Activity parsed from instruction
+ */
+export type ActivityRaw = {
+  signature: string;
+  action: ActivityActionCode;
+  blockTime: number;
+  utcDate: string;
+  initializer?: PublicKey;
+  stream?: PublicKey;
+  template?: PublicKey;
+  beneficiary?: PublicKey;
+  destination?: PublicKey;
+  destinationTokenAccount?: PublicKey;
+  mint?: PublicKey;
+  amount?: BN;
+};
+
+/**
  *  Vesting treasury activity
- * @deprecated Deprecated in 3.2.0. Please use {@link VestingAccountActivity} instead.
+ * @deprecated Deprecated in v3.2.0. Please use {@link VestingAccountActivity} instead.
  */
 export type VestingTreasuryActivity = {
   signature: string;
@@ -133,7 +188,7 @@ export type VestingTreasuryActivity = {
  */
 export type VestingAccountActivity = {
   signature: string;
-  action: VestingTreasuryActivityAction;
+  actionCode: ActivityActionCode;
   initializer?: string;
   mint?: string;
   blockTime?: number;
@@ -151,7 +206,7 @@ export type VestingAccountActivity = {
 
 /**
  *  Vesting treasury activity
- * @deprecated Deprecated in 3.2.0. Please use {@link VestingAccountActivityRaw} instead.
+ * @deprecated Deprecated in v3.2.0. Please use {@link VestingAccountActivityRaw} instead.
  */
 export type VestingTreasuryActivityRaw = {
   signature: string;
@@ -172,26 +227,8 @@ export type VestingTreasuryActivityRaw = {
 };
 
 /**
- *  Vesting account activity
+ * @deprecated Deprecated in v3.2.0. Please use {@link VestingAccountActivityAction} instead.
  */
-export type VestingAccountActivityRaw = {
-  signature: string;
-  action: VestingTreasuryActivityAction;
-  initializer?: PublicKey;
-  mint?: PublicKey;
-  blockTime?: number;
-  template?: PublicKey;
-  // createStream - allocation amount
-  // addFunds - deposited amount
-  // withdraw - withdrawn amount
-  amount: BN | undefined;
-  beneficiary?: PublicKey; // create stream
-  destination?: PublicKey; // withdraw
-  destinationTokenAccount?: PublicKey; // withdrawn associated token account
-  stream?: PublicKey; // vesting stream activities
-  utcDate: string;
-};
-
 export enum VestingTreasuryActivityAction {
   TreasuryCreate,
   TreasuryModify,
@@ -204,6 +241,22 @@ export enum VestingTreasuryActivityAction {
   StreamAllocateFunds,
   StreamWithdraw,
   TreasuryRefresh,
+}
+
+export enum ActivityActionCode {
+  Unknown = 0,
+  AccountCreated = 10,
+  AccountCreatedWithTemplate = 20,
+  StreamTemplateUpdate = 30,
+  FundsAddedToAccount = 40,
+  FundsWithdrawnFromAccount = 50,
+  AccountDataRefreshed = 60,
+  StreamCreated = 70,
+  FundsAllocatedToStream = 80,
+  FundsWithdrawnFromStream = 90,
+  StreamPaused = 110,
+  StreamResumed = 120,
+  StreamClosed = 140,
 }
 
 /**
@@ -601,7 +654,7 @@ export type FundStreamTransactionAccounts = {
   /** The PS account to withdraw funds from */
   psAccount: PublicKey;
 
-  /**  Owner of the Payment Streaming account */
+  /** Owner of the Payment Streaming account */
   owner: PublicKey;
 
   /** Stream to add funds to */
@@ -658,7 +711,7 @@ export type TransferStreamTransactionAccounts = {
    * transfer. */
   beneficiary: PublicKey;
 
-  /**  New beneficiary for the stream */
+  /** New beneficiary for the stream */
   newBeneficiary: PublicKey;
 } & FeepayerAccounts
 
@@ -666,7 +719,7 @@ export type CloseStreamTransactionAccounts = {
   /** The stream to be closed */
   stream: PublicKey;
 
-  /**  Account that will receive any remaining withdrawable amount on the
+  /** Account that will receive any remaining withdrawable amount on the
    * stream. If ommited, remaining funds will be sent to the beneficiary. */
   destination?: PublicKey;
 } & FeepayerAccounts
