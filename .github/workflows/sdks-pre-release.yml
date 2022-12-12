@@ -7,10 +7,11 @@ on:
     types:
       - closed
     paths:
-      - 'sdks/msp/**.js'
-      - 'sdks/msp/**.ts'
-      - 'sdks/msp/package.json'
-      - 'sdks/msp/tsconfig.json'
+      - 'sdks/payment-streaming/**.js'
+      - 'sdks/payment-streaming/**.ts'
+      - 'sdks/payment-streaming/package.json'
+      - 'sdks/payment-streaming/tsconfig.json'
+      - 'sdks/payment-streaming/run-tests.sh'
 
 jobs:
   pre-release:
@@ -27,5 +28,5 @@ jobs:
           npm_token: ${{ secrets.NPM_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # gchat_webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          path: ./sdks/msp
+          path: ./sdks/payment-streaming
           tag_prefix: sdk-

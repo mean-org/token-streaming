@@ -63,6 +63,7 @@ import { Beneficiary, listTreasuries, StreamBeneficiary } from '.';
 
 /**
  * API class with functions to interact with the Money Streaming Program using Solana Web3 JS API
+ * @deprecated Deprecated in v3.2.0. Please use {@link PaymentStreaming} instead.
  */
 export class MSP {
   private connection: Connection;
@@ -221,6 +222,10 @@ export class MSP {
 
   /**
    * Performs simple transfer of tokens to a beneficiary
+   * 
+   * @deprecated Deprecated in v3.2.0. Please use 
+   * `PaymentStreaming.buildTransferTransaction()` instead.
+   * 
    * @param sender {PublicKey} - The public key of the wallet approving the transaction
    * @param beneficiary {PublicKey} - The public key of the beneficiary
    * @param mint {PublicKey} - The public key of the token to be sent
@@ -334,6 +339,10 @@ export class MSP {
 
   /**
    * Schedules a transfer as a stream without rate.
+   * 
+   * @deprecated Deprecated in v3.2.0. Please use 
+   * `PaymentStreaming.buildScheduleTransferTransaction()` instead.
+   * 
    * @param treasurer {PublicKey} - The public key of the wallet approving the transaction.
    * @param beneficiary {PublicKey} - The public key of the beneficiary.
    * @param mint {PublicKey} - The public key of the token to be sent.
@@ -544,7 +553,9 @@ export class MSP {
   }
 
   /**
-   * Creates a recurring payment at a given rate to start immediately or scheduled
+   * Creates a recurring payment at a given rate to start immediately or scheduled.
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildStreamPaymentTransaction` instead.
+   * 
    * @param treasurer {PublicKey} - The public key of the wallet approving the transaction.
    * @param beneficiary {PublicKey} - The public key of the beneficiary.
    * @param mint {PublicKey} - The public key of the token to be sent.
@@ -746,6 +757,9 @@ export class MSP {
     return tx;
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateAccountTransaction` instead.
+   */
   public async createTreasury(
     payer: PublicKey,
     treasurer: PublicKey,
@@ -773,6 +787,7 @@ export class MSP {
   /**
    * This one returns not only the transaction but also the address of the
    * treasury that will be created
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateAccountTransaction` instead.
    */
   public async createTreasury2(
     payer: PublicKey,
@@ -841,6 +856,9 @@ export class MSP {
     return [tx, treasury];
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateStreamTransaction` instead.
+   */
   public async createStream(
     payer: PublicKey,
     treasurer: PublicKey,
@@ -1018,6 +1036,8 @@ export class MSP {
 
   /**
    * Creates a vesting contract and the stream template
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateVestingAccountTransaction` instead.
+   * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer
    * @param label {string} - The name of the vesting contract (up to 32 characters)
@@ -1203,6 +1223,7 @@ export class MSP {
   /**
    * This modifies values of vesting treasury
    * template if no streams have been created yet.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildUpdateVestingAccountTemplate` instead.
    */
   public async modifyVestingTreasuryTemplate(
     payer: PublicKey,
@@ -1302,7 +1323,8 @@ export class MSP {
   }
 
   /**
-   *
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.listVestingAccountActivity` instead.
+   * 
    * @param id The address of the treasury
    * @param before The signature to start searching backwards from.
    * @param limit The max amount of elements to retrieve
@@ -1332,6 +1354,8 @@ export class MSP {
 
   /**
    * Gets the flowing rate of a vesting contract.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.getVestingAccountFlowRate` instead.
+   * 
    * @param vestingTreasury The address of the treasury
    * @returns a tuple of the amount, the time unit ([20, TimeUnit.Week] == 20/week)
    * and total allocation of all streams
@@ -1407,6 +1431,8 @@ export class MSP {
 
   /**
    * Creates a vesting stream based on the vesting contract template
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildCreateVestingStreamTransaction` instead.
+   * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer
    * @param treasury {PublicKey} - The public key of the vesting contract
@@ -1544,6 +1570,9 @@ export class MSP {
     return [tx, streamKey.publicKey];
   }
 
+  /**
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildFundStreamTransaction` instead.
+   */
   public async fundStream(
     payer: PublicKey,
     contributor: PublicKey,
@@ -1699,6 +1728,8 @@ export class MSP {
 
   /**
    * Add funds to a streaming account or a vesting contract
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildAddFundsToAccountTransaction` instead.
+   * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param contributor {PublicKey} - The public key of the contributor
    * @param treasury {PublicKey} - The public key of the vesting contract
@@ -1804,6 +1835,8 @@ export class MSP {
 
   /**
    * Creates a stream by allocating funds from the streaming account or vesting contract
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildAllocateFundsToStreamTransaction` instead.
+   * 
    * @param payer {PublicKey} - The public key of the wallet approving the transaction
    * @param treasurer {PublicKey} - The public key of the contract treasurer
    * @param treasury {PublicKey} - The public key of the vesting contract
@@ -1890,6 +1923,9 @@ export class MSP {
     return tx;
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildWithdrawFromStreamTransaction` instead.
+   */
   public async withdraw(
     payer: PublicKey,
     stream: PublicKey,
@@ -1995,6 +2031,9 @@ export class MSP {
     return tx;
   }
 
+ /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildPauseStreamTransaction` instead.
+   */
   public async pauseStream(
     payer: PublicKey,
     treasurer: PublicKey,
@@ -2030,6 +2069,9 @@ export class MSP {
     return tx;
   }
 
+ /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildResumeStreamTransaction` instead.
+   */
   public async resumeStream(
     payer: PublicKey,
     treasurer: PublicKey,
@@ -2065,6 +2107,9 @@ export class MSP {
     return tx;
   }
 
+ /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildCloseStreamTransaction` instead.
+   */
   public async closeStream(
     payer: PublicKey,
     destination: PublicKey,
@@ -2203,6 +2248,9 @@ export class MSP {
     return tx;
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildCloseAccountTransaction` instead.
+   */
   public async closeTreasury(
     payer: PublicKey,
     destination: PublicKey,
@@ -2312,6 +2360,9 @@ export class MSP {
     return tx;
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildRefreshAccountDataTransaction` instead.
+   */
   public async refreshTreasuryData(
     payer: PublicKey,
     treasury: PublicKey,
@@ -2360,6 +2411,9 @@ export class MSP {
     return tx;
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildTransferStreamTransaction` instead.
+   */
   public async transferStream(
     beneficiary: PublicKey,
     newBeneficiary: PublicKey,
@@ -2399,6 +2453,9 @@ export class MSP {
     return tx;
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use `PaymentStreaming.buildWithdrawFromAccountTransaction` instead.
+   */
   public async treasuryWithdraw(
     payer: PublicKey,
     destination: PublicKey,

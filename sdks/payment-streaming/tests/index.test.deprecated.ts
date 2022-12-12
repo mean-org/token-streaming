@@ -18,7 +18,6 @@ import {
   Keypair,
   Connection,
   PublicKey,
-  clusterApiUrl,
   LAMPORTS_PER_SOL,
   sendAndConfirmRawTransaction,
   sendAndConfirmTransaction,
@@ -30,18 +29,11 @@ import {
   Constants,
   Msp,
   MSP,
-  getFilteredStreamAccounts,
-  getStreamStartUtcInSeconds,
-  getStreamEstDepletionDate,
-  getStreamStatus,
-  getStreamRemainingAllocation,
-  isStreamManuallyPaused,
   getStreamUnitsPerSecond,
-  getStreamCliffAmount,
   createProgram,
   sleep
 } from '../src';
-import { Category, Stream, StreamTemplate, STREAM_STATUS, SubCategory, TimeUnit, Treasury, TreasuryType } from "../src/types";
+import { Category, STREAM_STATUS, SubCategory, TimeUnit, TreasuryType } from "../src/types";
 import { BN } from "bn.js";
 import { toTokenAmountBn } from "./utils";
 

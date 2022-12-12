@@ -1,16 +1,16 @@
 {
-  "name": "@mean-dao/msp",
+  "name": "@mean-dao/payment-streaming",
   "version": "3.1.1",
-  "description": "MSP Typescript SDK",
+  "description": "Mean Payment Streaming Typescript SDK",
   "private": false,
   "main": "lib/index.js",
   "author": "",
   "license": "ISC",
   "types": "lib/index.d.ts",
-  "homepage": "https://github.com/mean-dao/mean-msp-sdk#readme",
+  "homepage": "https://github.com/mean-dao/payment-streaming#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mean-dao/mean-msp-sdk.git"
+    "url": "git+https://github.com/mean-dao/payment-streaming.git"
   },
   "keywords": [
     "mean-dao",
@@ -19,7 +19,7 @@
     "payment-streaming"
   ],
   "bugs": {
-    "url": "https://github.com/mean-dao/mean-msp-sdk/issues"
+    "url": "https://github.com/mean-dao/payment-streaming/issues"
   },
   "files": [
     "lib/*.*"
