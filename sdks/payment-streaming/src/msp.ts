@@ -179,6 +179,10 @@ export class MSP {
     );
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use
+   * `PaymentStreaming.getAccount` instead.
+   */
   public async getTreasury(
     id: PublicKey,
     commitment?: Commitment | undefined,
@@ -195,6 +199,10 @@ export class MSP {
     return getTreasury(this.program, id);
   }
 
+  /**
+   * @deprecated Deprecated in v3.2.0. Please use
+   * `PaymentStreaming.listAccounts` instead.
+   */
   public async listTreasuries(
     treasurer: PublicKey | undefined,
     excludeAutoClose?: boolean,
@@ -1223,7 +1231,7 @@ export class MSP {
   /**
    * This modifies values of vesting treasury
    * template if no streams have been created yet.
-   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildUpdateVestingAccountTemplate` instead.
+   * @deprecated in v3.2.0. Please use `PaymentStreaming.buildUpdateVestingTemplateTransaction` instead.
    */
   public async modifyVestingTreasuryTemplate(
     payer: PublicKey,

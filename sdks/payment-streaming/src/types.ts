@@ -121,7 +121,6 @@ export interface ListStreamParams {
 export type StreamActivity = {
   signature: string;
   initializer: string;
-  /** @deprecated Depracated in v3.2.0. Please use {@link actionCode} instead. */
   action: string;
   actionCode: ActivityActionCode;
   amount: string;
@@ -247,7 +246,7 @@ export enum ActivityActionCode {
   Unknown = 0,
   AccountCreated = 10,
   AccountCreatedWithTemplate = 20,
-  StreamTemplateUpdate = 30,
+  StreamTemplateUpdated = 30,
   FundsAddedToAccount = 40,
   FundsWithdrawnFromAccount = 50,
   AccountDataRefreshed = 60,
