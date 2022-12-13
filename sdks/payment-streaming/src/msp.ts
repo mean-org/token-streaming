@@ -59,7 +59,7 @@ import {
   listVestingTreasuryActivity,
 } from './utils';
 import { Constants, WARNING_TYPES, LATEST_IDL_FILE_VERSION } from './constants';
-import { Beneficiary, listTreasuries, StreamBeneficiary } from '.';
+import { listTreasuries } from '.';
 
 /**
  * API class with functions to interact with the Money Streaming Program using Solana Web3 JS API
@@ -966,7 +966,7 @@ export class MSP {
 
     if (usePda) {
       const streamPdaSeed = Keypair.generate().publicKey;
-      const [streamPda, streamBump] = await PublicKey.findProgramAddress(
+      const [streamPda] = await PublicKey.findProgramAddress(
         [Buffer.from('stream'), treasury.toBuffer(), streamPdaSeed.toBuffer()],
         this.program.programId
       );
@@ -1480,13 +1480,6 @@ export class MSP {
       throw Error("Stream template doesn't exist");
     }
 
-    const percentDenominator = new BN(Constants.CLIFF_PERCENT_DENOMINATOR);
-    const allocationTotal = new BN(allocationAssigned);
-    const cliffAmount = allocationTotal
-      .mul(new BN(templateInfo.cliffVestPercent))
-      .div(percentDenominator);
-    const allocationAfterCliff = allocationTotal.sub(cliffAmount);
-
     // Get the treasury token account
     const treasuryToken = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -1512,7 +1505,7 @@ export class MSP {
 
     if (usePda) {
       const streamPdaSeed = Keypair.generate().publicKey;
-      const [streamPda, streamBump] = await PublicKey.findProgramAddress(
+      const [streamPda] = await PublicKey.findProgramAddress(
         [Buffer.from('stream'), treasury.toBuffer(), streamPdaSeed.toBuffer()],
         this.program.programId
       );
@@ -1616,7 +1609,6 @@ export class MSP {
     const treasuryAssociatedTokenMint = new PublicKey(
       treasuryInfo.associatedToken as string,
     );
-    const treasuryMint = new PublicKey(treasuryInfo.mint as string);
     const contributorToken = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
@@ -1637,14 +1629,6 @@ export class MSP {
       contributorTokenInfo,
       ixs,
       txSigners,
-    );
-
-    const contributorTreasuryToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      treasuryMint,
-      contributor,
-      true,
     );
 
     const treasuryToken = await Token.getAssociatedTokenAddress(
@@ -2192,14 +2176,6 @@ export class MSP {
     ];
 
     if (autoCloseTreasury) {
-      const treasuryMint = new PublicKey(treasuryInfo.mint as string);
-      const treasurerTreasuryToken = await Token.getAssociatedTokenAddress(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        treasuryMint,
-        treasurer,
-        true,
-      );
 
       const destinationToken = await Token.getAssociatedTokenAddress(
         ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -2272,14 +2248,6 @@ export class MSP {
     }
 
     const treasurer = new PublicKey(treasuryInfo.treasurer as string);
-    const treasuryMint = new PublicKey(treasuryInfo.mint as string);
-    const treasurerTreasuryToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
-      treasuryMint,
-      treasurer,
-      true,
-    );
 
     let treasuryAssociatedTokenMint = new PublicKey(NATIVE_WSOL_MINT);
     const treasuryAssociatedToken = treasuryInfo.associatedToken as string;

@@ -181,7 +181,7 @@ export class PaymentStreaming {
    */
   public async listStreamActivity(
     id: PublicKey,
-    before: string = '',
+    before = '',
     limit = 10,
     commitment?: Finality | undefined,
   ): Promise<StreamActivity[]> {
@@ -710,9 +710,9 @@ export class PaymentStreaming {
     allocationAssigned: number | string,
     startUtc?: Date,
     cliffVestAmount: number | string = 0,
-    cliffVestPercent: number = 0,
-    tokenFeePayedFromAccount: boolean = false,
-    usePda: boolean = false,
+    cliffVestPercent = 0,
+    tokenFeePayedFromAccount = false,
+    usePda = false,
   ): Promise<{ transaction: Transaction; stream: PublicKey }> {
     if (owner.equals(beneficiary)) {
       throw Error('Beneficiary can not be the same as the account owner');
@@ -806,7 +806,7 @@ export class PaymentStreaming {
     vestingCategory: SubCategory,
     startUtc?: Date,
     cliffVestPercent = 0,
-    tokenFeePayedFromAccount: boolean = false,
+    tokenFeePayedFromAccount = false,
   ): Promise<{
     transaction: Transaction;
     vestingAccount: PublicKey;
@@ -1134,7 +1134,7 @@ export class PaymentStreaming {
     }: CreateVestingStreamTransactionAccounts,
     allocationAssigned: string | number,
     streamName = '',
-    usePda: boolean = false,
+    usePda = false,
   ): Promise<{
     transaction: Transaction;
     stream: PublicKey;
