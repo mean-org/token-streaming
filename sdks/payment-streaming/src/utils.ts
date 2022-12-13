@@ -261,16 +261,25 @@ export const listStreamActivity = async (
     activityRaw.sort((a, b) => (b.blockTime ?? 0) - (a.blockTime ?? 0));
   }
 
-
+  // this mapping is kept here for backwards compatibility
   const activity = activityRaw.map(i => {
-  let actionString = i.action === ActivityActionCode.FundsAllocatedToStream
-    ? 'deposited'
-    : 'withdrew';
+    let actionText = '';
+    switch(i.action) {
+      case ActivityActionCode.StreamCreated:
+        actionText = i.amount?.gt(new BN(0)) ? 'deposited' : 'stream created';
+        break;
+      case ActivityActionCode.FundsAllocatedToStream:
+        actionText = 'deposited';
+        break;
+      default:
+        actionText = 'withdrew';
+        break; 
+    }
 
     return {
       signature: i.signature,
       initializer: i.initializer?.toBase58(),
-      action: actionString,
+      action: actionText,
       actionCode: i.action,
       amount: i.amount ? i.amount.toString() : '',
       mint: i.mint?.toBase58(),
@@ -2371,7 +2380,7 @@ async function parseProgramInstruction(
       decodedIx.name === 'createStream' || decodedIx.name === 'createStreamPda' ||
       decodedIx.name === 'createStreamWithTemplate' || decodedIx.name === 'createStreamPdaWithTemplate'
     ) {
-      action = ActivityActionCode.FundsAllocatedToStream;
+      action = ActivityActionCode.StreamCreated;
       initializer = formattedIx.accounts.find(
         a => a.name === 'Treasurer',
       )?.pubkey;
@@ -2444,7 +2453,7 @@ async function parseProgramInstruction(
       )?.pubkey;
       template = formattedIx?.accounts.find(a => a.name === 'Template')?.pubkey;
     } else if (decodedIx.name === 'modifyStreamTemplate') {
-      action = ActivityActionCode.StreamTemplateUpdate;
+      action = ActivityActionCode.StreamTemplateUpdated;
       initializer = formattedIx?.accounts.find(
         a => a.name === 'Treasurer',
       )?.pubkey;
