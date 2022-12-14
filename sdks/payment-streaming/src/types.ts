@@ -393,7 +393,7 @@ export type Stream = {
   psAccount: PublicKey;
   beneficiary: PublicKey;
   /**
-   * @deprecated Deprecated in v3.2.0. Use {@link psAccount} 
+   * @deprecated Deprecated in v3.2.0. Use {@link mint} 
    * instead.
    */
   associatedToken: PublicKey;

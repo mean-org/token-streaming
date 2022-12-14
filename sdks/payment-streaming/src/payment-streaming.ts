@@ -272,7 +272,7 @@ export class PaymentStreaming {
   public async buildTransferTransaction(
     { sender, feePayer, beneficiary, mint }: TransferTransactionAccounts,
     amount: string | number, // Allow both types for compatibility
-  ): Promise<Transaction> {
+  ): Promise<{ transaction: Transaction }> {
     const ixs: TransactionInstruction[] = [];
     const amountBN = new BN(amount);
 
@@ -362,8 +362,8 @@ export class PaymentStreaming {
       );
     }
 
-    const tx = this.createTransaction(ixs, feePayer);
-    return tx;
+    const tx = await this.createTransaction(ixs, feePayer);
+    return { transaction: tx };
   }
 
   /**
