@@ -11,6 +11,7 @@ on:
       - 'sdks/payment-streaming/**.ts'
       - 'sdks/payment-streaming/package.json'
       - 'sdks/payment-streaming/tsconfig.json'
+      - 'sdks/payment-streaming/yarn.lock'
       - 'sdks/payment-streaming/run-tests.sh'
 
 jobs:

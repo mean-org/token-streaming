@@ -205,7 +205,7 @@ export type VestingAccountActivity = {
 
 /**
  *  Vesting treasury activity
- * @deprecated Deprecated in v3.2.0. Please use {@link VestingAccountActivityRaw} instead.
+ * @deprecated Deprecated in v3.2.0. Please use {@link ActivityRaw} instead.
  */
 export type VestingTreasuryActivityRaw = {
   signature: string;
@@ -226,7 +226,7 @@ export type VestingTreasuryActivityRaw = {
 };
 
 /**
- * @deprecated Deprecated in v3.2.0. Please use {@link VestingAccountActivityAction} instead.
+ * @deprecated Deprecated in v3.2.0. Please use {@link ActivityActionCode} instead.
  */
 export enum VestingTreasuryActivityAction {
   TreasuryCreate,
