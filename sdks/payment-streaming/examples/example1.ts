@@ -62,7 +62,6 @@ async function runExample(): Promise<void> {
     await psClient.buildCreateAccountTransaction(
       {
         owner: owner, // authority over the newly created account
-        feePayer: owner, // account paying for rent and SOL protocol fees
         mint: mint, // mint that will be streamed out of this account
       },
       'Airdrop', // name (label for the new account)
@@ -89,7 +88,6 @@ async function runExample(): Promise<void> {
         psAccount: psAccount,
         psAccountMint: mint,
         contributor: owner, // account authorizing the funds to be added
-        feePayer: owner,
       }, // account paying for rent and SOL protocol fees
       500_000_000,
     );
@@ -111,7 +109,6 @@ async function runExample(): Promise<void> {
       {
         psAccount: psAccount,
         owner: owner, // owner of the cointaining PS account
-        feePayer: owner, // account paying for rent and SOL protocol fees
         beneficiary: beneficiary1,
       },
       'Airdrop for Alice', // name
@@ -139,7 +136,6 @@ async function runExample(): Promise<void> {
       {
         psAccount: psAccount,
         owner: owner, // owner of the cointaining PS account
-        feePayer: owner, // account paying for rent and SOL protocol fees
         beneficiary: beneficiary1,
       },
       'Airdrop for Bob', // name

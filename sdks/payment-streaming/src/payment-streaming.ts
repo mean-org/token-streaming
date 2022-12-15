@@ -275,6 +275,7 @@ export class PaymentStreaming {
   ): Promise<{ transaction: Transaction }> {
     const ixs: TransactionInstruction[] = [];
     const amountBN = new BN(amount);
+    feePayer = feePayer || sender;
 
     if (mint.equals(NATIVE_SOL_MINT)) {
       ixs.push(
@@ -386,6 +387,7 @@ export class PaymentStreaming {
     transaction: Transaction;
     stream: PublicKey;
   }> {
+    feePayer = feePayer || owner;
     let autoWSol = false;
     if (mint.equals(NATIVE_SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
@@ -516,6 +518,7 @@ export class PaymentStreaming {
     psAccountToken: PublicKey;
     stream: PublicKey;
   }> {
+    feePayer = feePayer || owner;
     if (owner.equals(beneficiary)) {
       throw Error('Beneficiary can not be the same account owner');
     }
@@ -642,6 +645,7 @@ export class PaymentStreaming {
     psAccount: PublicKey;
     psAccountToken: PublicKey;
   }> {
+    feePayer = feePayer || owner;
     if (mint.equals(NATIVE_SOL_MINT)) {
       mint = NATIVE_WSOL_MINT;
     }
@@ -714,6 +718,7 @@ export class PaymentStreaming {
     tokenFeePayedFromAccount = false,
     usePda = false,
   ): Promise<{ transaction: Transaction; stream: PublicKey }> {
+    feePayer = feePayer || owner;
     if (owner.equals(beneficiary)) {
       throw Error('Beneficiary can not be the same as the account owner');
     }
@@ -813,6 +818,7 @@ export class PaymentStreaming {
     vestingAccountToken: PublicKey;
     template: PublicKey;
   }> {
+    feePayer = feePayer || owner;
     // convert interval unit to seconds
     const rateIntervalInSeconds: number = intervalUnit as number;
 
@@ -932,6 +938,7 @@ export class PaymentStreaming {
   ): Promise<{
     transaction: Transaction;
   }> {
+    feePayer = feePayer || owner;
     const psAccountInfo = await getAccount(this.program, vestingAccount);
 
     if (!psAccountInfo) {
@@ -1209,6 +1216,7 @@ export class PaymentStreaming {
   ): Promise<{
     transaction: Transaction;
   }> {
+    feePayer = feePayer || contributor;
     if (!amount) {
       throw Error('Amount should be greater than 0');
     }
@@ -1290,6 +1298,7 @@ export class PaymentStreaming {
     }: AllocateFundsToStreamTransactionAccounts,
     amount: string | number,
   ): Promise<{ transaction: Transaction }> {
+    feePayer = feePayer || owner;
     if (!amount) {
       throw Error('Amount must be greater than 0');
     }
@@ -1359,6 +1368,7 @@ export class PaymentStreaming {
     amount: string | number,
     autoWSol = false,
   ): Promise<{ transaction: Transaction }> {
+    feePayer = feePayer || owner;
     const ixs: TransactionInstruction[] = [];
     const txSigners: Signer[] = [];
     const amountBN = new BN(amount || 0);
@@ -1478,6 +1488,7 @@ export class PaymentStreaming {
       throw Error('Payment Streaming account not found');
     }
 
+    feePayer = feePayer || psAccountInfo.owner;
     const ixs: TransactionInstruction[] = [];
 
     const { instruction: withdrawFromAccountInstruction, destinationToken } =
@@ -1565,6 +1576,7 @@ export class PaymentStreaming {
     if (!psAccountInfo) {
       throw Error('Payment Streaming account not found');
     }
+    feePayer = feePayer || psAccountInfo.owner;
 
     // just send any mint to close an account without a mint set
     const psAccountMint = psAccountInfo.mint.equals(PublicKey.default)
@@ -1644,6 +1656,7 @@ export class PaymentStreaming {
     }
 
     const beneficiary = streamInfo.beneficiary;
+    feePayer = feePayer || beneficiary;
     // Check for the beneficiary associated token account
     const psAccountMint = streamInfo.mint;
     const beneficiaryToken = await Token.getAssociatedTokenAddress(
@@ -1702,6 +1715,7 @@ export class PaymentStreaming {
   }: PauseResumeStreamTransactionAccounts): Promise<{
     transaction: Transaction;
   }> {
+    feePayer = feePayer || owner;
     const streamInfo = (await this.getStream(stream)) as Stream;
 
     if (!streamInfo) {
@@ -1740,6 +1754,7 @@ export class PaymentStreaming {
   }: PauseResumeStreamTransactionAccounts): Promise<{
     transaction: Transaction;
   }> {
+    feePayer = feePayer || owner;
     const streamInfo = (await this.getStream(stream)) as Stream;
 
     if (!streamInfo) {
@@ -1780,6 +1795,7 @@ export class PaymentStreaming {
     newBeneficiary,
     feePayer,
   }: TransferStreamTransactionAccounts): Promise<{ transaction: Transaction }> {
+    feePayer = feePayer || beneficiary;
     const streamInfo = (await this.getStream(stream)) as Stream;
 
     if (!streamInfo) {
@@ -1842,6 +1858,7 @@ export class PaymentStreaming {
     const owner = streamInfo.psAccountOwner;
     const beneficiary = streamInfo.beneficiary;
     const psAccountMint = streamInfo.mint;
+    feePayer = feePayer || owner;
     const ixs: TransactionInstruction[] = [];
 
     const { instruction: closeStreamInstruction } =

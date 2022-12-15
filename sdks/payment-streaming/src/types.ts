@@ -552,7 +552,7 @@ export type StreamEventData = {
 
 type FeepayerAccounts = {
   /** Account paying for rent and protocol SOL fees */
-  feePayer: PublicKey;
+  feePayer?: PublicKey;
 }
 
 export type TransferTransactionAccounts = {
@@ -686,7 +686,10 @@ export type WithdrawFromAccountTransactionAccounts = {
 export type RefreshAccountDataTransactionAccounts = {
   /** The PS account to withdraw funds from */
   psAccount: PublicKey;
-} & FeepayerAccounts
+
+  /** Account paying for rent and protocol SOL fees */
+  feePayer: PublicKey;
+}
 
 export type CloseAccountTransactionAccounts = {
   /** The PS account to withdraw funds from */
