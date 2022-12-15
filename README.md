@@ -76,7 +76,6 @@ const mint = NATIVE_SOL_MINT;
     await psClient.buildCreateAccountTransaction(
       {
         owner: owner, // authority over the newly created account
-        feePayer: owner, // account paying for rent and SOL protocol fees
         mint: mint, // mint that will be streamed out of this account
       },
       'Airdrop', // name (label for the new account)
@@ -104,7 +103,6 @@ const mint = NATIVE_SOL_MINT;
         psAccount: psAccount,
         psAccountMint: mint,
         contributor: owner, // account authorizing the funds to be added
-        feePayer: owner,
       }, // account paying for rent and SOL protocol fees
       500_000_000,
     );
@@ -128,7 +126,6 @@ const mint = NATIVE_SOL_MINT;
       {
         psAccount: psAccount,
         owner: owner, // owner of the cointaining PS account
-        feePayer: owner, // account paying for rent and SOL protocol fees
         beneficiary: beneficiary1,
       },
       'Airdrop for Alice', // name
@@ -155,7 +152,6 @@ const mint = NATIVE_SOL_MINT;
       {
         psAccount: psAccount,
         owner: owner, // owner of the cointaining PS account
-        feePayer: owner, // account paying for rent and SOL protocol fees
         beneficiary: beneficiary1,
       },
       'Airdrop for Bob', // name
