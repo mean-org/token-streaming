@@ -605,10 +605,10 @@ export class PaymentStreaming {
         feePayer,
       },
       streamName ?? '',
-      new BN(startUtcInSeconds),
       new BN(rateAmount),
       new BN(rateIntervalInSeconds),
       new BN(allocationAssigned),
+      new BN(startUtcInSeconds),
       new BN(0),
       new BN(0),
       tokenFeePayedByOwner,
@@ -1917,23 +1917,25 @@ export class PaymentStreaming {
     instructions: TransactionInstruction[],
     signers: Signer[],
   ) {
-    if (autoWSol) {
-      const [wrapSolIxs, wrapSolSigners] = await createWrapSolInstructions(
-        this.connection,
-        amountInLamports,
-        owner,
-        ownerWSolTokenAccount,
-        ownerWSolTokenAccountInfo,
-      );
-      if (wrapSolIxs && wrapSolIxs.length > 0) {
-        instructions.push(...wrapSolIxs);
-        if (wrapSolSigners && wrapSolSigners.length > 0)
-          signers.push(...wrapSolSigners);
-      }
-    } else {
+    if (!autoWSol) {
+      // if SOL auto-wrapping is not needed, then the owner ATA is required
       if (!ownerWSolTokenAccountInfo) {
         throw Error('Sender token account not found');
       }
+      // nothing to do here
+      return;
+    }
+    const [wrapSolIxs, wrapSolSigners] = await createWrapSolInstructions(
+      this.connection,
+      amountInLamports,
+      owner,
+      ownerWSolTokenAccount,
+      ownerWSolTokenAccountInfo,
+    );
+    if (wrapSolIxs && wrapSolIxs.length > 0) {
+      instructions.push(...wrapSolIxs);
+      if (wrapSolSigners && wrapSolSigners.length > 0)
+        signers.push(...wrapSolSigners);
     }
   }
 
