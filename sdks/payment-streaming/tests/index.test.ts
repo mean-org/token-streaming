@@ -31,6 +31,7 @@ import {
 } from '../src/types';
 import { BN } from 'bn.js';
 import { toTokenAmountBn } from './utils';
+import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 interface LooseObject {
   [key: string]: any;
@@ -44,6 +45,7 @@ const user1Wallet = loadKeypair(
 const user2Wallet = loadKeypair(
   './tests/data/AUTH2qMifVS3uMjmyC5C6agD4nwxwuvnfnBvFQHs5h5T.json',
 );
+const testPayerKey = Keypair.generate();
 console.log(`  wallet1: ${user1Wallet.publicKey}`);
 console.log(`  wallet2: ${user2Wallet.publicKey}`);
 console.log();
@@ -250,6 +252,17 @@ describe('PS Tests\n', async () => {
       },
       commitment,
     );
+    await connection.confirmTransaction(
+      {
+        signature: await connection.requestAirdrop(
+          testPayerKey.publicKey,
+          1000 * LAMPORTS_PER_SOL,
+        ),
+        blockhash,
+        lastValidBlockHeight,
+      },
+      commitment,
+    );
 
     program = createProgram(connection, programId);
     ps = new PaymentStreaming(connection, new PublicKey(programId), commitment);
@@ -434,9 +447,11 @@ describe('PS Tests\n', async () => {
       psAccount,
       psAccountToken,
     } = await ps.buildCreateAccountTransaction(
-      {owner: user1Wallet.publicKey,
-      feePayer: user1Wallet.publicKey,
-      mint: NATIVE_SOL_MINT},
+      {
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        mint: NATIVE_SOL_MINT,
+      },
       psAccountName,
       AccountType.Open,
     );
@@ -451,10 +466,12 @@ describe('PS Tests\n', async () => {
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
       await ps.buildAddFundsToAccountTransaction(
-        {psAccount,
-        psAccountMint: NATIVE_SOL_MINT,
-        contributor: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,},
+        {
+          psAccount,
+          psAccountMint: NATIVE_SOL_MINT,
+          contributor: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+        },
         3 * LAMPORTS_PER_SOL,
       );
     addFundsToAccountTx.partialSign(user1Wallet);
@@ -470,10 +487,12 @@ describe('PS Tests\n', async () => {
     const stream1Name = 'STREAM-1';
     const { transaction: createStream1Tx, stream: psAccountStream1 } =
       await ps.buildCreateStreamTransaction(
-        {psAccount,
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        beneficiary: user2Wallet.publicKey,},
+        {
+          psAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         stream1Name,
         0.1 * LAMPORTS_PER_SOL,
         1,
@@ -495,10 +514,12 @@ describe('PS Tests\n', async () => {
     const stream2Name = 'STREAM-2';
     const { transaction: createStream2Tx, stream: psAccountStream2 } =
       await ps.buildCreateStreamTransaction(
-        {psAccount,
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        beneficiary: user2Wallet.publicKey,},
+        {
+          psAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         stream2Name,
         0.2 * LAMPORTS_PER_SOL,
         1,
@@ -520,10 +541,12 @@ describe('PS Tests\n', async () => {
     const stream3Name = 'STREAM-3';
     const { transaction: createStream3Tx, stream: psAccountStream3 } =
       await ps.buildCreateStreamTransaction(
-        {psAccount,
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        beneficiary: user2Wallet.publicKey,},
+        {
+          psAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         stream3Name,
         0.1 * LAMPORTS_PER_SOL,
         1,
@@ -580,9 +603,11 @@ describe('PS Tests\n', async () => {
       vestingAccountToken,
       template: vestingAccountTemplate,
     } = await ps.buildCreateVestingAccountTransaction(
-      {owner: user1Wallet.publicKey,
-      feePayer: user1Wallet.publicKey,
-      mint: NATIVE_SOL_MINT,},
+      {
+        owner: user1Wallet.publicKey,
+        feePayer: user1Wallet.publicKey,
+        mint: NATIVE_SOL_MINT,
+      },
       vestingAccountName,
       AccountType.Open,
       false,
@@ -607,10 +632,12 @@ describe('PS Tests\n', async () => {
     const vestingStream1Name = 'VESTING-STREAM-1';
     const { transaction: createStreamTx, stream: vestingAccountStream1 } =
       await ps.buildCreateVestingStreamTransaction(
-        {vestingAccount,
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        beneficiary: user2Wallet.publicKey,},
+        {
+          vestingAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         1 * LAMPORTS_PER_SOL,
         vestingStream1Name,
       );
@@ -627,10 +654,12 @@ describe('PS Tests\n', async () => {
     const vestingStream2Name = 'VESTING-STREAM-2';
     const { transaction: createStreamTx2, stream: vestingAccountStream2 } =
       await ps.buildCreateVestingStreamTransaction(
-        {vestingAccount,
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
-        beneficiary: user2Wallet.publicKey,},
+        {
+          vestingAccount,
+          owner: user1Wallet.publicKey,
+          feePayer: user1Wallet.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
         1 * LAMPORTS_PER_SOL,
         vestingStream2Name,
       );
@@ -671,6 +700,62 @@ describe('PS Tests\n', async () => {
 
     assert.exists(vestingAccountStream2Info);
     assert.equal(vestingAccountStream2Info?.data.length, 500);
+  });
+
+  it('buildStreamPaymentTransaction', async () => {
+    const owner1Key = Keypair.generate();
+    const beneficiary1 = Keypair.generate().publicKey;
+
+    console.log('Creating mint...');
+    const token1 = await Token.createMint(
+      connection,
+      testPayerKey,
+      testPayerKey.publicKey,
+      null,
+      6,
+      TOKEN_PROGRAM_ID,
+    );
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash(commitment);
+    await connection.confirmTransaction({
+      signature: await connection.requestAirdrop(owner1Key.publicKey, LAMPORTS_PER_SOL),
+      blockhash,
+      lastValidBlockHeight,
+    });
+
+    const owner1Token = await token1.createAssociatedTokenAccount(owner1Key.publicKey);
+
+    console.log('Minting...');
+    await token1.mintTo(owner1Token, testPayerKey, [], 1_000_000);
+
+    console.log('buildStreamPaymentTransaction...');
+    const {
+      transaction: streamPaymentTx
+    } = await ps.buildStreamPaymentTransaction(
+      {
+        owner: owner1Key.publicKey,
+        beneficiary: beneficiary1,
+        mint: token1.publicKey,
+      },
+      "Bob's payment",
+      1_000_000,
+      86400,
+      1_000_000,
+      new Date(),
+      false,
+    );
+
+    streamPaymentTx.partialSign(owner1Key);
+
+    const streamPaymentTxb64 = streamPaymentTx
+      .serialize({verifySignatures: false})
+      .toString('base64');
+    console.log(streamPaymentTxb64);
+
+    const streamPaymentTxId = await sendRawTestTransaction(
+      connection,
+      streamPaymentTx.serialize()
+    );
   });
 
   xit('Test stream running', async () => {
