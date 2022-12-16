@@ -1918,6 +1918,10 @@ export class PaymentStreaming {
     signers: Signer[],
   ) {
     if (!autoWSol) {
+      // if SOL auto-wrapping is not needed, then the owner ATA is required
+      if (!ownerWSolTokenAccountInfo) {
+        throw Error('Sender token account not found');
+      }
       // nothing to do here
       return;
     }
@@ -1932,10 +1936,6 @@ export class PaymentStreaming {
       instructions.push(...wrapSolIxs);
       if (wrapSolSigners && wrapSolSigners.length > 0)
         signers.push(...wrapSolSigners);
-      }
-    
-    if (!ownerWSolTokenAccountInfo) {
-      throw Error('Sender token account not found');
     }
   }
 

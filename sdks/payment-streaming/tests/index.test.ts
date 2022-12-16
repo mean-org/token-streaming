@@ -705,8 +705,6 @@ describe('PS Tests\n', async () => {
   it('buildStreamPaymentTransaction', async () => {
     const owner1Key = Keypair.generate();
     const beneficiary1 = Keypair.generate().publicKey;
-
-    console.log('Creating mint...');
     const token1 = await Token.createMint(
       connection,
       testPayerKey,
@@ -718,43 +716,40 @@ describe('PS Tests\n', async () => {
     const { blockhash, lastValidBlockHeight } =
       await connection.getLatestBlockhash(commitment);
     await connection.confirmTransaction({
-      signature: await connection.requestAirdrop(owner1Key.publicKey, LAMPORTS_PER_SOL),
+      signature: await connection.requestAirdrop(
+        owner1Key.publicKey,
+        LAMPORTS_PER_SOL,
+      ),
       blockhash,
       lastValidBlockHeight,
     });
 
-    const owner1Token = await token1.createAssociatedTokenAccount(owner1Key.publicKey);
+    const owner1Token = await token1.createAssociatedTokenAccount(
+      owner1Key.publicKey,
+    );
 
-    console.log('Minting...');
     await token1.mintTo(owner1Token, testPayerKey, [], 1_000_000);
 
-    console.log('buildStreamPaymentTransaction...');
-    const {
-      transaction: streamPaymentTx
-    } = await ps.buildStreamPaymentTransaction(
-      {
-        owner: owner1Key.publicKey,
-        beneficiary: beneficiary1,
-        mint: token1.publicKey,
-      },
-      "Bob's payment",
-      1_000_000,
-      86400,
-      1_000_000,
-      new Date(),
-      false,
-    );
+    const { transaction: streamPaymentTx } =
+      await ps.buildStreamPaymentTransaction(
+        {
+          owner: owner1Key.publicKey,
+          beneficiary: beneficiary1,
+          mint: token1.publicKey,
+        },
+        "Bob's payment",
+        1_000_000,
+        86400,
+        1_000_000,
+        new Date(),
+        false,
+      );
 
     streamPaymentTx.partialSign(owner1Key);
 
-    const streamPaymentTxb64 = streamPaymentTx
-      .serialize({verifySignatures: false})
-      .toString('base64');
-    console.log(streamPaymentTxb64);
-
     const streamPaymentTxId = await sendRawTestTransaction(
       connection,
-      streamPaymentTx.serialize()
+      streamPaymentTx.serialize(),
     );
   });
 
