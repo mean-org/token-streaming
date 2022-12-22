@@ -63,7 +63,7 @@ jobs:
         uses: sec3dev/pro-action@v1
         with:
           path: programs/msp
-          sec3-token: ${{ secrets.SEC3_AUTO_AUDITOR_TOKEN }}
+          sec3-token: ${{ secrets.SEC3_TOKEN }}
       - name: Upload Sarif Report
         continue-on-error: true    # set to true if you don't want to fail jobs
         uses: github/codeql-action/upload-sarif@v2
