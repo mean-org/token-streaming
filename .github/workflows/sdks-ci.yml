@@ -54,6 +54,7 @@ jobs:
         with:
           name: sdk-test-coverage-lcov-report
           path: sdks/payment-streaming/coverage/lcov.info
+          retention-days: 1
   sonar-scan:
     name: "Sonar Scan"
     needs: [run-sdk-tests]
