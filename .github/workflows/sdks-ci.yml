@@ -34,6 +34,21 @@ jobs:
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
       - run: cd sdks/payment-streaming && yarn install
       - run: cd sdks/payment-streaming && yarn build
+  run-sdk-tests:
+    name: Run SDK tests
+    needs: [sonar-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup-solana-anchor
+        with:
+          solana-cli-version: ${{ env.SOLANA_VERSION }}
+          anchor-cli-version: ${{ env.ANCHOR_VERSION }}
+          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
+          node-version: ${{ env.NODE_VERSION }}
+          solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
+      - run: cd sdks/payment-streaming && ./run-tests.sh
+        name: Run Tests
   sonar-scan:
     name: "Sonar Scan"
     needs: [build]
@@ -54,18 +69,4 @@ jobs:
             -Dsonar.exclusions=sdks/payment-streaming/src/msp*.ts
             -Dsonar.tests=sdks/payment-streaming/tests/
             -Dsonar.tests.exclusions=sdks/payment-streaming/tests/data/
-  run-sdk-tests:
-    name: Run SDK tests
-    needs: [sonar-scan]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/setup-solana-anchor
-        with:
-          solana-cli-version: ${{ env.SOLANA_VERSION }}
-          anchor-cli-version: ${{ env.ANCHOR_VERSION }}
-          rust-toolchain: ${{ env.RUST_TOOLCHAIN }}
-          node-version: ${{ env.NODE_VERSION }}
-          solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
-      - run: cd sdks/payment-streaming && ./run-tests.sh
-        name: Run Tests
+            -Dsonar.javascript.lcov.reportPaths=sdks/payment-streaming/coverage/lcov.info

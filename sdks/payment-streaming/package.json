@@ -33,7 +33,7 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha --timeout 100000 -r ts-node/register tests/*.test.ts",
     "coverage": "nyc yarn test",
-    "test-coverage": "nyc --reporter=text --reporter=html mocha --timeout 100000 -r ts-node/register tests/*.test.ts",
+    "test-coverage": "nyc --reporter=text --reporter=lcov mocha --timeout 100000 -r ts-node/register tests/*.test.ts",
     "prettier": "prettier src/**/*.ts tests/**/*.ts --write"
   },
   "dependencies": {
