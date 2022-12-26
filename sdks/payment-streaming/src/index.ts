@@ -1,4 +1,3 @@
-export * from './msp';
 export * from './payment-streaming';
 export * from './utils';
 export * from './types';

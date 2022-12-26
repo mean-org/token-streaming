@@ -23,20 +23,13 @@ import {
   AccountType,
   Stream,
   StreamActivity,
-  StreamActivityRaw,
   StreamEventData,
   StreamTemplate,
-  STREAM_STATUS,
   SubCategory,
   TransactionFees,
-  Treasury,
-  TreasuryType,
   VestingAccountActivity,
-  VestingTreasuryActivity,
-  VestingTreasuryActivityRaw,
   ActivityRaw,
   ActivityActionCode,
-  MSP_ACTIONS,
   STREAM_STATUS_CODE,
 } from './types';
 import { IDL, Msp as Ps } from './msp_idl_005'; // point to the latest IDL
@@ -290,19 +283,6 @@ export const listStreamActivity = async (
   return activity;
 };
 
-/**
- * @deprecated Use {@link getAccount} instead.
- */
-export const getTreasury = async (
-  program: Program<Ps>,
-  address: PublicKey,
-): Promise<Treasury> => {
-  const treasury = await program.account.treasury.fetch(address);
-  const parsedTreasury = parseTreasuryData(treasury, address);
-
-  return parsedTreasury;
-};
-
 export const getAccount = async (
   program: Program<Ps>,
   address: PublicKey,
@@ -329,69 +309,6 @@ export const findStreamTemplateAddress = async (
     [anchor.utils.bytes.utf8.encode('template'), psAccount.toBuffer()],
     programId,
   );
-};
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link listAccounts} instead.
- */
-export const listTreasuries = async (
-  program: Program<Ps>,
-  treasurer?: PublicKey | undefined,
-  excludeAutoClose?: boolean,
-  category?: Category,
-  subCategory?: SubCategory,
-): Promise<Treasury[]> => {
-  const treasuries: Treasury[] = [];
-  const memcmpFilters: GetProgramAccountsFilter[] = [];
-
-  if (treasurer) {
-    memcmpFilters.push({
-      memcmp: { offset: 8 + 43, bytes: treasurer.toBase58() },
-    });
-  }
-
-  if (excludeAutoClose) {
-    memcmpFilters.push({
-      memcmp: { offset: 216, bytes: bs58.encode([0]) },
-    });
-  }
-
-  if (category !== undefined) {
-    memcmpFilters.push({
-      memcmp: { offset: 218, bytes: bs58.encode([category]) },
-    });
-  }
-
-  if (subCategory !== undefined) {
-    memcmpFilters.push({
-      memcmp: { offset: 219, bytes: bs58.encode([subCategory]) },
-    });
-  }
-
-  const accounts = await program.account.treasury.all(memcmpFilters);
-
-  if (accounts.length) {
-    for (const item of accounts) {
-      if (item.account !== undefined) {
-        const parsedTreasury = parseTreasuryData(
-          item.account,
-          item.publicKey,
-        );
-        const info = Object.assign({}, parsedTreasury);
-
-        if (
-          (treasurer && treasurer.toBase58() === info.treasurer) ||
-          !treasurer
-        ) {
-          treasuries.push(info);
-        }
-      }
-    }
-  }
-
-  const sortedTreasuries = [...treasuries].sort((a, b) => b.slot - a.slot);
-
-  return sortedTreasuries;
 };
 
 export const listAccounts = async (
@@ -452,80 +369,6 @@ export const listAccounts = async (
   const sortedAccounts = psAccounts.sort((a, b) => b.slot - a.slot);
 
   return sortedAccounts;
-};
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link calculateFeesForAction}
- * instead.
- */
-export const calculateActionFees = async (
-  connection: Connection,
-  action: MSP_ACTIONS,
-): Promise<TransactionFees> => {
-  const txFees: TransactionFees = {
-    blockchainFee: 0.0,
-    mspFlatFee: 0.0,
-    mspPercentFee: 0.0,
-  };
-
-  let blockchainFee = 0;
-
-  switch (action) {
-    case MSP_ACTIONS.createTreasury: {
-      blockchainFee = 15000000;
-      txFees.mspFlatFee = 0.00001;
-      break;
-    }
-    case MSP_ACTIONS.createStream: {
-      blockchainFee = 15000000;
-      txFees.mspFlatFee = 0.00001;
-      break;
-    }
-    case MSP_ACTIONS.createStreamWithFunds: {
-      blockchainFee = 20000000;
-      txFees.mspFlatFee = 0.000035;
-      break;
-    }
-    case MSP_ACTIONS.scheduleOneTimePayment: {
-      blockchainFee = 15000000;
-      txFees.mspFlatFee = 0.000035;
-      break;
-    }
-    case MSP_ACTIONS.addFunds: {
-      txFees.mspFlatFee = 0.000025;
-      break;
-    }
-    case MSP_ACTIONS.withdraw: {
-      blockchainFee = 5000000;
-      txFees.mspPercentFee = 0.25;
-      break;
-    }
-    case MSP_ACTIONS.closeStream: {
-      txFees.mspFlatFee = 0.00001;
-      txFees.mspPercentFee = 0.25;
-      break;
-    }
-    case MSP_ACTIONS.closeTreasury: {
-      txFees.mspFlatFee = 0.00001;
-      break;
-    }
-    case MSP_ACTIONS.transferStream: {
-      blockchainFee = 5000;
-      txFees.mspFlatFee = 0.00001;
-      break;
-    }
-    case MSP_ACTIONS.treasuryWithdraw: {
-      txFees.mspPercentFee = 0.25;
-      break;
-    }
-    default: {
-      break;
-    }
-  }
-
-  txFees.blockchainFee = blockchainFee / LAMPORTS_PER_SOL;
-
-  return txFees;
 };
 
 export const calculateFeesForAction = async (
@@ -591,40 +434,6 @@ export const calculateFeesForAction = async (
   txFees.blockchainFee = blockchainFee / LAMPORTS_PER_SOL;
 
   return txFees;
-};
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link calculateAllocationAmount} instead.
- */
-export const getValidTreasuryAllocation = async (
-  connection: Connection,
-  treasury: Treasury,
-  allocation: string | number,
-) => {
-  const fees = await calculateFeesForAction(ACTION_CODES.WithdrawFromStream);
-  //
-  const BASE_100_TO_BASE_1_MULTIPLIER = CLIFF_PERCENT_NUMERATOR;
-  const feeNumerator = fees.mspPercentFee * BASE_100_TO_BASE_1_MULTIPLIER;
-  const feeDenaminator = CLIFF_PERCENT_DENOMINATOR;
-  const unallocatedBalance = new BN(treasury.balance).sub(
-    new BN(treasury.allocationAssigned),
-  );
-  const allocationAmountBn = new BN(allocation).add(unallocatedBalance);
-  const badStreamAllocationAmount = allocationAmountBn
-    .mul(new BN(feeDenaminator))
-    .div(new BN(feeNumerator + feeDenaminator));
-
-  const feeAmount = badStreamAllocationAmount
-    .mul(new BN(feeNumerator))
-    .div(new BN(feeDenaminator));
-
-  if (unallocatedBalance.gte(feeAmount)) {
-    return badStreamAllocationAmount;
-  }
-
-  const goodStreamMaxAllocation = allocationAmountBn.sub(feeAmount);
-
-  return goodStreamMaxAllocation;
 };
 
 export const calculateAllocationAmount = async (
@@ -815,7 +624,6 @@ const parseStreamEventData = (
     treasury: event.treasuryAddress,
     psAccount: event.treasuryAddress,
     beneficiary: event.beneficiaryAddress,
-    associatedToken: event.beneficiaryAssociatedToken, // @deprecated in v3.2.0 and scheduled for removal
     mint: event.beneficiaryAssociatedToken,
     cliffVestAmount: event.cliffVestAmountUnits,
     cliffVestPercent: event.cliffVestPercent.toNumber() / CLIFF_PERCENT_NUMERATOR,
@@ -874,7 +682,6 @@ export const parseRawStreamAccount = (
   
   const startUtc = new Date(startUtcInSeconds * 1000);
   const depletionDate = getStreamEstDepletionDate(rawStream);
-  const streamStatusDeprecated = getStreamStatus(rawStream, timeDiff);
   const streamStatus = getStreamStatusCode(rawStream, timeDiff);
   const streamWithdrawableAmount = getStreamWithdrawableAmount(rawStream, timeDiff);
 
@@ -884,12 +691,9 @@ export const parseRawStreamAccount = (
     initialized: rawStream.initialized,
     name: new TextDecoder().decode(nameBuffer).trim(),
     startUtc: startUtc.toString(),
-    treasurer: rawStream.treasurerAddress, // @deprecated in v3.2.0 and scheduled for removal
     psAccountOwner: rawStream.treasurerAddress,
-    treasury: rawStream.treasuryAddress, // @deprecated in v3.2.0 and scheduled for removal
     psAccount: rawStream.treasuryAddress,
     beneficiary: rawStream.beneficiaryAddress,
-    associatedToken: rawStream.beneficiaryAssociatedToken, // @deprecated in v3.2.0 and scheduled for removal
     mint: rawStream.beneficiaryAssociatedToken,
     cliffVestAmount: rawStream.cliffVestAmountUnits,
     cliffVestPercent: rawStream.cliffVestPercent.toNumber() / CLIFF_PERCENT_NUMERATOR,
@@ -905,7 +709,6 @@ export const parseRawStreamAccount = (
     withdrawableAmount: streamWithdrawableAmount,
     streamUnitsPerSecond: getStreamUnitsPerSecond(rawStream.rateAmountUnits, rawStream.rateIntervalInSeconds),
     isManuallyPaused: isStreamManuallyPaused(rawStream),
-    status: streamStatusDeprecated,
     statusCode: streamStatus,
     statusName: STREAM_STATUS_CODE[streamStatus],
     lastRetrievedBlockTime: blockTime,
@@ -924,435 +727,8 @@ export const parseRawStreamAccount = (
   return parsedStream;
 };
 
-let idl_legacy_after_1645224519: any = null;
-let idl_legacy_before_1645224519: any = null;
-
 const idls: { [fileVersion: number]: any } = {};
 
-/**
- * @deprecated Deprecated in v3.2.0.
- */
-async function parseStreamInstructionAfter1645224519(
-  ix: PartiallyDecodedInstruction,
-  streamAddress: PublicKey,
-  transactionSignature: string,
-  transactionBlockTimeInSeconds: number,
-  programId: PublicKey,
-): Promise<StreamActivityRaw | null> {
-  if (!ix.programId.equals(programId)) {
-    return null;
-  }
-
-  try {
-    if (!idl_legacy_after_1645224519) {
-      const importedIdl = await import('./msp_idl_legacy_after_1645224519');
-      idl_legacy_after_1645224519 = importedIdl.IDL;
-    }
-
-    const coder = new BorshInstructionCoder(idl_legacy_after_1645224519 as Idl);
-
-    const decodedIx = coder.decode(ix.data, 'base58');
-    if (!decodedIx) return null;
-
-    const ixName = decodedIx.name;
-    if (['createStream', 'allocate', 'withdraw'].indexOf(ixName) === -1)
-      return null;
-
-    const ixAccountMetas = ix.accounts.map(pk => {
-      return { pubkey: pk, isSigner: false, isWritable: false };
-    });
-
-    const formattedIx = coder.format(decodedIx, ixAccountMetas);
-
-    const stream = formattedIx?.accounts.find(a => a.name === 'Stream')?.pubkey;
-    if (!stream || !stream.equals(streamAddress)) {
-      return null;
-    }
-
-    const blockTime = transactionBlockTimeInSeconds * 1000; // mult by 1000 to add milliseconds
-    const action =
-      decodedIx.name === 'createStream' || decodedIx.name === 'allocate'
-        ? 'deposited'
-        : 'withdrew';
-
-    let initializer: PublicKey | undefined;
-    let mint: PublicKey | undefined;
-    let amountBN: BN | undefined;
-
-    if (decodedIx.name === 'createStream') {
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Treasurer',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'allocationAssignedUnits',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    } else if (decodedIx.name === 'allocate') {
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Treasurer',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'amount',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    } else if (decodedIx.name === 'withdraw') {
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Beneficiary',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'amount',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    }
-
-    const activity: StreamActivityRaw = {
-      signature: transactionSignature,
-      initializer: initializer,
-      blockTime,
-      utcDate: new Date(blockTime).toUTCString(),
-      action,
-      // TODO: Here the 'amount' might not be accurate, we need to emit events instead
-      amount: amountBN,
-      mint,
-    };
-
-    return activity;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-/**
- * @deprecated Deprecated in v3.2.0.
- */
-async function parseStreamInstructionBefore1645224519(
-  ix: PartiallyDecodedInstruction,
-  streamAddress: PublicKey,
-  transactionSignature: string,
-  transactionBlockTimeInSeconds: number,
-  programId: PublicKey,
-): Promise<StreamActivityRaw | null> {
-  if (!ix.programId.equals(programId)) {
-    return null;
-  }
-
-  try {
-    if (!idl_legacy_before_1645224519) {
-      idl_legacy_before_1645224519 = await import(
-        './msp_idl_legacy_before_1645224519'
-      );
-    }
-
-    const coder = new BorshInstructionCoder(
-      idl_legacy_before_1645224519 as Idl,
-    );
-
-    const decodedIx = coder.decode(ix.data, 'base58');
-    if (!decodedIx) return null;
-
-    const ixName = decodedIx.name;
-    if (['createStream', 'addFunds', 'withdraw'].indexOf(ixName) === -1)
-      return null;
-
-    const ixAccountMetas = ix.accounts.map(pk => {
-      return { pubkey: pk, isSigner: false, isWritable: false };
-    });
-
-    const formattedIx = coder.format(decodedIx, ixAccountMetas);
-
-    const stream = formattedIx?.accounts.find(a => a.name === 'Stream')?.pubkey;
-    if (!stream || !stream.equals(streamAddress)) {
-      return null;
-    }
-
-    const blockTime = (transactionBlockTimeInSeconds as number) * 1000; // mult by 1000 to add milliseconds
-    const action =
-      decodedIx.name === 'createStream' || decodedIx.name === 'addFunds'
-        ? 'deposited'
-        : 'withdrew';
-
-    let initializer: PublicKey | undefined;
-    let mint: PublicKey | undefined;
-    let amountBN: BN | undefined;
-
-    if (decodedIx.name === 'createStream') {
-      if (ixAccountMetas.length !== 14) {
-        return null;
-      }
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Treasurer',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'allocationAssignedUnits',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    } else if (decodedIx.name === 'addFunds') {
-      if (ixAccountMetas.length !== 14) {
-        return null;
-      }
-      const allocationType = formattedIx?.args.find(
-        a => a.name === 'allocationType',
-      )?.data;
-      if (allocationType !== '1') {
-        return null;
-      }
-
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Treasurer',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'amount',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    } else if (decodedIx.name === 'withdraw') {
-      if (ixAccountMetas.length !== 13) {
-        return null;
-      }
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Beneficiary',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'amount',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    }
-
-    const activity: StreamActivityRaw = {
-      signature: transactionSignature,
-      initializer: initializer,
-      blockTime,
-      utcDate: new Date(blockTime).toUTCString(),
-      action,
-      // TODO: Here the 'amount' might not be accurate, we need to emit events instead
-      amount: amountBN,
-      mint,
-    };
-
-    return activity;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link parseProgramInstruction} instead.
- */
-async function parseVersionedStreamInstruction(
-  ix: PartiallyDecodedInstruction,
-  streamAddress: PublicKey,
-  transactionSignature: string,
-  transactionBlockTimeInSeconds: number,
-  idlFileVersion: number,
-  programId: PublicKey,
-): Promise<StreamActivityRaw | null> {
-  if (!ix.programId.equals(programId)) {
-    return null;
-  }
-
-  if (idlFileVersion <= 0 || idlFileVersion > LATEST_IDL_FILE_VERSION) {
-    return null;
-  }
-
-  try {
-    if (!idls[idlFileVersion]) {
-      if (idlFileVersion === 1) {
-        // TODO: to avoid this if else, find a way to do dynamic imports passign concatenated paths
-        const importedIdl = await import('./msp_idl_001');
-        idls[idlFileVersion] = importedIdl.IDL;
-      } else if (idlFileVersion === 2) {
-        const importedIdl = await import('./msp_idl_002');
-        idls[idlFileVersion] = importedIdl.IDL;
-      } else if (idlFileVersion === 3) {
-        const importedIdl = await import('./msp_idl_003');
-        idls[idlFileVersion] = importedIdl.IDL;
-      } else if (idlFileVersion === 4) {
-        const importedIdl = await import('./msp_idl_004');
-        idls[idlFileVersion] = importedIdl.IDL;
-      } else if (idlFileVersion === 5) {
-        const importedIdl = await import('./msp_idl_005');
-        idls[idlFileVersion] = importedIdl.IDL;
-      } else {
-        return null;
-      }
-    }
-
-    const coder = new BorshInstructionCoder(idls[idlFileVersion] as Idl);
-
-    const decodedIx = coder.decode(ix.data, 'base58');
-    if (!decodedIx) return null;
-
-    const ixName = decodedIx.name;
-    if (
-      [
-        'createStream',
-        'createStreamPda',
-        'createStreamWithTemplate',
-        'createStreamPdaWithTemplate',
-        'allocate',
-        'withdraw',
-      ].indexOf(ixName) === -1
-    )
-      return null;
-
-    const ixAccountMetas = ix.accounts.map(pk => {
-      return { pubkey: pk, isSigner: false, isWritable: false };
-    });
-
-    const formattedIx = coder.format(decodedIx, ixAccountMetas);
-
-    const stream = formattedIx?.accounts.find(a => a.name === 'Stream')?.pubkey;
-    if (!stream || !stream.equals(streamAddress)) {
-      return null;
-    }
-
-    const blockTime = (transactionBlockTimeInSeconds as number) * 1000; // mult by 1000 to add milliseconds
-    const action =
-      decodedIx.name === 'createStream' || decodedIx.name === 'createStreamPda' ||
-        decodedIx.name === 'createStreamWithTemplate' || decodedIx.name === 'createStreamPdaWithTemplate' ||
-        decodedIx.name === 'allocate'
-        ? 'deposited'
-        : 'withdrew';
-
-    let initializer: PublicKey | undefined;
-    let mint: PublicKey | undefined;
-    let amountBN: BN | undefined;
-
-    if (
-      decodedIx.name === 'createStream' || decodedIx.name === 'createStreamPda' ||
-      decodedIx.name === 'createStreamWithTemplate' || decodedIx.name === 'createStreamPdaWithTemplate'
-    ) {
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Treasurer',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'allocationAssignedUnits',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    } else if (decodedIx.name === 'allocate') {
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Treasurer',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'amount',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    } else if (decodedIx.name === 'withdraw') {
-      initializer = formattedIx?.accounts.find(
-        a => a.name === 'Beneficiary',
-      )?.pubkey;
-      mint = formattedIx?.accounts.find(
-        a => a.name === 'Associated Token',
-      )?.pubkey;
-      const parsedAmount = formattedIx?.args.find(
-        a => a.name === 'amount',
-      )?.data;
-      amountBN = parsedAmount ? new BN(parsedAmount) : undefined;
-    }
-
-    const activity: StreamActivityRaw = {
-      signature: transactionSignature,
-      initializer: initializer,
-      blockTime,
-      utcDate: new Date(blockTime).toUTCString(),
-      action,
-      // TODO: Here the 'amount' might not be accurate, we need to emit events instead
-      amount: amountBN,
-      mint,
-    };
-
-    return activity;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link parseProgramTransactions} instead.
- */
-export async function parseStreamTransactions(
-  streamAddress: PublicKey,
-  transactions: ParsedTransactionWithMeta[],
-  programId: PublicKey,
-): Promise<StreamActivityRaw[]> {
-  const parsedActivities: StreamActivityRaw[] = [];
-  if (!transactions || transactions.length === 0) return [];
-
-  for (let i = 0; i < transactions.length; i++) {
-    const tx = transactions[i];
-    const signature = tx.transaction.signatures[0];
-    for (let j = 0; j < tx.transaction.message.instructions.length; j++) {
-      const ix = tx.transaction.message.instructions[
-        j
-      ] as PartiallyDecodedInstruction;
-      if (!ix || !ix.data) continue;
-
-      const decodedIxData = bs58.decode(ix.data);
-      const ixIdlFileVersion =
-        decodedIxData.length >= 9 ? decodedIxData.slice(8, 9)[0] : 0;
-      let activity: StreamActivityRaw | null = null;
-      if (ixIdlFileVersion > 0 && ixIdlFileVersion <= LATEST_IDL_FILE_VERSION) {
-        activity = await parseVersionedStreamInstruction(
-          ix,
-          streamAddress,
-          signature,
-          tx.blockTime ?? 0,
-          ixIdlFileVersion,
-          programId,
-        );
-      } else if (!tx.blockTime || tx.blockTime >= 1645224519) {
-        activity = await parseStreamInstructionAfter1645224519(
-          ix,
-          streamAddress,
-          signature,
-          tx.blockTime ?? 0,
-          programId,
-        );
-      } else {
-        activity = await parseStreamInstructionBefore1645224519(
-          ix,
-          streamAddress,
-          signature,
-          tx.blockTime ?? 0,
-          programId,
-        );
-      }
-
-      if (!activity) {
-        continue;
-      }
-      parsedActivities.push(activity);
-    }
-  }
-
-  return parsedActivities;
-}
 export async function parseProgramTransactions(
   transactions: ParsedTransactionWithMeta[],
   programId: PublicKey,
@@ -1396,54 +772,6 @@ export async function parseProgramTransactions(
 
   return parsedActivities;
 }
-
-/**
- * @deprecated Use {@link parseAccountData} instead.
- */
-export const parseTreasuryData = (
-  treasury: RawTreasury,
-  address: PublicKey,
-) => {
-
-  const nameBuffer = Buffer.from(treasury.name);
-
-  const treasuryAssocatedTokenMint = !(treasury.associatedTokenAddress as PublicKey).equals(PublicKey.default)
-    ? treasury.associatedTokenAddress.toBase58()
-    : '';
-
-  if (!treasuryAssocatedTokenMint) {
-    console.warn('Invalid treasuryAssocatedTokenMint for account:', address.toBase58());
-  }
-
-  const treasuryCreatedUtc =
-    treasury.createdOnUtc.toString().length > 10
-      ? parseInt(treasury.createdOnUtc.toString().substring(0, 10))
-      : treasury.createdOnUtc.toNumber();
-
-  return {
-    id: address.toBase58(),
-    version: treasury.version,
-    initialized: treasury.initialized,
-    name: new TextDecoder().decode(nameBuffer),
-    bump: treasury.bump,
-    slot: treasury.slot.toNumber(),
-    labels: treasury.labels,
-    mint: treasury.mintAddress.toBase58(),
-    autoClose: treasury.autoClose,
-    createdOnUtc: new Date(treasuryCreatedUtc * 1_000).toString(),
-    treasuryType: treasury.treasuryType === 0 ? TreasuryType.Open : TreasuryType.Lock,
-    treasurer: treasury.treasurerAddress.toBase58(),
-    associatedToken: treasuryAssocatedTokenMint,
-    balance: treasury.lastKnownBalanceUnits.toString(),
-    allocationReserved: treasury.allocationReservedUnits.toString(),
-    allocationAssigned: treasury.allocationAssignedUnits.toString(),
-    totalWithdrawals: treasury.totalWithdrawalsUnits.toString(),
-    totalStreams: treasury.totalStreams.toNumber(),
-    category: treasury.category as Category,
-    subCategory: treasury.subCategory as SubCategory,
-    data: treasury,
-  } as Treasury;
-};
 
 export const parseAccountData = (
   rawAccount: RawTreasury,
@@ -1560,15 +888,15 @@ export const getStreamWithdrawableAmount = (stream: RawStream, timeDiff = 0) => 
     return new BN(0);
   }
 
-  const status = getStreamStatus(stream, timeDiff);
+  const status = getStreamStatusCode(stream, timeDiff);
 
   // Check if SCHEDULED
-  if (status === STREAM_STATUS.Scheduled) {
+  if (status === STREAM_STATUS_CODE.Scheduled) {
     return new BN(0);
   }
 
   // Check if PAUSED
-  if (status === STREAM_STATUS.Paused) {
+  if (status === STREAM_STATUS_CODE.Paused) {
     const manuallyPaused = isStreamManuallyPaused(stream);
     const withdrawableWhilePausedAmount = manuallyPaused
       ? stream.lastManualStopWithdrawableUnitsSnap
@@ -1602,52 +930,10 @@ export const getStreamWithdrawableAmount = (stream: RawStream, timeDiff = 0) => 
 
 /**
  * Mimics msp program -> `stream.get_status()`
- * @deprecated Deprecated in v3.2.0. Please use {@link getStreamStatusCode} instead.
- * 
- * @param stream Raw stream as defined in IDL
- * @param timeDiff 
- * @returns 
- */
-export const getStreamStatus = (stream: RawStream, timeDiff: number) => {
-  // Get the blockchain kind of "now" given the client timeDiff
-  const blocktimeRelativeNow = (Date.now() / 1_000) - timeDiff;
-  const startUtcInSeconds = getStreamStartUtcInSeconds(stream);
-
-  // Scheduled
-  if (startUtcInSeconds > blocktimeRelativeNow) {
-    return STREAM_STATUS.Scheduled;
-  }
-
-  // Manually paused
-  const manuallyPaused = isStreamManuallyPaused(stream);
-  if (manuallyPaused) {
-    return STREAM_STATUS.Paused;
-  }
-
-  // Running or automatically paused (ran out of funds)
-  const cliffUnits = getStreamCliffAmount(stream);
-  const secondsSinceStart = new BN(blocktimeRelativeNow - startUtcInSeconds);
-
-  const actualStreamedSeconds = secondsSinceStart
-    .sub(stream.lastKnownTotalSecondsInPausedStatus);
-  const actualStreamedUnits = getStreamedUnits(stream, actualStreamedSeconds);
-  const actualEarnedUnits = cliffUnits
-    .add(actualStreamedUnits);
-
-  if(stream.allocationAssignedUnits.gt(actualEarnedUnits)) {
-    return STREAM_STATUS.Running;
-  }
-
-  // Automatically paused (ran out of funds)
-  return STREAM_STATUS.Paused;
-};
-
-/**
- * Mimics msp program -> `stream.get_status()`
  * @param stream Raw stream as defined in IDL
  * @param timeDiff 
  */
-export const getStreamStatusCode = (stream: RawStream, timeDiff: number) => {
+export const getStreamStatusCode = (stream: RawStream, timeDiff: number): STREAM_STATUS_CODE => {
   // Get the blockchain kind of "now" given the client timeDiff
   const blocktimeRelativeNow = (Date.now() / 1_000) - timeDiff;
   const startUtcInSeconds = getStreamStartUtcInSeconds(stream);
@@ -1923,19 +1209,6 @@ export async function createWrapSolInstructions(
 export function sleep(ms: number) {
   console.log('Sleeping for', ms / 1000, 'seconds');
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link listVestingAccountActivity} instead.
- */
-export const listVestingTreasuryActivity = async (
-  program: Program<Ps>,
-  address: PublicKey,
-  before = '',
-  limit = 10,
-  commitment?: Finality | undefined,
-): Promise<VestingTreasuryActivityRaw[] | VestingTreasuryActivity[]> => {
-  return await listVestingTreasuryActivity(program, address, before, limit, commitment);
 }
 
 export const listVestingAccountActivity = async (
