@@ -49,6 +49,11 @@ jobs:
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
       - run: cd sdks/payment-streaming && ./run-tests.sh
         name: Run Tests
+      - name: Upload SDK Test Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: sdk-test-coverage-lcov-report
+          path: sdks/payment-streaming/coverage/lcov.info
   sonar-scan:
     name: "Sonar Scan"
     needs: [run-sdk-tests]
@@ -57,6 +62,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Download SDK Test Coverage Report
+        uses: actions/download-artifact@v3
+        with:
+          name: sdk-test-coverage-lcov-report
+          path: sdks/payment-streaming/coverage/
       - run: |
           pwd
           ls -l
