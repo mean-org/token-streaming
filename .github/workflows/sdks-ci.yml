@@ -58,10 +58,10 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-        pwd
-        ls -l .coverage/
-        ls -l sdks/payment-streaming/coverage/
-        ls -l /github/workspace/sdks/payment-streaming/coverage/
+          pwd
+          ls -l .coverage/
+          ls -l sdks/payment-streaming/coverage/
+          ls -l /github/workspace/sdks/payment-streaming/coverage/
       - uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
