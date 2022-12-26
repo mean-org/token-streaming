@@ -36,7 +36,7 @@ jobs:
       - run: cd sdks/payment-streaming && yarn build
   run-sdk-tests:
     name: Run SDK tests
-    needs: [sonar-scan]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -51,7 +51,7 @@ jobs:
         name: Run Tests
   sonar-scan:
     name: "Sonar Scan"
-    needs: [build]
+    needs: [run-sdk-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
