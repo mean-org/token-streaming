@@ -57,6 +57,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - run: |
+        pwd
+        ls -l .coverage/
+        ls -l sdks/payment-streaming/coverage/
+        ls -l /github/workspace/sdks/payment-streaming/coverage/
       - uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -69,4 +74,4 @@ jobs:
             -Dsonar.exclusions=sdks/payment-streaming/src/msp*.ts
             -Dsonar.tests=sdks/payment-streaming/tests/
             -Dsonar.tests.exclusions=sdks/payment-streaming/tests/data/
-            -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=/github/workspace/sdks/payment-streaming/coverage/lcov.info
