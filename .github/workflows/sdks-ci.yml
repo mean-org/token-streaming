@@ -85,3 +85,11 @@ jobs:
             -Dsonar.tests=sdks/payment-streaming/tests/
             -Dsonar.tests.exclusions=sdks/payment-streaming/tests/data/
             -Dsonar.javascript.lcov.reportPaths=/github/workspace/sdks/payment-streaming/coverage/lcov.info
+      - name: Sonar Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        # Force to fail step after specific time.
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
