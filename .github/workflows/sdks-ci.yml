@@ -60,7 +60,8 @@ jobs:
       - run: |
           pwd
           ls -l
-          ls -l /github/workspace/sdks/payment-streaming/coverage/
+          ls -l sdks/payment-streaming/
+          ls -l sdks/payment-streaming/coverage/
       - uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
