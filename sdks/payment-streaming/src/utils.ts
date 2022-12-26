@@ -749,7 +749,7 @@ export async function parseProgramTransactions(
 
       const decodedIxData = bs58.decode(ix.data);
       const ixIdlFileVersion =
-        decodedIxData.length >= 9 ? decodedIxData.slice(8, 9)[0] : 0;
+        decodedIxData.length >= 9 ? decodedIxData.subarray(8, 9)[0] : 0;
       let activity: ActivityRaw | null = null;
       if (ixIdlFileVersion > 0 && ixIdlFileVersion <= LATEST_IDL_FILE_VERSION) {
         activity = await parseProgramInstruction(
