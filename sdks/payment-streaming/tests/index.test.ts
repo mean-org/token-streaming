@@ -1,5 +1,5 @@
 import { assert, expect } from 'chai';
-import { AnchorError, ProgramError } from '@project-serum/anchor';
+import { AnchorError, Program, ProgramError } from '@project-serum/anchor';
 import {
   Keypair,
   Connection,
@@ -17,6 +17,9 @@ import {
   NATIVE_SOL_MINT,
   FEE_ACCOUNT,
   SIMULATION_PUBKEY,
+  Ps,
+  createProgram,
+  toUnixTimestamp,
 } from '../src';
 import {
   Category,
@@ -24,13 +27,16 @@ import {
   SubCategory,
   TimeUnit,
   STREAM_STATUS_CODE,
+  ActivityActionCode,
 } from '../src/types';
-import { BN } from 'bn.js';
-import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import BN from 'bn.js';
+import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
+import { ASSOCIATED_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
 
 console.log(`\nWorld State:`);
 
-const PAYMENT_STREAMING_PROGRAM_ID = 'MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ';
+const PAYMENT_STREAMING_PROGRAM_ID =
+  'MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ';
 
 const user1Wallet = loadKeypair(
   './tests/data/AUTH1btNKtuwPF2mF58YtSga5vAZ59Hg4SUKHmDF7SAn.json',
@@ -108,102 +114,8 @@ const endpoint = 'http://127.0.0.1:8899';
 // const endpoint = clusterApiUrl('devnet');
 const commitment = 'confirmed';
 let ps: PaymentStreaming;
-
-async function partialSignSendAndConfirmTransaction(
-  connection: Connection,
-  transaction: Transaction,
-  signer: Signer
-): Promise<string> {
-  try {
-
-    // Thre is a bug in solana's web3.js `sendAndConfirmRawTransaction` which
-    // requieres the transaction signature thus preventing us from using that
-    // method
-
-    transaction.partialSign(signer)
-    const rawTransaction = transaction.serialize();
-
-    const signature = await connection.sendRawTransaction(rawTransaction);
-    const status = (await connection.confirmTransaction({
-      signature: signature,
-      blockhash: transaction.recentBlockhash,
-      lastValidBlockHeight: transaction.lastValidBlockHeight
-    } as BlockheightBasedTransactionConfirmationStrategy)).value;
-
-    if (status.err) {
-      throw new Error(`Transaction ${signature} failed (${JSON.stringify(status)})`);
-    }
-
-    return signature;
-  } catch (error) {
-    // console.log('error');
-    // console.log(error);
-    // console.log();
-
-    const e = error as ProgramError;
-
-    if (e.logs) {
-      const anchorError = AnchorError.parse(e.logs);
-      // console.log('anchorError');
-      // console.log(anchorError);
-      // console.log();
-
-      if (anchorError) {
-        // console.log(anchorError.error);
-        throw anchorError;
-      }
-    }
-    throw error;
-  }
-}
-
-async function sendTestTransaction(
-  connection: Connection,
-  tx: Transaction,
-  signers: Signer[],
-): Promise<string> {
-  try {
-    return await sendAndConfirmTransaction(connection, tx, signers, {
-      commitment: commitment,
-    });
-  } catch (error) {
-    // console.log('error');
-    // console.log(error);
-    // console.log();
-
-    const e = error as ProgramError;
-
-    if (e.logs) {
-      const anchorError = AnchorError.parse(e.logs);
-      // console.log('anchorError');
-      // console.log(anchorError);
-      // console.log();
-
-      if (anchorError) {
-        // console.log(anchorError.error);
-        throw anchorError;
-      }
-    }
-    throw error;
-  }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function printObj(label: string, obj: any) {
-  console.log(`${label}: ${JSON.stringify(obj, null, 2)}\n`);
-}
-
-function loadKeypair(filePath: string): Keypair {
-  return Keypair.fromSecretKey(
-    Buffer.from(
-      JSON.parse(
-        require('fs').readFileSync(filePath, {
-          encoding: 'utf-8',
-        }),
-      ),
-    ),
-  );
-}
+let psProgram: Program<Ps>;
+let token: Token;
 
 describe('PS Tests\n', async () => {
   let connection: Connection;
@@ -272,7 +184,21 @@ describe('PS Tests\n', async () => {
       commitment,
     );
 
-    ps = new PaymentStreaming(connection, new PublicKey(PAYMENT_STREAMING_PROGRAM_ID), commitment);
+    token = await Token.createMint(
+      connection,
+      testPayerKey,
+      testPayerKey.publicKey,
+      null,
+      6,
+      TOKEN_PROGRAM_ID,
+    );
+
+    ps = new PaymentStreaming(
+      connection,
+      new PublicKey(PAYMENT_STREAMING_PROGRAM_ID),
+      commitment,
+    );
+    psProgram = createProgram(connection, PAYMENT_STREAMING_PROGRAM_ID);
 
     console.log();
     await sleep(20000);
@@ -426,21 +352,75 @@ describe('PS Tests\n', async () => {
     );
   });
 
-  it('Gets vesting account flow rate', async () => {
-    const {
-      rateAmount: rate,
-      intervalUnit: unit,
-      totalAllocation,
-    } = await ps.getVestingAccountFlowRate(vestingAccountPubKey, false);
-    assert.equal(
-      rate.toString(),
-      '150000000',
-      'incorrect vesting account flow rate',
+  it('Transfers tokens (direct transfer)', async () => {
+    const actors = await setupTestActors({
+      connection: connection,
+      ownerTokenAmount: new BN(1000),
+    });
+
+    const { transaction: transferTx } = await ps.buildTransferTransaction(
+      {
+        sender: actors.owner,
+        feePayer: actors.owner,
+        beneficiary: actors.beneficiary,
+        mint: actors.mint,
+      },
+      1000,
     );
-    assert.equal(unit, TimeUnit.Minute);
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      transferTx,
+      actors.ownerKey,
+    );
+
+    const beneficiaryTokenInfo = await actors.token.getAccountInfo(
+      actors.beneficiaryToken,
+    );
+    assert.exists(beneficiaryTokenInfo);
+    assert.equal(beneficiaryTokenInfo.amount.toString(), '1000');
+  });
+
+  it('Transfers SOL (direct transfer)', async () => {
+    const owner1Key = Keypair.generate();
+    const beneficiary1 = Keypair.generate().publicKey;
+
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash(commitment);
+    await connection.confirmTransaction({
+      signature: await connection.requestAirdrop(
+        owner1Key.publicKey,
+        LAMPORTS_PER_SOL,
+      ),
+      blockhash,
+      lastValidBlockHeight,
+    });
+
+    // for this test we need to send an amount >= minimum rent so we cover
+    // for rent exemption
+    const minRent = await connection.getMinimumBalanceForRentExemption(0);
+    const { transaction: transferTx } = await ps.buildTransferTransaction(
+      {
+        sender: owner1Key.publicKey,
+        beneficiary: beneficiary1,
+        mint: NATIVE_SOL_MINT,
+      },
+      minRent,
+    );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      transferTx,
+      owner1Key,
+    );
+
+    const beneficiaryAccountInfo = await connection.getAccountInfo(
+      beneficiary1,
+    );
+    assert.exists(beneficiaryAccountInfo);
     assert.equal(
-      totalAllocation.toString(),
-      new BN(2 * LAMPORTS_PER_SOL).toString(),
+      beneficiaryAccountInfo?.lamports.toString(),
+      minRent.toString(),
     );
   });
 
@@ -462,11 +442,7 @@ describe('PS Tests\n', async () => {
     );
     psAccount;
 
-    await sendTestTransaction(
-      connection,
-      createAccountTx,
-      [user1Wallet],
-    );
+    await sendTestTransaction(connection, createAccountTx, [user1Wallet]);
 
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
@@ -483,7 +459,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       addFundsToAccountTx,
-      user1Wallet
+      user1Wallet,
     );
 
     // create a stream 1
@@ -506,7 +482,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStream1Tx,
-      user1Wallet
+      user1Wallet,
     );
 
     // create a stream 2
@@ -529,7 +505,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStream2Tx,
-      user1Wallet
+      user1Wallet,
     );
 
     // create a stream 3
@@ -552,7 +528,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStream3Tx,
-      user1Wallet
+      user1Wallet,
     );
 
     const [
@@ -585,6 +561,159 @@ describe('PS Tests\n', async () => {
     assert.equal(psAccountStream3Info?.data.length, 500);
   });
 
+  it('Streams a payment', async () => {
+    const { ownerKey, beneficiary, mint } = await setupTestActors({
+      connection,
+      ownerLamports: LAMPORTS_PER_SOL,
+      ownerTokenAmount: 1_000_000,
+    });
+
+    const { transaction: streamPaymentTx } =
+      await ps.buildStreamPaymentTransaction(
+        {
+          owner: ownerKey.publicKey,
+          beneficiary: beneficiary,
+          mint: mint,
+        },
+        "Bob's payment",
+        1_000_000,
+        86400,
+        1_000_000,
+        new Date(),
+        false,
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      streamPaymentTx,
+      ownerKey,
+    );
+  });
+
+  it('Streams a SOL payment', async () => {
+    const { ownerKey, beneficiary } = await setupTestActors({
+      connection,
+      ownerLamports: LAMPORTS_PER_SOL,
+    });
+
+    const { transaction: streamPaymentTx } =
+      await ps.buildStreamPaymentTransaction(
+        {
+          owner: ownerKey.publicKey,
+          beneficiary: beneficiary,
+          mint: NATIVE_SOL_MINT,
+        },
+        "Bob's payment",
+        1_000_000,
+        86400,
+        1_000_000,
+        new Date(),
+        false,
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      streamPaymentTx,
+      ownerKey,
+    );
+  });
+
+  it('Schedules a transfer', async () => {
+    const { ownerKey, beneficiary, mint } = await setupTestActors({
+      connection: connection,
+      ownerTokenAmount: new BN(1000),
+    });
+
+    const startDate = new Date(2050, 1, 1);
+
+    const { transaction: transferTx, stream } =
+      await ps.buildScheduleTransferTransaction(
+        {
+          owner: ownerKey.publicKey,
+          beneficiary: beneficiary,
+          mint: mint,
+        },
+        1000,
+        startDate,
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      transferTx,
+      ownerKey,
+    );
+
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
+    assert.equal(streamAccount.startUtc.toNumber(), toUnixTimestamp(startDate));
+  });
+
+  it('Schedules a SOL transfer', async () => {
+    const { ownerKey, beneficiary } = await setupTestActors({
+      connection: connection,
+      ownerTokenAmount: new BN(1000),
+    });
+
+    const startDate = new Date(2050, 1, 1);
+
+    const { transaction: transferTx, stream } =
+      await ps.buildScheduleTransferTransaction(
+        {
+          owner: ownerKey.publicKey,
+          beneficiary: beneficiary,
+          mint: NATIVE_SOL_MINT,
+        },
+        1000,
+        startDate,
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      transferTx,
+      ownerKey,
+    );
+
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
+    assert.equal(streamAccount.startUtc.toNumber(), toUnixTimestamp(startDate));
+  });
+
+  it('Gets vesting account flow rate', async () => {
+    const {
+      rateAmount: rate,
+      intervalUnit: unit,
+      totalAllocation,
+    } = await ps.getVestingAccountFlowRate(vestingAccountPubKey, false);
+    assert.equal(
+      rate.toString(),
+      '150000000',
+      'incorrect vesting account flow rate',
+    );
+    assert.equal(unit, TimeUnit.Minute);
+    assert.equal(
+      totalAllocation.toString(),
+      new BN(2 * LAMPORTS_PER_SOL).toString(),
+    );
+  });
+
   it('Creates a vesting account + template + add funds + creates 2 streams', async () => {
     // create a vesting account
     const vestingAccountName = `VESTING-ACCOUNT-${Date.now()}`;
@@ -606,14 +735,62 @@ describe('PS Tests\n', async () => {
       TimeUnit.Minute,
       10 * LAMPORTS_PER_SOL,
       SubCategory.seed,
-      new Date(),
+      new Date(2040, 1, 1),
       10, // 10 %
     );
 
     await partialSignSendAndConfirmTransaction(
       connection,
       createVestingAccountTx,
-      user1Wallet
+      user1Wallet,
+    );
+
+    const parsedVestingAccount = await psProgram.account.treasury.fetch(
+      vestingAccount,
+    );
+    assert.exists(parsedVestingAccount);
+    assert.equal(parsedVestingAccount.treasuryType, AccountType.Open);
+    assert.equal(parsedVestingAccount.category, Category.vesting);
+    assert.equal(parsedVestingAccount.subCategory, SubCategory.seed);
+    assert.equal(parsedVestingAccount.allocationAssignedUnits.toString(), '0');
+    assert.equal(
+      parsedVestingAccount.lastKnownBalanceUnits.toString(),
+      (10 * LAMPORTS_PER_SOL).toString(),
+    );
+
+    let parsedVestingTemplate = await psProgram.account.streamTemplate.fetch(
+      vestingAccountTemplate,
+    );
+    assert.exists(parsedVestingTemplate);
+    assert.equal(parsedVestingTemplate.durationNumberOfUnits.toString(), '12');
+    assert.equal(parsedVestingTemplate.rateIntervalInSeconds.toString(), '60');
+
+    // update vesting account template
+    const { transaction: updateVestinTx } =
+      await ps.buildUpdateVestingTemplateTransaction(
+        {
+          owner: user1Wallet.publicKey,
+          vestingAccount: vestingAccount,
+        },
+        6,
+        TimeUnit.Hour,
+        new Date(2050, 1, 1),
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      updateVestinTx,
+      user1Wallet,
+    );
+
+    parsedVestingTemplate = await psProgram.account.streamTemplate.fetch(
+      vestingAccountTemplate,
+    );
+    assert.exists(parsedVestingTemplate);
+    assert.equal(parsedVestingTemplate.durationNumberOfUnits.toString(), '6');
+    assert.equal(
+      parsedVestingTemplate.rateIntervalInSeconds.toString(),
+      '3600',
     );
 
     // create vesting stream 1
@@ -633,7 +810,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStreamTx,
-      user1Wallet
+      user1Wallet,
     );
 
     // create vesting stream 2
@@ -653,7 +830,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStreamTx2,
-      user1Wallet
+      user1Wallet,
     );
 
     const [
@@ -684,57 +861,32 @@ describe('PS Tests\n', async () => {
 
     assert.exists(vestingAccountStream2Info);
     assert.equal(vestingAccountStream2Info?.data.length, 500);
-  });
 
-  it('buildStreamPaymentTransaction', async () => {
-    const owner1Key = Keypair.generate();
-    const beneficiary1 = Keypair.generate().publicKey;
-    const token1 = await Token.createMint(
-      connection,
-      testPayerKey,
-      testPayerKey.publicKey,
-      null,
-      6,
-      TOKEN_PROGRAM_ID,
+    // list vesting activity
+    const activity = await ps.listVestingAccountActivity(vestingAccount);
+    assert.exists(activity);
+    assert.isNotEmpty(activity);
+    assert.equal(
+      activity.filter(a => a.actionCode === ActivityActionCode.AccountCreated)
+        .length,
+      0,
     );
-    const { blockhash, lastValidBlockHeight } =
-      await connection.getLatestBlockhash(commitment);
-    await connection.confirmTransaction({
-      signature: await connection.requestAirdrop(
-        owner1Key.publicKey,
-        LAMPORTS_PER_SOL,
-      ),
-      blockhash,
-      lastValidBlockHeight,
-    });
-
-    const owner1Token = await token1.createAssociatedTokenAccount(
-      owner1Key.publicKey,
+    assert.equal(
+      activity.filter(
+        a => a.actionCode === ActivityActionCode.AccountCreatedWithTemplate,
+      ).length,
+      1,
     );
-
-    await token1.mintTo(owner1Token, testPayerKey, [], 1_000_000);
-
-    const { transaction: streamPaymentTx } =
-      await ps.buildStreamPaymentTransaction(
-        {
-          owner: owner1Key.publicKey,
-          beneficiary: beneficiary1,
-          mint: token1.publicKey,
-        },
-        "Bob's payment",
-        1_000_000,
-        86400,
-        1_000_000,
-        new Date(),
-        false,
-      );
-
-    streamPaymentTx.partialSign(owner1Key);
-
-    await partialSignSendAndConfirmTransaction(
-      connection,
-      streamPaymentTx,
-      owner1Key
+    assert.equal(
+      activity.filter(
+        a => a.actionCode === ActivityActionCode.FundsAddedToAccount,
+      ).length,
+      1,
+    );
+    assert.equal(
+      activity.filter(a => a.actionCode === ActivityActionCode.StreamCreated)
+        .length,
+      2,
     );
   });
 
@@ -755,3 +907,251 @@ describe('PS Tests\n', async () => {
     assert.equal(pausedEnum, 2);
   });
 });
+
+//#region UTILS
+
+async function partialSignSendAndConfirmTransaction(
+  connection: Connection,
+  transaction: Transaction,
+  signer: Signer,
+): Promise<string> {
+  try {
+    // Thre is a bug in solana's web3.js `sendAndConfirmRawTransaction` which
+    // requieres the transaction signature thus preventing us from using that
+    // method
+
+    transaction.partialSign(signer);
+    const rawTransaction = transaction.serialize();
+
+    const signature = await connection.sendRawTransaction(rawTransaction);
+    const status = (
+      await connection.confirmTransaction({
+        signature: signature,
+        blockhash: transaction.recentBlockhash,
+        lastValidBlockHeight: transaction.lastValidBlockHeight,
+      } as BlockheightBasedTransactionConfirmationStrategy)
+    ).value;
+
+    if (status.err) {
+      throw new Error(
+        `Transaction ${signature} failed (${JSON.stringify(status)})`,
+      );
+    }
+
+    return signature;
+  } catch (error) {
+    // console.log('error');
+    // console.log(error);
+    // console.log();
+
+    const e = error as ProgramError;
+
+    if (e.logs) {
+      const anchorError = AnchorError.parse(e.logs);
+      // console.log('anchorError');
+      // console.log(anchorError);
+      // console.log();
+
+      if (anchorError) {
+        // console.log(anchorError.error);
+        throw anchorError;
+      }
+    }
+    throw error;
+  }
+}
+
+async function sendTestTransaction(
+  connection: Connection,
+  tx: Transaction,
+  signers: Signer[],
+): Promise<string> {
+  try {
+    return await sendAndConfirmTransaction(connection, tx, signers, {
+      commitment: commitment,
+    });
+  } catch (error) {
+    // console.log('error');
+    // console.log(error);
+    // console.log();
+
+    const e = error as ProgramError;
+
+    if (e.logs) {
+      const anchorError = AnchorError.parse(e.logs);
+      // console.log('anchorError');
+      // console.log(anchorError);
+      // console.log();
+
+      if (anchorError) {
+        // console.log(anchorError.error);
+        throw anchorError;
+      }
+    }
+    throw error;
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function printObj(label: string, obj: any) {
+  console.log(`${label}: ${JSON.stringify(obj, null, 2)}\n`);
+}
+
+function loadKeypair(filePath: string): Keypair {
+  return Keypair.fromSecretKey(
+    Buffer.from(
+      JSON.parse(
+        require('fs').readFileSync(filePath, {
+          encoding: 'utf-8',
+        }),
+      ),
+    ),
+  );
+}
+
+type TestActors = {
+  readonly owner: PublicKey;
+  readonly ownerKey: Keypair;
+  readonly ownerToken: PublicKey;
+  readonly beneficiary: PublicKey;
+  readonly beneficiaryKey: Keypair;
+  readonly beneficiaryToken: PublicKey;
+  readonly token: Token;
+  readonly mint: PublicKey;
+};
+
+const ZERO_BN = new BN(0);
+
+async function setupTestActors({
+  connection,
+  ownerLamports = LAMPORTS_PER_SOL,
+  ownerTokenAmount,
+  beneficiaryLamports = LAMPORTS_PER_SOL,
+  beneficiaryTokenAmount,
+}: {
+  connection: Connection;
+  ownerLamports?: number;
+  ownerTokenAmount?: number | BN;
+  beneficiaryLamports?: number;
+  beneficiaryTokenAmount?: number | BN;
+}): Promise<TestActors> {
+  ownerTokenAmount = ownerTokenAmount ? new BN(ownerTokenAmount) : undefined;
+  beneficiaryTokenAmount = beneficiaryTokenAmount
+    ? new BN(beneficiaryTokenAmount)
+    : undefined;
+
+  const ownerKey = Keypair.generate();
+  const beneficiaryKey = Keypair.generate();
+  let ownerToken: PublicKey | undefined;
+  let beneficiaryToken: PublicKey | undefined;
+
+  if (
+    !ownerLamports &&
+    !ownerTokenAmount &&
+    !beneficiaryLamports &&
+    !beneficiaryTokenAmount
+  ) {
+    return {
+      owner: ownerKey.publicKey,
+      ownerKey,
+      ownerToken: await Token.getAssociatedTokenAddress(
+        ASSOCIATED_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        token.publicKey,
+        ownerKey.publicKey,
+        false,
+      ),
+      beneficiary: beneficiaryKey.publicKey,
+      beneficiaryKey,
+      beneficiaryToken: await Token.getAssociatedTokenAddress(
+        ASSOCIATED_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        token.publicKey,
+        beneficiaryKey.publicKey,
+        false,
+      ),
+      token,
+      mint: token.publicKey,
+    };
+  }
+
+  const { blockhash, lastValidBlockHeight } =
+    await connection.getLatestBlockhash(commitment);
+
+  if (ownerLamports > 0) {
+    await connection.confirmTransaction({
+      signature: await connection.requestAirdrop(
+        ownerKey.publicKey,
+        ownerLamports,
+      ),
+      blockhash,
+      lastValidBlockHeight,
+    });
+  }
+
+  if (ownerTokenAmount) {
+    ownerToken = await token.createAssociatedTokenAccount(ownerKey.publicKey);
+    if (ownerTokenAmount.gt(ZERO_BN)) {
+      await token.mintTo(
+        ownerToken,
+        testPayerKey,
+        [],
+        new u64(ownerTokenAmount.toString()),
+      );
+    }
+  }
+
+  if (beneficiaryLamports > 0) {
+    await connection.confirmTransaction({
+      signature: await connection.requestAirdrop(
+        beneficiaryKey.publicKey,
+        beneficiaryLamports,
+      ),
+      blockhash,
+      lastValidBlockHeight,
+    });
+  }
+
+  if (beneficiaryTokenAmount) {
+    beneficiaryToken = await token.createAssociatedTokenAccount(
+      ownerKey.publicKey,
+    );
+    if (beneficiaryTokenAmount.gt(ZERO_BN)) {
+      await token.mintTo(
+        beneficiaryToken,
+        testPayerKey,
+        [],
+        new u64(beneficiaryTokenAmount.toString()),
+      );
+    }
+  }
+
+  return {
+    owner: ownerKey.publicKey,
+    ownerKey,
+    ownerToken:
+      ownerToken ||
+      (await Token.getAssociatedTokenAddress(
+        ASSOCIATED_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        token.publicKey,
+        ownerKey.publicKey,
+        false,
+      )),
+    beneficiary: beneficiaryKey.publicKey,
+    beneficiaryKey,
+    beneficiaryToken:
+      beneficiaryToken ||
+      (await Token.getAssociatedTokenAddress(
+        ASSOCIATED_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        token.publicKey,
+        beneficiaryKey.publicKey,
+        false,
+      )),
+    token,
+    mint: token.publicKey,
+  };
+}
+
+//#endregion

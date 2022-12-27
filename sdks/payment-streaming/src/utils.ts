@@ -1219,7 +1219,7 @@ export const listVestingAccountActivity = async (
   commitment?: Finality | undefined,
 ): Promise<VestingAccountActivity[]> => {
   let activityRaw: ActivityRaw[] = [];
-  const finality = commitment !== undefined ? commitment : 'finalized';
+  const finality = commitment !== undefined ? commitment : 'confirmed';
   const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
   if (before) {
     filter['before'] = before;
@@ -1445,7 +1445,7 @@ async function parseProgramInstruction(
     }
 
     if (decodedIx.name === 'createTreasuryAndTemplate') {
-      action = ActivityActionCode.AccountCreated;
+      action = ActivityActionCode.AccountCreatedWithTemplate;
       initializer = formattedIx?.accounts.find(
         a => a.name === 'Treasurer',
       )?.pubkey;

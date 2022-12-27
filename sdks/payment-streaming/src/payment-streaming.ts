@@ -15,7 +15,6 @@ import {
 } from '@solana/web3.js';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  NATIVE_MINT as NATIVE_WSOL_MINT,
   Token,
   TOKEN_PROGRAM_ID,
   u64,
@@ -82,6 +81,7 @@ import {
   NATIVE_SOL_MINT,
   CLIFF_PERCENT_NUMERATOR,
   CLIFF_PERCENT_DENOMINATOR,
+  NATIVE_WSOL_MINT,
 } from './constants';
 
 import * as instructions from './instructions';
@@ -1019,7 +1019,7 @@ export class PaymentStreaming {
    */
   public async listVestingAccountActivity(
     vestingAccount: PublicKey,
-    before: string,
+    before?: string,
     limit = 10,
     commitment?: Finality | undefined,
   ): Promise<VestingAccountActivity[]> {
