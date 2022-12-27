@@ -50,29 +50,3 @@ export enum WARNING_TYPES {
 // Re-export some constants
 export const SYSTEM_PROGRAM_ID = SystemProgram.programId;
 export { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, SYSVAR_RENT_PUBKEY };
-
-/**
- * Constants
- * @deprecated Deprecated since v3.2.0. Please use exported constants instead.
- */
-export class Constants {
-  /** @deprecated Deprecated in v3.2.0. Please use {@link FEE_ACCOUNT} instead. */
-  static FEE_TREASURY = new PublicKey(
-    '3TD6SWY9M1mLY2kZWJNavPLhwXvcRsWdnZLRaMzERJBw',
-  );
-  static TREASURY_SIZE = 300;
-  static STREAM_SIZE = 500;
-  /**
-   * 0-100 percentage values should be multiplied by this value before being
-   * passed as argument to program instructions.
-   */
-  static CLIFF_PERCENT_NUMERATOR = 10_000;
-  static CLIFF_PERCENT_DENOMINATOR = 1_000_000;
-  static MAX_TX_SIZE = 1200;
-  // This is an internal convention to identify the intention to use NATIVE sol and not SPL wSOL
-  /** @deprecated Deprecated in v3.2.0. Please use {@link NATIVE_SOL_MINT} */
-  static SOL_MINT = new PublicKey('11111111111111111111111111111111');
-  static READONLY_PUBKEY = new PublicKey(
-    '3KmMEv7A8R3MMhScQceXBQe69qLmnFfxSM3q8HyzkrSx',
-  );
-}

@@ -34,27 +34,9 @@ jobs:
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
       - run: cd sdks/payment-streaming && yarn install
       - run: cd sdks/payment-streaming && yarn build
-  sonar-scan:
-    name: "Sonar Scan"
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.verbose=false
-            -Dsonar.projectKey=payment-streaming-sdk
-            -Dsonar.sources=sdks/payment-streaming/src/
-            -Dsonar.exclusions=sdks/payment-streaming/src/msp*.ts
   run-sdk-tests:
     name: Run SDK tests
-    needs: [sonar-scan]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -67,3 +49,48 @@ jobs:
           solana-default-keypair: ${{ secrets.DEVNET_PAYER_KEY }}
       - run: cd sdks/payment-streaming && ./run-tests.sh
         name: Run Tests
+      - name: Upload SDK Test Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: sdk-test-coverage-lcov-report
+          path: sdks/payment-streaming/coverage/lcov.info
+          retention-days: 1
+  sonar-scan:
+    name: "Sonar Scan"
+    needs: [run-sdk-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Download SDK Test Coverage Report
+        uses: actions/download-artifact@v3
+        with:
+          name: sdk-test-coverage-lcov-report
+          path: sdks/payment-streaming/coverage/
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.verbose=false
+            -Dsonar.projectKey=payment-streaming-sdk
+            -Dsonar.sources=sdks/payment-streaming/src/
+            -Dsonar.exclusions=sdks/payment-streaming/src/msp*.ts
+            -Dsonar.tests=sdks/payment-streaming/tests/
+            -Dsonar.tests.exclusions=sdks/payment-streaming/tests/data/
+            -Dsonar.javascript.lcov.reportPaths=/github/workspace/sdks/payment-streaming/coverage/lcov.info
+  sonar-quality-check:
+    name: Sonar Quality check
+    needs: [sonar-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sonar Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        # Force to fail step after specific time.
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

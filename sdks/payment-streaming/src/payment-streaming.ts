@@ -139,9 +139,7 @@ export class PaymentStreaming {
   }
 
   public async listStreams({
-    treasurer,
     psAccountOwner,
-    treasury,
     psAccount,
     beneficiary,
     category = undefined,
@@ -149,8 +147,8 @@ export class PaymentStreaming {
   }: ListStreamParams): Promise<Stream[]> {
     return listStreams(
       this.program,
-      psAccountOwner || treasurer,
-      psAccount || treasury,
+      psAccountOwner,
+      psAccount,
       beneficiary,
       category,
       subCategory,

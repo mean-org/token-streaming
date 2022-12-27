@@ -14,41 +14,6 @@ declare global {
 }
 
 /**
- * MSP Instructions types
- * @deprecated Deprecated in v3.2.0, use {@link ACTION_CODES}.
- */
-export enum MSP_ACTIONS {
-  /** @deprecated Use {@link ACTION_CODES.ScheduleOneTimePayment}. */
-  scheduleOneTimePayment = 1,
-  /** @deprecated Use {@link ACTION_CODES.CreateStream}. */
-  createStream = 2,
-  /** @deprecated Use {@link ACTION_CODES.CreateStreamWithFunds}. */
-  createStreamWithFunds = 3,
-  /** @deprecated Use {@link ACTION_CODES.AddFundsToAccount}. */
-  addFunds = 4,
-  /** @deprecated Use {@link ACTION_CODES.WithdrawFromStream}. */
-  withdraw = 5,
-  /** @deprecated Use {@link ACTION_CODES.PauseStream}. */
-  pauseStream = 6,
-  /** @deprecated Use {@link ACTION_CODES.ResumeStream}. */
-  resumeStream = 7,
-  /** @deprecated Use {@link ACTION_CODES.ProposeUpdate}. */
-  proposeUpdate = 8,
-  /** @deprecated Use {@link ACTION_CODES.AnswerUpdate}. */
-  answerUpdate = 9,
-  /** @deprecated Use {@link ACTION_CODES.CreateAccount}. */
-  createTreasury = 10,
-  /** @deprecated Use {@link ACTION_CODES.CloseStream}. */
-  closeStream = 11,
-  /** @deprecated Use {@link ACTION_CODES.CloseAccount}. */
-  closeTreasury = 12,
-  /** @deprecated Use {@link ACTION_CODES.TransferStream}. */
-  transferStream = 13,
-  /** @deprecated Use {@link ACTION_CODES.WithdrawFromAccount}. */
-  treasuryWithdraw = 14,
-}
-
-/**
  * Codes for identifying user actions supported by this client.
  */
 export enum ACTION_CODES {
@@ -99,15 +64,7 @@ export type TransactionMessage = {
 };
 
 export interface ListStreamParams {
-  /**
-   * @deprecated Depracated in v3.2.0. Please use {@link psAccountOwner} instead.
-   */
-  treasurer?: PublicKey;
   psAccountOwner?: PublicKey;
-  /**
-   * @deprecated Depracated in v3.2.0. Please use {@link psAccount} instead.
-   */
-  treasury?: PublicKey;
   psAccount?: PublicKey;
   beneficiary?: PublicKey;
   commitment?: Commitment;
@@ -161,28 +118,6 @@ export type ActivityRaw = {
 };
 
 /**
- *  Vesting treasury activity
- * @deprecated Deprecated in v3.2.0. Please use {@link VestingAccountActivity} instead.
- */
-export type VestingTreasuryActivity = {
-  signature: string;
-  action: VestingTreasuryActivityAction;
-  initializer?: string;
-  mint?: string;
-  blockTime?: number;
-  template?: string;
-  // createStream - allocation amount
-  // addFunds - deposited amount
-  // withdraw - withdrawn amount
-  amount?: string;
-  beneficiary?: string; // create stream
-  destination?: string; // withdraw
-  destinationTokenAccount?: string; // withdrawn associated token account
-  stream?: string; // vesting stream activities
-  utcDate: string;
-};
-
-/**
  *  Vesting account activity
  */
 export type VestingAccountActivity = {
@@ -203,45 +138,6 @@ export type VestingAccountActivity = {
   utcDate: string;
 };
 
-/**
- *  Vesting treasury activity
- * @deprecated Deprecated in v3.2.0. Please use {@link ActivityRaw} instead.
- */
-export type VestingTreasuryActivityRaw = {
-  signature: string;
-  action: VestingTreasuryActivityAction;
-  initializer?: PublicKey;
-  mint?: PublicKey;
-  blockTime?: number;
-  template?: PublicKey;
-  // createStream - allocation amount
-  // addFunds - deposited amount
-  // withdraw - withdrawn amount
-  amount: BN | undefined;
-  beneficiary?: PublicKey; // create stream
-  destination?: PublicKey; // withdraw
-  destinationTokenAccount?: PublicKey; // withdrawn associated token account
-  stream?: PublicKey; // vesting stream activities
-  utcDate: string;
-};
-
-/**
- * @deprecated Deprecated in v3.2.0. Please use {@link ActivityActionCode} instead.
- */
-export enum VestingTreasuryActivityAction {
-  TreasuryCreate,
-  TreasuryModify,
-  TreasuryAddFunds,
-  TreasuryWithdraw,
-  StreamCreate,
-  StreamPause,
-  StreamResume,
-  StreamClose,
-  StreamAllocateFunds,
-  StreamWithdraw,
-  TreasuryRefresh,
-}
-
 export enum ActivityActionCode {
   Unknown = 0,
   AccountCreated = 10,
@@ -260,51 +156,11 @@ export enum ActivityActionCode {
 
 /**
  * Treasury type
- *
- * @deprecated Deprecated in v3.2.0. Please use {@link AccountType} instead.
- *
- */
-export enum TreasuryType {
-  Open = 0,
-  Lock = 1,
-}
-
-/**
- * Treasury type
  */
 export enum AccountType {
   Open = 0,
   Lock = 1,
 }
-
-/**
- * Treasury info
- * @deprecated Deprecated in v3.2.0. Use {@link PaymentStreamingAccount} 
- * instead.
- */
-export type Treasury = {
-  id: PublicKey | string;
-  version: number;
-  initialized: boolean;
-  bump: number;
-  slot: number;
-  name: string;
-  treasurer: PublicKey | string;
-  associatedToken: PublicKey | string;
-  mint: PublicKey | string;
-  labels: string[];
-  balance: string;
-  allocationReserved: string;
-  allocationAssigned: string;
-  totalWithdrawals: string;
-  totalStreams: number;
-  createdOnUtc: Date | string;
-  treasuryType: TreasuryType;
-  autoClose: boolean;
-  category: Category;
-  subCategory: SubCategory;
-  data: RawAccount;
-};
 
 /**
  * Payment Streaming account
@@ -345,16 +201,6 @@ export type StreamTemplate = {
 };
 
 /**
- * Stream states
- * @deprecated Deprecated in v3.2.0. Please use {@link STREAM_STATUS_CODE} instead.
- */
-export enum STREAM_STATUS {
-  Scheduled = 1,
-  Running = 2,
-  Paused = 3,
-}
-
-/**
  * Stream status codes.
  */
 export enum STREAM_STATUS_CODE {
@@ -365,38 +211,13 @@ export enum STREAM_STATUS_CODE {
 }
 
 /**
- * Allocation type
- * @deprecated Deprecated in v3.2.0.
- */
-export enum AllocationType {
-  All = 0,
-  Specific = 1,
-  None = 2,
-}
-
-/**
  * Stream
  */
 export type Stream = {
   id: PublicKey;
-  /**
-   * @deprecated Deprecated in v3.2.0. Use {@link psAccountOwner} 
-   * instead.
-   */
-  treasurer: PublicKey;
   psAccountOwner: PublicKey;
-  /**
-   * @deprecated Deprecated in v3.2.0. Use {@link psAccount} 
-   * instead.
-   */
-  treasury: PublicKey;
   psAccount: PublicKey;
   beneficiary: PublicKey;
-  /**
-   * @deprecated Deprecated in v3.2.0. Use {@link mint} 
-   * instead.
-   */
-  associatedToken: PublicKey;
   /**
    * The mint being streamed
    */
@@ -427,16 +248,9 @@ export type Stream = {
   streamUnitsPerSecond: number;
   cliffVestPercent: number;
   upgradeRequired: boolean;
-  /** @deprecated Deprecated in v3.2.0. */
-  status: STREAM_STATUS | string;
   statusCode: STREAM_STATUS_CODE;
   statusName: string;
   isManuallyPaused: boolean;
-  /**
-   * @deprecated Deprecated in v3.2.0. Use {@link tokenFeePayedFromAccount} 
-   * instead.
-   */
-  feePayedByTreasurer: boolean;
   tokenFeePayedFromAccount: boolean;
   category: Category;
   subCategory: SubCategory;
