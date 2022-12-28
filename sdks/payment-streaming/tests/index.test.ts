@@ -605,7 +605,7 @@ describe('PS Tests\n', async () => {
 
   it('Withdraws from account (to destination)', async () => {
     // Prepare
-    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+    const { ownerKey, psAccount, token } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -640,7 +640,101 @@ describe('PS Tests\n', async () => {
     assert.equal(destinationTokenInfo.amount.toString(), '300');
   });
 
-  it('Alocates funds to a stream', async () => {
+  it('Refreshes account data', async () => {
+    // Prepare
+    const { ownerKey, psAccount, psAccountToken, token } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+    });
+
+    // Act
+    await token.mintTo(psAccountToken, testPayerKey, [], 300);
+    let account = await psProgram.account.treasury.fetch(psAccount);
+    assert.exists(account);
+    assert.equal(account.lastKnownBalanceUnits.toString(), '1000');
+
+    const { transaction: refreshAccountTx } =
+      await ps.buildRefreshAccountDataTransaction({
+        psAccount: psAccount,
+        feePayer: ownerKey.publicKey,
+      });
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      refreshAccountTx,
+      ownerKey,
+    );
+
+    // Assert
+    account = await psProgram.account.treasury.fetch(psAccount);
+    assert.exists(account);
+    assert.equal(account.lastKnownBalanceUnits.toString(), '1300');
+  });
+
+  it('Closes an account (send funds to owner)', async () => {
+    // Prepare
+    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+    });
+
+    // Act
+    const { transaction: closeAccountTx } =
+      await ps.buildCloseAccountTransaction({
+        psAccount: psAccount,
+      });
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      closeAccountTx,
+      ownerKey,
+    );
+
+    // Assert
+    await expect(
+      psProgram.account.treasury.fetch(psAccount),
+    ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
+
+    const ownerTokenInfo = await token.getAccountInfo(ownerToken);
+    assert.exists(ownerTokenInfo);
+    assert.equal(ownerTokenInfo.amount.toString(), '1000');
+  });
+
+  it('Closes an account (send funds to destination)', async () => {
+    // Prepare
+    const { ownerKey, psAccount, token } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+    });
+
+    const destination = Keypair.generate().publicKey;
+
+    // Act
+    const { transaction: withdrawFromAccountTx } =
+      await ps.buildCloseAccountTransaction({
+        psAccount: psAccount,
+        destination: destination,
+      });
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      withdrawFromAccountTx,
+      ownerKey,
+    );
+
+    // Assert
+    await expect(
+      psProgram.account.treasury.fetch(psAccount),
+    ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
+
+    const destinationTokenInfo = await token.getOrCreateAssociatedAccountInfo(
+      destination,
+    );
+    assert.exists(destinationTokenInfo);
+    assert.equal(destinationTokenInfo.amount.toString(), '1000');
+  });
+
+  it('Allocates funds to a stream', async () => {
     // Prepare
     const { ownerKey, psAccount, beneficiary, stream } = await setupAccount({
       connection,
@@ -1354,6 +1448,7 @@ async function setupTestActors({
 
 type AccountSetup = {
   readonly psAccount: PublicKey;
+  psAccountToken: PublicKey;
   readonly stream: PublicKey;
 } & TestActors;
 
@@ -1456,6 +1551,7 @@ async function setupAccount({
 
   return {
     psAccount,
+    psAccountToken,
     stream: stream || PublicKey.default,
     owner,
     ownerKey,

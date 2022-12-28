@@ -1574,6 +1574,7 @@ export class PaymentStreaming {
     if (!psAccountInfo) {
       throw Error('Payment Streaming account not found');
     }
+    destination = destination || psAccountInfo.owner;
     feePayer = feePayer || psAccountInfo.owner;
 
     // just send any mint to close an account without a mint set
