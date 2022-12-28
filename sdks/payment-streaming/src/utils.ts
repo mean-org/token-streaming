@@ -129,7 +129,6 @@ export async function getStreamEventData(
 
     return event;
   } catch (error: any) {
-    console.log(error);
     return null;
   }
 }

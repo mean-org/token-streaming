@@ -12,7 +12,11 @@ import {
   Transaction,
   Signer,
   BlockheightBasedTransactionConfirmationStrategy,
+  TransactionBlockhashCtor,
+  TransactionInstruction,
 } from '@solana/web3.js';
+import fs from 'fs';
+import * as instructions from '../src/instructions';
 
 import {
   PaymentStreaming,
@@ -564,24 +568,88 @@ describe('PS Tests\n', async () => {
 
     assert.exists(psAccountStream3Info);
     assert.equal(psAccountStream3Info?.data.length, 500);
+  });
 
-    // allocates funds to a stream
-    const { transaction: allocateToStream1Tx } =
+  it('Alocates funds to a stream', async () => {
+    // Prepare
+    const { ownerKey, psAccount, beneficiary, stream } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1500,
+      accountInitialAmount: 1500,
+      streamRateAmount: 1000,
+      streamRateInterval: 1,
+      streamAllocation: 1000,
+    });
+
+    // Act
+    const { transaction: allocateToStreamTx } =
       await ps.buildAllocateFundsToStreamTransaction(
         {
           psAccount: psAccount,
-          owner: user1Wallet.publicKey,
-          stream: stream1,
+          owner: ownerKey.publicKey,
+          stream: stream,
         },
-        LAMPORTS_PER_SOL,
+        500,
       );
     await partialSignSendAndConfirmTransaction(
       connection,
-      allocateToStream1Tx,
-      user1Wallet,
+      allocateToStreamTx,
+      ownerKey,
     );
 
-    // fails to allocate with zero amount
+    // Assert
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1500');
+  });
+
+  it('Funds a stream (add funds to account + allocate to stream)', async () => {
+    // Prepare
+    const { ownerKey, psAccount, beneficiary, stream } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1500,
+      accountInitialAmount: 1000,
+      streamRateAmount: 1000,
+      streamRateInterval: 1,
+      streamAllocation: 1000,
+    });
+
+    // Act
+    const { transaction: allocateToStreamTx } =
+      await ps.buildFundStreamTransaction(
+        {
+          psAccount: psAccount,
+          owner: ownerKey.publicKey,
+          stream: stream,
+        },
+        500,
+      );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      allocateToStreamTx,
+      ownerKey,
+    );
+
+    // Assert
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1500');
   });
 
   it('Fails to allocate to account with zero amount', async () => {
@@ -1063,7 +1131,7 @@ function loadKeypair(filePath: string): Keypair {
   return Keypair.fromSecretKey(
     Buffer.from(
       JSON.parse(
-        require('fs').readFileSync(filePath, {
+        fs.readFileSync(filePath, {
           encoding: 'utf-8',
         }),
       ),
@@ -1211,6 +1279,122 @@ async function setupTestActors({
       )),
     token,
     mint: token.publicKey,
+  };
+}
+
+type AccountSetup = {
+  readonly psAccount: PublicKey;
+  readonly stream: PublicKey;
+} & TestActors;
+
+async function setupAccount({
+  connection,
+  ownerInitialAmount = 0,
+  accountInitialAmount = 0,
+  streamRateAmount,
+  streamRateInterval,
+  streamAllocation,
+}: {
+  connection: Connection;
+  ownerInitialAmount: number | BN;
+  accountInitialAmount: number | BN;
+  streamRateAmount?: number | BN;
+  streamRateInterval?: number | BN;
+  streamAllocation?: number | BN;
+}): Promise<AccountSetup> {
+  const {
+    owner,
+    ownerKey,
+    ownerToken,
+    beneficiary,
+    beneficiaryKey,
+    beneficiaryToken,
+    mint,
+  } = await setupTestActors({
+    connection,
+    ownerLamports: LAMPORTS_PER_SOL,
+    ownerTokenAmount: ownerInitialAmount,
+  });
+
+  const {
+    instruction: createAccountIx,
+    psAccount,
+    psAccountToken,
+  } = await instructions.buildCreateAccountInstruction(
+    psProgram,
+    {
+      owner: ownerKey.publicKey,
+      feePayer: ownerKey.publicKey,
+      mint: mint,
+    },
+    '',
+    AccountType.Open,
+    false,
+    false,
+  );
+  const { instruction: addFundsIx, feeAccountToken } =
+    await instructions.buildAddFundsInstruction(
+      psProgram,
+      {
+        psAccount: psAccount,
+        psAccountToken: psAccountToken,
+        psAccountMint: mint,
+        contributor: ownerKey.publicKey,
+        contributorToken: ownerToken,
+        feePayer: ownerKey.publicKey,
+      },
+      new BN(accountInitialAmount),
+    );
+
+  const tx = new Transaction().add(createAccountIx, addFundsIx);
+  tx.feePayer = ownerKey.publicKey;
+  const { blockhash, lastValidBlockHeight } =
+    await connection.getLatestBlockhash(commitment);
+  tx.recentBlockhash = blockhash;
+  tx.lastValidBlockHeight = lastValidBlockHeight;
+
+  let stream: PublicKey | undefined = undefined;
+
+  if (streamRateAmount && streamRateInterval && streamAllocation) {
+    const { instruction: createStreamIx, stream: createdStream } =
+      await instructions.buildCreateStreamInstruction(
+        psProgram,
+        {
+          psAccount: psAccount,
+          psAccountToken: psAccountToken,
+          psAccountMint: mint,
+          owner: ownerKey.publicKey,
+          beneficiary: beneficiary,
+          feePayer: ownerKey.publicKey,
+          feeAccountToken: feeAccountToken,
+        },
+        '',
+        new BN(streamRateAmount),
+        new BN(streamRateInterval),
+        new BN(streamAllocation),
+        new BN(toUnixTimestamp(new Date())),
+        ZERO_BN,
+        ZERO_BN,
+        false,
+        true,
+      );
+    stream = createdStream;
+    tx.add(createStreamIx);
+  }
+
+  await partialSignSendAndConfirmTransaction(connection, tx, ownerKey);
+
+  return {
+    psAccount,
+    stream: stream || PublicKey.default,
+    owner,
+    ownerKey,
+    ownerToken,
+    beneficiary,
+    beneficiaryKey,
+    beneficiaryToken,
+    token,
+    mint,
   };
 }
 
