@@ -1311,7 +1311,7 @@ export class PaymentStreaming {
       throw Error('Invalid account owner');
     }
 
-    const streamInfo = (await this.getStream(stream)) as Stream;
+    const streamInfo = await this.getStream(stream);
 
     if (!streamInfo) {
       throw Error('Stream account not found');

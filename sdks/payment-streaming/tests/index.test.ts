@@ -1,4 +1,7 @@
+import * as chai from 'chai';
 import { assert, expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+chai.use(chaiAsPromised);
 import { AnchorError, Program, ProgramError } from '@project-serum/anchor';
 import {
   Keypair,
@@ -32,6 +35,8 @@ import {
 import BN from 'bn.js';
 import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
 import { ASSOCIATED_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
+
+const ZERO_BN = new BN(0);
 
 console.log(`\nWorld State:`);
 
@@ -453,7 +458,7 @@ describe('PS Tests\n', async () => {
           contributor: user1Wallet.publicKey,
           feePayer: user1Wallet.publicKey,
         },
-        3 * LAMPORTS_PER_SOL,
+        4 * LAMPORTS_PER_SOL,
       );
 
     await partialSignSendAndConfirmTransaction(
@@ -464,7 +469,7 @@ describe('PS Tests\n', async () => {
 
     // create a stream 1
     const stream1Name = 'STREAM-1';
-    const { transaction: createStream1Tx, stream: psAccountStream1 } =
+    const { transaction: createStream1Tx, stream: stream1 } =
       await ps.buildCreateStreamTransaction(
         {
           psAccount,
@@ -540,7 +545,7 @@ describe('PS Tests\n', async () => {
     ] = await connection.getMultipleAccountsInfo([
       psAccount,
       psAccountToken,
-      psAccountStream1,
+      stream1,
       psAccountStream2,
       psAccountStream3,
     ]);
@@ -559,6 +564,63 @@ describe('PS Tests\n', async () => {
 
     assert.exists(psAccountStream3Info);
     assert.equal(psAccountStream3Info?.data.length, 500);
+
+    // allocates funds to a stream
+    const { transaction: allocateToStream1Tx } =
+      await ps.buildAllocateFundsToStreamTransaction(
+        {
+          psAccount: psAccount,
+          owner: user1Wallet.publicKey,
+          stream: stream1,
+        },
+        LAMPORTS_PER_SOL,
+      );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      allocateToStream1Tx,
+      user1Wallet,
+    );
+
+    // fails to allocate with zero amount
+  });
+
+  it('Fails to allocate to account with zero amount', async () => {
+    await expect(
+      ps.buildAllocateFundsToStreamTransaction(
+        {
+          psAccount: psAccountPubKey,
+          owner: user1Wallet.publicKey,
+          stream: psAccountStream1PubKey,
+        },
+        0,
+      ),
+    ).to.be.rejectedWith('Amount must be greater than 0');
+  });
+
+  it('Fails to allocate to account with wrong owner', async () => {
+    await expect(
+      ps.buildAllocateFundsToStreamTransaction(
+        {
+          psAccount: psAccountPubKey,
+          owner: Keypair.generate().publicKey,
+          stream: psAccountStream1PubKey,
+        },
+        1,
+      ),
+    ).to.be.rejectedWith('Invalid account owner');
+  });
+
+  it('Fails to allocate to non existing stream', async () => {
+    await expect(
+      ps.buildAllocateFundsToStreamTransaction(
+        {
+          psAccount: psAccountPubKey,
+          owner: user1Wallet.publicKey,
+          stream: Keypair.generate().publicKey,
+        },
+        1,
+      ),
+    ).to.be.rejectedWith('Stream account not found');
   });
 
   it('Streams a payment', async () => {
@@ -1019,8 +1081,6 @@ type TestActors = {
   readonly token: Token;
   readonly mint: PublicKey;
 };
-
-const ZERO_BN = new BN(0);
 
 async function setupTestActors({
   connection,
