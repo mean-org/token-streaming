@@ -573,6 +573,72 @@ describe('PS Tests\n', async () => {
     assert.equal(psAccountStream3Info?.data.length, 500);
   });
 
+  it('Creates an account (fees payed from account) + add funds', async () => {
+    const { ownerKey } = await setupTestActors({
+      connection: connection,
+      ownerLamports: 20 * LAMPORTS_PER_SOL,
+    });
+    // create a regular PS account
+    const { transaction: createAccountTx, psAccount } =
+      await ps.buildCreateAccountTransaction(
+        {
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
+          mint: NATIVE_SOL_MINT,
+        },
+        '',
+        AccountType.Open,
+        true,
+      );
+    psAccount;
+
+    await sendTestTransaction(connection, createAccountTx, [ownerKey]);
+
+    // add funds to PS account
+    const { transaction: addFundsToAccountTx } =
+      await ps.buildAddFundsToAccountTransaction(
+        {
+          psAccount,
+          psAccountMint: NATIVE_SOL_MINT,
+          contributor: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
+        },
+        4 * LAMPORTS_PER_SOL,
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      addFundsToAccountTx,
+      ownerKey,
+    );
+
+    // create a stream 1
+    const stream1Name = 'STREAM-1';
+    const { transaction: createStream1Tx, stream: stream1 } =
+      await ps.buildCreateStreamTransaction(
+        {
+          psAccount,
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
+          beneficiary: user2Wallet.publicKey,
+        },
+        stream1Name,
+        0.1 * LAMPORTS_PER_SOL,
+        1,
+        1 * LAMPORTS_PER_SOL,
+        new Date(),
+        0,
+        0,
+        true,
+      );
+
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      createStream1Tx,
+      ownerKey,
+    );
+  });
+
   it('Withdraws from account (to owner)', async () => {
     // Prepare
     const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
@@ -1055,6 +1121,39 @@ describe('PS Tests\n', async () => {
       streamAccount.beneficiaryAddress.toBase58(),
       beneficiary.toBase58(),
     );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1500');
+  });
+
+  it('Funds a stream (pay fees from account)', async () => {
+    // Prepare
+    const { ownerKey, psAccount, stream } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1503,
+      accountInitialAmount: 1002, // 2 for fees and 1000 to stay in the account
+      streamRateAmount: 1000,
+      streamRateInterval: 1,
+      streamAllocation: 1000,
+      payFeesFromAccount: true,
+    });
+
+    // Act
+    const { transaction: allocateToStreamTx } =
+      await ps.buildFundStreamTransaction(
+        {
+          psAccount: psAccount,
+          owner: ownerKey.publicKey,
+          stream: stream,
+        },
+        501, // 1 for fees and 500 to stay in the account
+      );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      allocateToStreamTx,
+      ownerKey,
+    );
+
+    // Assert
+    const streamAccount = await psProgram.account.stream.fetch(stream);
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1500');
   });
 
@@ -1702,6 +1801,7 @@ async function setupAccount({
   streamRateInterval,
   streamAllocation,
   schedule = false,
+  payFeesFromAccount = false,
 }: {
   connection: Connection;
   ownerInitialAmount: number | BN;
@@ -1710,6 +1810,7 @@ async function setupAccount({
   streamRateInterval?: number | BN;
   streamAllocation?: number | BN;
   schedule?: boolean;
+  payFeesFromAccount?: boolean;
 }): Promise<AccountSetup> {
   const {
     owner,
@@ -1739,7 +1840,7 @@ async function setupAccount({
     '',
     AccountType.Open,
     false,
-    false,
+    payFeesFromAccount,
   );
   const { instruction: addFundsIx, feeAccountToken } =
     await instructions.buildAddFundsInstruction(
@@ -1785,7 +1886,7 @@ async function setupAccount({
         new BN(toUnixTimestamp(startDate)),
         ZERO_BN,
         ZERO_BN,
-        false,
+        payFeesFromAccount,
         true,
       );
     stream = createdStream;
