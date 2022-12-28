@@ -570,6 +570,76 @@ describe('PS Tests\n', async () => {
     assert.equal(psAccountStream3Info?.data.length, 500);
   });
 
+  it('Withdraws from account (to owner)', async () => {
+    // Prepare
+    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+    });
+
+    // Act
+    const { transaction: withdrawFromAccountTx } =
+      await ps.buildWithdrawFromAccountTransaction(
+        {
+          psAccount: psAccount,
+          destination: ownerKey.publicKey,
+        },
+        300,
+      );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      withdrawFromAccountTx,
+      ownerKey,
+    );
+
+    // Assert
+    const account = await psProgram.account.treasury.fetch(psAccount);
+    assert.exists(account);
+    assert.equal(account.lastKnownBalanceUnits.toString(), '700');
+
+    const ownerTokenInfo = await token.getAccountInfo(ownerToken);
+    assert.exists(ownerTokenInfo);
+    assert.equal(ownerTokenInfo.amount.toString(), '300');
+  });
+
+  it('Withdraws from account (to destination)', async () => {
+    // Prepare
+    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+    });
+
+    const destination = Keypair.generate().publicKey;
+
+    // Act
+    const { transaction: withdrawFromAccountTx } =
+      await ps.buildWithdrawFromAccountTransaction(
+        {
+          psAccount: psAccount,
+          destination: destination,
+        },
+        300,
+      );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      withdrawFromAccountTx,
+      ownerKey,
+    );
+
+    // Assert
+    const account = await psProgram.account.treasury.fetch(psAccount);
+    assert.exists(account);
+    assert.equal(account.lastKnownBalanceUnits.toString(), '700');
+
+    const destinationTokenInfo = await token.getOrCreateAssociatedAccountInfo(
+      destination,
+    );
+    assert.exists(destinationTokenInfo);
+    assert.equal(destinationTokenInfo.amount.toString(), '300');
+  });
+
   it('Alocates funds to a stream', async () => {
     // Prepare
     const { ownerKey, psAccount, beneficiary, stream } = await setupAccount({
