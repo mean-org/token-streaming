@@ -775,6 +775,60 @@ describe('PS Tests\n', async () => {
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1500');
   });
 
+  it('Withdraws from a stream', async () => {
+    // Prepare
+    const {
+      ownerKey,
+      psAccount,
+      psAccountToken,
+      beneficiaryKey,
+      beneficiaryToken,
+      stream,
+    } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1500,
+      accountInitialAmount: 1500,
+      streamRateAmount: 1000,
+      streamRateInterval: 1,
+      streamAllocation: 1000,
+    });
+    await sleep(2000);
+
+    // Act
+    const { transaction: withdrawFromStreamTx } =
+      await ps.buildWithdrawFromStreamTransaction(
+        {
+          stream: stream,
+        },
+        500,
+      );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      withdrawFromStreamTx,
+      beneficiaryKey,
+    );
+
+    // Assert
+    const psAccountFetched = await psProgram.account.treasury.fetch(psAccount);
+    assert.equal(psAccountFetched.lastKnownBalanceUnits.toString(), '1000');
+
+    const psTokenAccountInfo = await token.getAccountInfo(psAccountToken);
+    assert.equal(psTokenAccountInfo.amount.toString(), '1000');
+
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
+    assert.equal(streamAccount.lastWithdrawalUnits.toString(), '500');
+
+    const beneficiaryTokenAccountInfo = await token.getAccountInfo(
+      beneficiaryToken,
+    );
+    assert.equal(
+      beneficiaryTokenAccountInfo.amount.toString(),
+      '499', // 500 -(0.0025% of 500) = 500 - 1
+    );
+  });
+
   it('Funds a stream (add funds to account + allocate to stream)', async () => {
     // Prepare
     const { ownerKey, psAccount, beneficiary, stream } = await setupAccount({
