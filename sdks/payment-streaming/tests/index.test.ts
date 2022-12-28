@@ -12,8 +12,6 @@ import {
   Transaction,
   Signer,
   BlockheightBasedTransactionConfirmationStrategy,
-  TransactionBlockhashCtor,
-  TransactionInstruction,
 } from '@solana/web3.js';
 import fs from 'fs';
 import * as instructions from '../src/instructions';
@@ -27,6 +25,7 @@ import {
   Ps,
   createProgram,
   toUnixTimestamp,
+  getStreamStatusCode,
 } from '../src';
 import {
   Category,
@@ -434,6 +433,10 @@ describe('PS Tests\n', async () => {
   });
 
   it('Creates a PS account + add funds + creates 3 streams', async () => {
+    const { ownerKey } = await setupTestActors({
+      connection: connection,
+      ownerLamports: 20 * LAMPORTS_PER_SOL,
+    });
     // create a regular PS account
     const psAccountName = `PS-ACCOUNT-${Date.now()}`;
     const {
@@ -442,8 +445,8 @@ describe('PS Tests\n', async () => {
       psAccountToken,
     } = await ps.buildCreateAccountTransaction(
       {
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
+        owner: ownerKey.publicKey,
+        feePayer: ownerKey.publicKey,
         mint: NATIVE_SOL_MINT,
       },
       psAccountName,
@@ -451,7 +454,7 @@ describe('PS Tests\n', async () => {
     );
     psAccount;
 
-    await sendTestTransaction(connection, createAccountTx, [user1Wallet]);
+    await sendTestTransaction(connection, createAccountTx, [ownerKey]);
 
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
@@ -459,8 +462,8 @@ describe('PS Tests\n', async () => {
         {
           psAccount,
           psAccountMint: NATIVE_SOL_MINT,
-          contributor: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
+          contributor: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
         },
         4 * LAMPORTS_PER_SOL,
       );
@@ -468,7 +471,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       addFundsToAccountTx,
-      user1Wallet,
+      ownerKey,
     );
 
     // create a stream 1
@@ -477,8 +480,8 @@ describe('PS Tests\n', async () => {
       await ps.buildCreateStreamTransaction(
         {
           psAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
           beneficiary: user2Wallet.publicKey,
         },
         stream1Name,
@@ -491,7 +494,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStream1Tx,
-      user1Wallet,
+      ownerKey,
     );
 
     // create a stream 2
@@ -500,8 +503,8 @@ describe('PS Tests\n', async () => {
       await ps.buildCreateStreamTransaction(
         {
           psAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
           beneficiary: user2Wallet.publicKey,
         },
         stream2Name,
@@ -514,7 +517,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStream2Tx,
-      user1Wallet,
+      ownerKey,
     );
 
     // create a stream 3
@@ -523,8 +526,8 @@ describe('PS Tests\n', async () => {
       await ps.buildCreateStreamTransaction(
         {
           psAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
           beneficiary: user2Wallet.publicKey,
         },
         stream3Name,
@@ -537,7 +540,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStream3Tx,
-      user1Wallet,
+      ownerKey,
     );
 
     const [
@@ -778,7 +781,6 @@ describe('PS Tests\n', async () => {
   it('Withdraws from a stream', async () => {
     // Prepare
     const {
-      ownerKey,
       psAccount,
       psAccountToken,
       beneficiaryKey,
@@ -792,7 +794,7 @@ describe('PS Tests\n', async () => {
       streamRateInterval: 1,
       streamAllocation: 1000,
     });
-    await sleep(2000);
+    await sleep(1500);
 
     // Act
     const { transaction: withdrawFromStreamTx } =
@@ -819,6 +821,117 @@ describe('PS Tests\n', async () => {
     assert.exists(streamAccount);
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
     assert.equal(streamAccount.lastWithdrawalUnits.toString(), '500');
+
+    const beneficiaryTokenAccountInfo = await token.getAccountInfo(
+      beneficiaryToken,
+    );
+    assert.equal(
+      beneficiaryTokenAccountInfo.amount.toString(),
+      '499', // 500 -(0.0025% of 500) = 500 - 1
+    );
+  });
+
+  it('Transfers a stream', async () => {
+    // Prepare
+    const { beneficiaryKey, stream } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+      streamRateAmount: 1000,
+      streamRateInterval: 1,
+      streamAllocation: 1000,
+    });
+
+    const newBeneficiary = Keypair.generate().publicKey;
+
+    // Act
+    const { transaction: transferStreamTx } =
+      await ps.buildTransferStreamTransaction({
+        stream: stream,
+        beneficiary: beneficiaryKey.publicKey,
+        newBeneficiary: newBeneficiary,
+      });
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      transferStreamTx,
+      beneficiaryKey,
+    );
+
+    // Assert
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.equal(
+      streamAccount.beneficiaryAddress.toString(),
+      newBeneficiary.toString(),
+    );
+  });
+
+  it('Manual Pause/Resume', async () => {
+    // Prepare
+    const { ownerKey, stream } = await setupAccount({
+      connection,
+      ownerInitialAmount: 1000,
+      accountInitialAmount: 1000,
+      streamRateAmount: 1000,
+      streamRateInterval: 3600,
+      streamAllocation: 1000,
+    });
+    await sleep(2000);
+
+    // Act Pause
+    const { transaction: pauseTx } = await ps.buildPauseStreamTransaction({
+      stream: stream,
+      owner: ownerKey.publicKey,
+    });
+    await partialSignSendAndConfirmTransaction(connection, pauseTx, ownerKey);
+
+    // Assert
+    let streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    let statusCode = getStreamStatusCode(streamAccount, 0);
+    assert.equal(statusCode, STREAM_STATUS_CODE.Paused);
+
+    await sleep(1500);
+
+    // Act Resume
+    const { transaction: resumeTx } = await ps.buildResumeStreamTransaction({
+      stream: stream,
+      owner: ownerKey.publicKey,
+    });
+    await partialSignSendAndConfirmTransaction(connection, resumeTx, ownerKey);
+
+    streamAccount = await psProgram.account.stream.fetch(stream);
+    statusCode = getStreamStatusCode(streamAccount, 0);
+    assert.equal(statusCode, STREAM_STATUS_CODE.Running);
+  });
+
+  it('Closes a stream', async () => {
+    // Prepare
+    const { ownerKey, beneficiaryToken, stream } = await setupAccount({
+      connection,
+      ownerInitialAmount: 500,
+      accountInitialAmount: 500,
+      streamRateAmount: 500,
+      streamRateInterval: 1,
+      streamAllocation: 500,
+    });
+    await sleep(1500);
+
+    // Act
+    const { transaction: closeStreamTx } = await ps.buildCloseStreamTransaction(
+      {
+        stream: stream,
+      },
+    );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      closeStreamTx,
+      ownerKey,
+    );
+
+    // Assert
+    await expect(psProgram.account.stream.fetch(stream)).to.be.rejectedWith(
+      `Account does not exist ${stream}`,
+    );
 
     const beneficiaryTokenAccountInfo = await token.getAccountInfo(
       beneficiaryToken,
@@ -1513,6 +1626,7 @@ async function setupAccount({
   streamRateAmount,
   streamRateInterval,
   streamAllocation,
+  schedule = false,
 }: {
   connection: Connection;
   ownerInitialAmount: number | BN;
@@ -1520,6 +1634,7 @@ async function setupAccount({
   streamRateAmount?: number | BN;
   streamRateInterval?: number | BN;
   streamAllocation?: number | BN;
+  schedule?: boolean;
 }): Promise<AccountSetup> {
   const {
     owner,
@@ -1575,6 +1690,7 @@ async function setupAccount({
   let stream: PublicKey | undefined = undefined;
 
   if (streamRateAmount && streamRateInterval && streamAllocation) {
+    const startDate = schedule ? new Date(2050, 1, 1) : new Date(1970, 1, 1);
     const { instruction: createStreamIx, stream: createdStream } =
       await instructions.buildCreateStreamInstruction(
         psProgram,
@@ -1591,7 +1707,7 @@ async function setupAccount({
         new BN(streamRateAmount),
         new BN(streamRateInterval),
         new BN(streamAllocation),
-        new BN(toUnixTimestamp(new Date())),
+        new BN(toUnixTimestamp(startDate)),
         ZERO_BN,
         ZERO_BN,
         false,

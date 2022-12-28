@@ -996,7 +996,7 @@ export type CloseAccountInstructionResult = {
  * @param program - Anchor program created from the PS program IDL
  * @param accounts - Instruction accounts
  */
-export async function buildCloseFromAccountInstruction(
+export async function buildCloseAccountInstruction(
   program: Program<Ps>,
   {
     psAccount,

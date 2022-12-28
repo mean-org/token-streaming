@@ -1593,7 +1593,7 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
 
     const { instruction: closeAccountInstruction } =
-      await instructions.buildCloseFromAccountInstruction(this.program, {
+      await instructions.buildCloseAccountInstruction(this.program, {
         psAccount,
         psAccountMint,
         owner: psAccountInfo.owner,
@@ -1873,7 +1873,7 @@ export class PaymentStreaming {
 
     if (autoCloseAccount && destination) {
       const { instruction: closeAccountInstruction, destinationToken } =
-        await instructions.buildCloseFromAccountInstruction(this.program, {
+        await instructions.buildCloseAccountInstruction(this.program, {
           psAccount,
           psAccountMint,
           owner,
