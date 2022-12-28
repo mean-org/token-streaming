@@ -120,7 +120,7 @@ export type ActivityRaw = {
 /**
  *  Vesting account activity
  */
-export type VestingAccountActivity = {
+export type AccountActivity = {
   signature: string;
   actionCode: ActivityActionCode;
   initializer?: string;

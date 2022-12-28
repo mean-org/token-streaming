@@ -604,6 +604,17 @@ describe('PS Tests\n', async () => {
     const ownerTokenInfo = await token.getAccountInfo(ownerToken);
     assert.exists(ownerTokenInfo);
     assert.equal(ownerTokenInfo.amount.toString(), '300');
+
+    // Act: list activity
+    const accountActivity = await ps.listAccountActivity(psAccount);
+    assert.exists(accountActivity);
+    assert.isNotEmpty(accountActivity);
+    assert.equal(accountActivity.length, 3);
+
+    const withdrawFromAccountItems = accountActivity.filter(
+      a => a.actionCode === ActivityActionCode.FundsWithdrawnFromAccount,
+    );
+    assert.equal(withdrawFromAccountItems.length, 1);
   });
 
   it('Withdraws from account (to destination)', async () => {
@@ -672,6 +683,27 @@ describe('PS Tests\n', async () => {
     account = await psProgram.account.treasury.fetch(psAccount);
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '1300');
+
+    // Act: list activity
+    const accountActivity = await ps.listAccountActivity(psAccount);
+    assert.exists(accountActivity);
+    assert.isNotEmpty(accountActivity);
+    assert.equal(accountActivity.length, 3);
+
+    const createdAccountItems = accountActivity.filter(
+      a => a.actionCode === ActivityActionCode.AccountCreated,
+    );
+    assert.equal(createdAccountItems.length, 1);
+
+    const fundedAccountItems = accountActivity.filter(
+      a => a.actionCode === ActivityActionCode.FundsAddedToAccount,
+    );
+    assert.equal(fundedAccountItems.length, 1);
+
+    const refreshedAccountItems = accountActivity.filter(
+      a => a.actionCode === ActivityActionCode.AccountDataRefreshed,
+    );
+    assert.equal(refreshedAccountItems.length, 1);
   });
 
   it('Closes an account (send funds to owner)', async () => {
@@ -776,6 +808,11 @@ describe('PS Tests\n', async () => {
       beneficiary.toBase58(),
     );
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1500');
+
+    // Act
+    const streamActivity = await ps.listStreamActivity(stream);
+    assert.exists(streamActivity);
+    assert.isNotEmpty(streamActivity);
   });
 
   it('Withdraws from a stream', async () => {
@@ -829,6 +866,17 @@ describe('PS Tests\n', async () => {
       beneficiaryTokenAccountInfo.amount.toString(),
       '499', // 500 -(0.0025% of 500) = 500 - 1
     );
+
+    // Act: list activity
+    const streamActivity = await ps.listStreamActivity(stream);
+    assert.exists(streamActivity);
+    assert.isNotEmpty(streamActivity);
+    assert.equal(streamActivity.length, 2);
+
+    const withdrawFromStreamItems = streamActivity.filter(
+      a => a.actionCode === ActivityActionCode.FundsWithdrawnFromStream,
+    );
+    assert.equal(withdrawFromStreamItems.length, 1);
   });
 
   it('Transfers a stream', async () => {
@@ -902,18 +950,35 @@ describe('PS Tests\n', async () => {
     streamAccount = await psProgram.account.stream.fetch(stream);
     statusCode = getStreamStatusCode(streamAccount, 0);
     assert.equal(statusCode, STREAM_STATUS_CODE.Running);
+
+    // Act: list activity
+    const streamActivity = await ps.listStreamActivity(stream);
+    assert.exists(streamActivity);
+    assert.isNotEmpty(streamActivity);
+    assert.equal(streamActivity.length, 3);
+
+    const pauseStreamItems = streamActivity.filter(
+      a => a.actionCode === ActivityActionCode.StreamPaused,
+    );
+    assert.equal(pauseStreamItems.length, 1);
+
+    const resumeStreamItems = streamActivity.filter(
+      a => a.actionCode === ActivityActionCode.StreamResumed,
+    );
+    assert.equal(resumeStreamItems.length, 1);
   });
 
   it('Closes a stream', async () => {
     // Prepare
-    const { ownerKey, beneficiaryToken, stream } = await setupAccount({
-      connection,
-      ownerInitialAmount: 500,
-      accountInitialAmount: 500,
-      streamRateAmount: 500,
-      streamRateInterval: 1,
-      streamAllocation: 500,
-    });
+    const { ownerKey, beneficiaryToken, psAccount, stream } =
+      await setupAccount({
+        connection,
+        ownerInitialAmount: 500,
+        accountInitialAmount: 500,
+        streamRateAmount: 500,
+        streamRateInterval: 1,
+        streamAllocation: 500,
+      });
     await sleep(1500);
 
     // Act
@@ -940,6 +1005,16 @@ describe('PS Tests\n', async () => {
       beneficiaryTokenAccountInfo.amount.toString(),
       '499', // 500 -(0.0025% of 500) = 500 - 1
     );
+
+    // Act: list activity
+    const accountActivity = await ps.listAccountActivity(psAccount);
+    assert.exists(accountActivity);
+    assert.isNotEmpty(accountActivity);
+
+    const streamClosedItems = accountActivity.filter(
+      a => a.actionCode === ActivityActionCode.StreamClosed,
+    );
+    assert.equal(streamClosedItems.length, 1);
   });
 
   it('Funds a stream (add funds to account + allocate to stream)', async () => {
@@ -1324,7 +1399,7 @@ describe('PS Tests\n', async () => {
     assert.equal(vestingAccountStream2Info?.data.length, 500);
 
     // list vesting activity
-    const activity = await ps.listVestingAccountActivity(vestingAccount);
+    const activity = await ps.listAccountActivity(vestingAccount);
     assert.exists(activity);
     assert.isNotEmpty(activity);
     assert.equal(

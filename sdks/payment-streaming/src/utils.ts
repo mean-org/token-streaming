@@ -39,7 +39,7 @@ import {
   StreamTemplate,
   SubCategory,
   TransactionFees,
-  VestingAccountActivity,
+  AccountActivity,
   ActivityRaw,
   ActivityActionCode,
   STREAM_STATUS_CODE,
@@ -1247,13 +1247,13 @@ export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export const listVestingAccountActivity = async (
+export const listAccountActivity = async (
   program: Program<Ps>,
   address: PublicKey,
   before = '',
   limit = 10,
   commitment?: Finality | undefined,
-): Promise<VestingAccountActivity[]> => {
+): Promise<AccountActivity[]> => {
   let activityRaw: ActivityRaw[] = [];
   const finality = commitment !== undefined ? commitment : 'confirmed';
   const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
@@ -1294,7 +1294,7 @@ export const listVestingAccountActivity = async (
       destinationTokenAccount: i.destinationTokenAccount?.toBase58(),
       stream: i.stream?.toBase58(),
       utcDate: i.utcDate,
-    } as VestingAccountActivity;
+    } as AccountActivity;
   });
 
   return activity;
@@ -1489,7 +1489,15 @@ async function parseProgramInstruction(
       return activity;
     }
 
-    if (decodedIx.name === 'createTreasuryAndTemplate') {
+    if (decodedIx.name === 'createTreasury') {
+      action = ActivityActionCode.AccountCreated;
+      initializer = formattedIx?.accounts.find(
+        a => a.name === 'Treasurer',
+      )?.pubkey;
+      mint = formattedIx?.accounts.find(
+        a => a.name === 'Associated Token',
+      )?.pubkey;
+    } else if (decodedIx.name === 'createTreasuryAndTemplate') {
       action = ActivityActionCode.AccountCreatedWithTemplate;
       initializer = formattedIx?.accounts.find(
         a => a.name === 'Treasurer',

@@ -36,7 +36,7 @@ import {
   StreamTemplate,
   SubCategory,
   TimeUnit,
-  VestingAccountActivity,
+  AccountActivity,
   StreamActivity,
   TransferTransactionAccounts,
   ScheduleTransferTransactionAccounts,
@@ -72,7 +72,7 @@ import {
   listStreamActivity,
   listStreams,
   listStreamsCached,
-  listVestingAccountActivity,
+  listAccountActivity,
   toUnixTimestamp,
 } from './utils';
 import {
@@ -1017,12 +1017,12 @@ export class PaymentStreaming {
    * @param limit - The max amount of elements to retrieve
    * @param commitment - Commitment to query the vesting account activity
    */
-  public async listVestingAccountActivity(
+  public async listAccountActivity(
     vestingAccount: PublicKey,
     before?: string,
     limit = 10,
     commitment?: Finality | undefined,
-  ): Promise<VestingAccountActivity[]> {
+  ): Promise<AccountActivity[]> {
     const accountInfo = await this.connection.getAccountInfo(
       vestingAccount,
       commitment,
@@ -1032,7 +1032,7 @@ export class PaymentStreaming {
       throw Error("Vesting account doesn't exists");
     }
 
-    return listVestingAccountActivity(
+    return listAccountActivity(
       this.program,
       vestingAccount,
       before,
