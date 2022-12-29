@@ -1606,7 +1606,7 @@ describe('PS Tests\n', async () => {
     assert.equal(warning, WARNING_TYPES.NO_WARNING);
   });
 
-  it('Refreshes a stream', async () => {
+  it('Refreshes streams', async () => {
     let stream = await ps.getStream(psAccountStream1PubKey);
     assert.exists(stream);
 
@@ -1623,6 +1623,14 @@ describe('PS Tests\n', async () => {
 
     stream = await ps.refreshStream(stream, true);
     assert.exists(stream);
+
+    if (!stream) {
+      assert.fail();
+    }
+
+    const streams = await ps.refreshStreams([stream]);
+    assert.exists(streams);
+    assert.isNotEmpty(streams);
   });
 });
 
