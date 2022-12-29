@@ -28,6 +28,7 @@ import {
   getStreamStatusCode,
   WARNING_TYPES,
   SYSTEM_PROGRAM_ID,
+  calculateFeesForAction,
 } from '../src';
 import {
   Category,
@@ -36,6 +37,7 @@ import {
   TimeUnit,
   STREAM_STATUS_CODE,
   ActivityActionCode,
+  ACTION_CODES,
 } from '../src/types';
 import BN from 'bn.js';
 import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
@@ -1643,6 +1645,45 @@ describe('PS Tests\n', async () => {
     const streams = await ps.refreshStreams([stream]);
     assert.exists(streams);
     assert.isNotEmpty(streams);
+  });
+
+  it('calculates fees', async () => {
+    let fee = await calculateFeesForAction(ACTION_CODES.CreateAccount);
+    assert.equal(fee.blockchainFee, 0.015);
+    assert.equal(fee.mspFlatFee, 0.00001);
+
+    fee = await calculateFeesForAction(ACTION_CODES.CreateStream);
+    assert.equal(fee.blockchainFee, 0.015);
+    assert.equal(fee.mspFlatFee, 0.00001);
+
+    fee = await calculateFeesForAction(ACTION_CODES.CreateStreamWithFunds);
+    assert.equal(fee.blockchainFee, 0.02);
+    assert.equal(fee.mspFlatFee, 0.000035);
+
+    fee = await calculateFeesForAction(ACTION_CODES.ScheduleOneTimePayment);
+    assert.equal(fee.blockchainFee, 0.015);
+    assert.equal(fee.mspFlatFee, 0.000035);
+
+    fee = await calculateFeesForAction(ACTION_CODES.AddFundsToAccount);
+    assert.equal(fee.mspFlatFee, 0.000025);
+
+    fee = await calculateFeesForAction(ACTION_CODES.WithdrawFromStream);
+    assert.equal(fee.blockchainFee, 0.005);
+    assert.equal(fee.mspPercentFee, 0.25);
+
+    fee = await calculateFeesForAction(ACTION_CODES.CloseStream);
+    assert.equal(fee.mspFlatFee, 0.00001);
+    assert.equal(fee.mspPercentFee, 0.25);
+
+    fee = await calculateFeesForAction(ACTION_CODES.CloseAccount);
+    assert.equal(fee.mspFlatFee, 0.00001);
+
+    fee = await calculateFeesForAction(ACTION_CODES.TransferStream);
+    assert.equal(fee.blockchainFee, 0.000005);
+    assert.equal(fee.mspFlatFee, 0.00001);
+
+    fee = await calculateFeesForAction(ACTION_CODES.WithdrawFromAccount);
+    assert.equal(fee.mspPercentFee, 0.25);
   });
 });
 
