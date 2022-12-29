@@ -26,6 +26,8 @@ import {
   createProgram,
   toUnixTimestamp,
   getStreamStatusCode,
+  WARNING_TYPES,
+  SYSTEM_PROGRAM_ID,
 } from '../src';
 import {
   Category,
@@ -1582,6 +1584,26 @@ describe('PS Tests\n', async () => {
     const pausedEnum = STREAM_STATUS_CODE[paused];
     // console.log(paused, pausedEnum);
     assert.equal(pausedEnum, 2);
+  });
+
+  it('Checks an address', async () => {
+    let warning = await ps.checkAddressForWarnings('INVALID');
+    assert.equal(warning, WARNING_TYPES.INVALID_ADDRESS);
+
+    const address = await PublicKey.createProgramAddress(
+      [Buffer.from('seeds')],
+      SYSTEM_PROGRAM_ID,
+    );
+    warning = await ps.checkAddressForWarnings(address.toString());
+    assert.equal(warning, WARNING_TYPES.WARNING);
+
+    warning = await ps.checkAddressForWarnings(SYSTEM_PROGRAM_ID.toString());
+    assert.equal(warning, WARNING_TYPES.WARNING);
+
+    warning = await ps.checkAddressForWarnings(
+      user1Wallet.publicKey.toString(),
+    );
+    assert.equal(warning, WARNING_TYPES.NO_WARNING);
   });
 });
 

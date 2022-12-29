@@ -1951,13 +1951,12 @@ export class PaymentStreaming {
     try {
       pkAddress = new PublicKey(address);
     } catch (error) {
-      console.warn(`Invalid Solana address: ${address}`);
       return WARNING_TYPES.INVALID_ADDRESS;
     }
 
     //check address PDA
     const isAddressOnCurve = PublicKey.isOnCurve(pkAddress);
-    if (isAddressOnCurve) {
+    if (!isAddressOnCurve) {
       return WARNING_TYPES.WARNING;
     }
 
