@@ -301,8 +301,14 @@ describe('PS Tests\n', async () => {
   });
 
   it('Filters streams', async () => {
-    const filteredStreams = await ps.listStreams({
+    let filteredStreams = await ps.listStreams({
       psAccountOwner: user1Wallet.publicKey,
+      category: Category.vesting,
+    });
+    expect(filteredStreams.length).eq(2);
+
+    filteredStreams = await ps.listStreams({
+      beneficiary: user2Wallet.publicKey,
       category: Category.vesting,
     });
     expect(filteredStreams.length).eq(2);
