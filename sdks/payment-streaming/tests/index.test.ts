@@ -300,7 +300,13 @@ describe('PS Tests\n', async () => {
     // console.log("Filter by sub-category success.");
   });
 
-  it('Filters streams by category', async () => {
+  it('Filters streams', async () => {
+    const filteredStreams = await ps.listStreams({
+      psAccountOwner: user1Wallet.publicKey,
+      category: Category.vesting,
+    });
+    expect(filteredStreams.length).eq(2);
+
     const filteredVestingCategoryStreams = await ps.listStreams({
       psAccount: vestingAccountPubKey,
       category: Category.vesting,
