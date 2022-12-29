@@ -2,6 +2,7 @@ import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  NATIVE_MINT,
 } from '@solana/spl-token';
 
 /** Address of the Payment Streaming program in mainnet */
@@ -36,6 +37,8 @@ export const SIMULATION_PUBKEY = new PublicKey(
 export const NATIVE_SOL_MINT = new PublicKey(
   'So11111111111111111111111111111111111111111',
 );
+
+export const NATIVE_WSOL_MINT = NATIVE_MINT;
 
 /** Current version number that needs to be set as argument when creating any
  * transaction of the Payment Streaming program */

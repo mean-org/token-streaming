@@ -15,7 +15,6 @@ import {
 } from '@solana/web3.js';
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  NATIVE_MINT as NATIVE_WSOL_MINT,
   Token,
   TOKEN_PROGRAM_ID,
   u64,
@@ -37,7 +36,7 @@ import {
   StreamTemplate,
   SubCategory,
   TimeUnit,
-  VestingAccountActivity,
+  AccountActivity,
   StreamActivity,
   TransferTransactionAccounts,
   ScheduleTransferTransactionAccounts,
@@ -73,7 +72,7 @@ import {
   listStreamActivity,
   listStreams,
   listStreamsCached,
-  listVestingAccountActivity,
+  listAccountActivity,
   toUnixTimestamp,
 } from './utils';
 import {
@@ -82,6 +81,7 @@ import {
   NATIVE_SOL_MINT,
   CLIFF_PERCENT_NUMERATOR,
   CLIFF_PERCENT_DENOMINATOR,
+  NATIVE_WSOL_MINT,
 } from './constants';
 
 import * as instructions from './instructions';
@@ -121,9 +121,9 @@ export class PaymentStreaming {
   }
 
   public async refreshStream(
-    streamInfo: any,
+    streamInfo: Stream,
     hardUpdate = false,
-  ): Promise<any> {
+  ): Promise<Stream | null> {
     const copyStreamInfo = Object.assign({}, streamInfo);
 
     if (hardUpdate) {
@@ -1017,12 +1017,12 @@ export class PaymentStreaming {
    * @param limit - The max amount of elements to retrieve
    * @param commitment - Commitment to query the vesting account activity
    */
-  public async listVestingAccountActivity(
+  public async listAccountActivity(
     vestingAccount: PublicKey,
-    before: string,
+    before?: string,
     limit = 10,
     commitment?: Finality | undefined,
-  ): Promise<VestingAccountActivity[]> {
+  ): Promise<AccountActivity[]> {
     const accountInfo = await this.connection.getAccountInfo(
       vestingAccount,
       commitment,
@@ -1032,7 +1032,7 @@ export class PaymentStreaming {
       throw Error("Vesting account doesn't exists");
     }
 
-    return listVestingAccountActivity(
+    return listAccountActivity(
       this.program,
       vestingAccount,
       before,
@@ -1311,7 +1311,7 @@ export class PaymentStreaming {
       throw Error('Invalid account owner');
     }
 
-    const streamInfo = (await this.getStream(stream)) as Stream;
+    const streamInfo = await this.getStream(stream);
 
     if (!streamInfo) {
       throw Error('Stream account not found');
@@ -1574,6 +1574,7 @@ export class PaymentStreaming {
     if (!psAccountInfo) {
       throw Error('Payment Streaming account not found');
     }
+    destination = destination || psAccountInfo.owner;
     feePayer = feePayer || psAccountInfo.owner;
 
     // just send any mint to close an account without a mint set
@@ -1592,7 +1593,7 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
 
     const { instruction: closeAccountInstruction } =
-      await instructions.buildCloseFromAccountInstruction(this.program, {
+      await instructions.buildCloseAccountInstruction(this.program, {
         psAccount,
         psAccountMint,
         owner: psAccountInfo.owner,
@@ -1872,7 +1873,7 @@ export class PaymentStreaming {
 
     if (autoCloseAccount && destination) {
       const { instruction: closeAccountInstruction, destinationToken } =
-        await instructions.buildCloseFromAccountInstruction(this.program, {
+        await instructions.buildCloseAccountInstruction(this.program, {
           psAccount,
           psAccountMint,
           owner,
@@ -1950,13 +1951,12 @@ export class PaymentStreaming {
     try {
       pkAddress = new PublicKey(address);
     } catch (error) {
-      console.warn(`Invalid Solana address: ${address}`);
       return WARNING_TYPES.INVALID_ADDRESS;
     }
 
     //check address PDA
     const isAddressOnCurve = PublicKey.isOnCurve(pkAddress);
-    if (isAddressOnCurve) {
+    if (!isAddressOnCurve) {
       return WARNING_TYPES.WARNING;
     }
 

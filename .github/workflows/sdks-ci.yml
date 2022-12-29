@@ -81,11 +81,6 @@ jobs:
             -Dsonar.tests=sdks/payment-streaming/tests/
             -Dsonar.tests.exclusions=sdks/payment-streaming/tests/data/
             -Dsonar.javascript.lcov.reportPaths=/github/workspace/sdks/payment-streaming/coverage/lcov.info
-  sonar-quality-check:
-    name: Sonar Quality check
-    needs: [sonar-scan]
-    runs-on: ubuntu-latest
-    steps:
       - name: Sonar Quality Gate check
         id: sonarqube-quality-gate-check
         uses: sonarsource/sonarqube-quality-gate-action@master

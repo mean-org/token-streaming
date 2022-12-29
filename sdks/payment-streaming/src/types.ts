@@ -28,9 +28,9 @@ export enum ACTION_CODES {
   AnswerUpdate = 9,
   CreateAccount = 10,
   CloseStream = 11,
-  CloseAccount= 12,
+  CloseAccount = 12,
   TransferStream = 13,
-  WithdrawFromAccount= 14,
+  WithdrawFromAccount = 14,
 }
 
 /**
@@ -120,7 +120,7 @@ export type ActivityRaw = {
 /**
  *  Vesting account activity
  */
-export type VestingAccountActivity = {
+export type AccountActivity = {
   signature: string;
   actionCode: ActivityActionCode;
   initializer?: string;
@@ -367,7 +367,7 @@ export type StreamEventData = {
 type FeepayerAccounts = {
   /** Account paying for rent and protocol SOL fees */
   feePayer?: PublicKey;
-}
+};
 
 export type TransferTransactionAccounts = {
   /** The account providing the tokens to transfer */
@@ -381,18 +381,18 @@ export type TransferTransactionAccounts = {
    * here to crate a System program native SOL transfer.
    */
   mint: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type ScheduleTransferTransactionAccounts = {
   /** The account providing the tokens to transfer */
   owner: PublicKey;
-  
+
   /** The account receiving the tokens */
   beneficiary: PublicKey;
-  
+
   /** The token mint to be sent */
   mint: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type StreamPaymentTransactionAccounts = {
   /** The account providing the tokens to transfer */
@@ -403,7 +403,7 @@ export type StreamPaymentTransactionAccounts = {
 
   /** The token mint to be sent */
   mint: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type CreateAccountTransactionAccounts = {
   /** Owner of the new account */
@@ -411,7 +411,7 @@ export type CreateAccountTransactionAccounts = {
 
   /** Mint that will be streamed out of this account */
   mint: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type CreateStreamTransactionAccounts = {
   /** The PS account under the new stream will be created */
@@ -422,7 +422,7 @@ export type CreateStreamTransactionAccounts = {
 
   /** Destination account authorized to withdraw streamed tokens */
   beneficiary: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type CreateVestingAccountTransactionAccounts = {
   /** Owner of the vesting contract account */
@@ -430,7 +430,7 @@ export type CreateVestingAccountTransactionAccounts = {
 
   /** Mint that will be vested */
   mint: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type UpdateVestingTemplateTransactionAccounts = {
   /** Owner of the vesting contract account */
@@ -438,7 +438,7 @@ export type UpdateVestingTemplateTransactionAccounts = {
 
   /** Mint that will be vested */
   vestingAccount: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type CreateVestingStreamTransactionAccounts = {
   /** The vesting account under the new stream will be created */
@@ -446,24 +446,24 @@ export type CreateVestingStreamTransactionAccounts = {
 
   /** Owner of the vesting account */
   owner: PublicKey;
-  
+
   /** Account paying for rent and protocol SOL fees */
   feePayer: PublicKey;
-  
+
   /** Destination account authorized to withdraw streamed tokens */
   beneficiary: PublicKey;
-}
+};
 
 export type AddFundsToAccountTransactionAccounts = {
   /** The PS account to add funds to */
   psAccount: PublicKey;
 
   /** Mint of the PS account */
-  psAccountMint: PublicKey
+  psAccountMint: PublicKey;
 
   /** The account providing the funds */
-  contributor: PublicKey
-} & FeepayerAccounts
+  contributor: PublicKey;
+} & FeepayerAccounts;
 
 export type AllocateFundsToStreamTransactionAccounts = {
   /** The PS account containing the stream */
@@ -474,7 +474,7 @@ export type AllocateFundsToStreamTransactionAccounts = {
 
   /** Stream to allocate funds to */
   stream: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type FundStreamTransactionAccounts = {
   /** The PS account to withdraw funds from */
@@ -485,7 +485,7 @@ export type FundStreamTransactionAccounts = {
 
   /** Stream to add funds to */
   stream: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type WithdrawFromAccountTransactionAccounts = {
   /** The PS account to withdraw funds from */
@@ -495,7 +495,7 @@ export type WithdrawFromAccountTransactionAccounts = {
    * deposited.
    */
   destination: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type RefreshAccountDataTransactionAccounts = {
   /** The PS account to withdraw funds from */
@@ -503,7 +503,7 @@ export type RefreshAccountDataTransactionAccounts = {
 
   /** Account paying for rent and protocol SOL fees */
   feePayer: PublicKey;
-}
+};
 
 export type CloseAccountTransactionAccounts = {
   /** The PS account to withdraw funds from */
@@ -513,13 +513,13 @@ export type CloseAccountTransactionAccounts = {
    * Owner of the associated token account where the remaining funds will be
    * deposited.
    */
-  destination: PublicKey;
-} & FeepayerAccounts
+  destination?: PublicKey;
+} & FeepayerAccounts;
 
 export type WithdrawFromStreamTransactionAccounts = {
   /** The stream to withdraw fund from */
   stream: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type PauseResumeStreamTransactionAccounts = {
   /** The stream to be paused/resumed */
@@ -530,7 +530,7 @@ export type PauseResumeStreamTransactionAccounts = {
    * will be paused/resumed.
    */
   owner: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type TransferStreamTransactionAccounts = {
   /** The stream to be transferred */
@@ -542,7 +542,7 @@ export type TransferStreamTransactionAccounts = {
 
   /** New beneficiary for the stream */
   newBeneficiary: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
 
 export type CloseStreamTransactionAccounts = {
   /** The stream to be closed */
@@ -551,4 +551,4 @@ export type CloseStreamTransactionAccounts = {
   /** Account that will receive any remaining withdrawable amount on the
    * stream. If ommited, remaining funds will be sent to the beneficiary. */
   destination?: PublicKey;
-} & FeepayerAccounts
+} & FeepayerAccounts;
