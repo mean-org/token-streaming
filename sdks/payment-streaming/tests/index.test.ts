@@ -271,7 +271,7 @@ describe('PS Tests\n', async () => {
     );
   });
 
-  it('Filters treasuries by sub-category', async () => {
+  it('Filters accounts by sub-category', async () => {
     // 18.
     // console.log("Filtering treasuries by sub-category");
     const filteredSeedSubCategoryTreasuries = await ps.listAccounts(
@@ -1203,7 +1203,8 @@ describe('PS Tests\n', async () => {
       ownerTokenAmount: 1_000_000,
     });
 
-    const { transaction: streamPaymentTx } =
+    const startDate = new Date();
+    const { transaction: streamPaymentTx, stream } =
       await ps.buildStreamPaymentTransaction(
         {
           owner: ownerKey.publicKey,
@@ -1214,7 +1215,7 @@ describe('PS Tests\n', async () => {
         1_000_000,
         86400,
         1_000_000,
-        new Date(),
+        startDate,
         false,
       );
 
@@ -1223,6 +1224,43 @@ describe('PS Tests\n', async () => {
       streamPaymentTx,
       ownerKey,
     );
+
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000000');
+    assert.equal(streamAccount.startUtc.toNumber(), toUnixTimestamp(startDate));
+
+    const psAccount = streamAccount.treasuryAddress;
+
+    // Act: close stream (and account because autoClose = true)
+    const { transaction: closeStreamTx } = await ps.buildCloseStreamTransaction(
+      {
+        stream: stream,
+        destination: ownerKey.publicKey,
+      },
+      true,
+    );
+    await partialSignSendAndConfirmTransaction(
+      connection,
+      closeStreamTx,
+      ownerKey,
+    );
+
+    await expect(psProgram.account.stream.fetch(stream)).to.be.rejectedWith(
+      `Account does not exist ${stream}`,
+    );
+
+    await expect(
+      psProgram.account.treasury.fetch(psAccount),
+    ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
   });
 
   it('Streams a SOL payment', async () => {
@@ -1350,6 +1388,10 @@ describe('PS Tests\n', async () => {
   });
 
   it('Creates a vesting account + template + add funds + creates 2 streams', async () => {
+    const { ownerKey } = await setupTestActors({
+      connection: connection,
+      ownerLamports: 20 * LAMPORTS_PER_SOL,
+    });
     // create a vesting account
     const vestingAccountName = `VESTING-ACCOUNT-${Date.now()}`;
     const {
@@ -1359,8 +1401,8 @@ describe('PS Tests\n', async () => {
       template: vestingAccountTemplate,
     } = await ps.buildCreateVestingAccountTransaction(
       {
-        owner: user1Wallet.publicKey,
-        feePayer: user1Wallet.publicKey,
+        owner: ownerKey.publicKey,
+        feePayer: ownerKey.publicKey,
         mint: NATIVE_SOL_MINT,
       },
       vestingAccountName,
@@ -1377,7 +1419,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createVestingAccountTx,
-      user1Wallet,
+      ownerKey,
     );
 
     const parsedVestingAccount = await psProgram.account.treasury.fetch(
@@ -1404,7 +1446,7 @@ describe('PS Tests\n', async () => {
     const { transaction: updateVestinTx } =
       await ps.buildUpdateVestingTemplateTransaction(
         {
-          owner: user1Wallet.publicKey,
+          owner: ownerKey.publicKey,
           vestingAccount: vestingAccount,
         },
         6,
@@ -1415,7 +1457,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       updateVestinTx,
-      user1Wallet,
+      ownerKey,
     );
 
     parsedVestingTemplate = await psProgram.account.streamTemplate.fetch(
@@ -1434,8 +1476,8 @@ describe('PS Tests\n', async () => {
       await ps.buildCreateVestingStreamTransaction(
         {
           vestingAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
           beneficiary: user2Wallet.publicKey,
         },
         1 * LAMPORTS_PER_SOL,
@@ -1445,7 +1487,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStreamTx,
-      user1Wallet,
+      ownerKey,
     );
 
     // create vesting stream 2
@@ -1454,8 +1496,8 @@ describe('PS Tests\n', async () => {
       await ps.buildCreateVestingStreamTransaction(
         {
           vestingAccount,
-          owner: user1Wallet.publicKey,
-          feePayer: user1Wallet.publicKey,
+          owner: ownerKey.publicKey,
+          feePayer: ownerKey.publicKey,
           beneficiary: user2Wallet.publicKey,
         },
         1 * LAMPORTS_PER_SOL,
@@ -1465,7 +1507,7 @@ describe('PS Tests\n', async () => {
     await partialSignSendAndConfirmTransaction(
       connection,
       createStreamTx2,
-      user1Wallet,
+      ownerKey,
     );
 
     const [
