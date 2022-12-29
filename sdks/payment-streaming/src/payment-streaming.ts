@@ -121,9 +121,9 @@ export class PaymentStreaming {
   }
 
   public async refreshStream(
-    streamInfo: any,
+    streamInfo: Stream,
     hardUpdate = false,
-  ): Promise<any> {
+  ): Promise<Stream | null> {
     const copyStreamInfo = Object.assign({}, streamInfo);
 
     if (hardUpdate) {

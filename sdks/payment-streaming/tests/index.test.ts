@@ -1605,6 +1605,25 @@ describe('PS Tests\n', async () => {
     );
     assert.equal(warning, WARNING_TYPES.NO_WARNING);
   });
+
+  it('Refreshes a stream', async () => {
+    let stream = await ps.getStream(psAccountStream1PubKey);
+    assert.exists(stream);
+
+    if (!stream) {
+      assert.fail();
+    }
+
+    stream = await ps.refreshStream(stream);
+    assert.exists(stream);
+
+    if (!stream) {
+      assert.fail();
+    }
+
+    stream = await ps.refreshStream(stream, true);
+    assert.exists(stream);
+  });
 });
 
 //#region UTILS
