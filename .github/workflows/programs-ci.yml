@@ -57,6 +57,7 @@ jobs:
         run: cargo test-bpf -- --nocapture
 
       # Run tests
+      - run: yarn install
       - name: Run Anchor Tests
         run: anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json -- --features test
 
