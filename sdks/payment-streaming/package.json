@@ -1,6 +1,6 @@
 {
   "name": "@mean-dao/payment-streaming",
-  "version": "4.0.0",
+  "version": "4.0.1-beta.0",
   "description": "Mean Payment Streaming Typescript SDK",
   "private": false,
   "main": "lib/index.js",
