@@ -1,16 +1,21 @@
 // how to use
 // anchor test --provider.cluster localnet --provider.wallet ~/.config/solana/id.json --detach -- --features test
 // node_modules/.bin/ts-mocha -p ./tsconfig.json -t 1000000 tests/msp_treasury_add_funds_stream.ts
-import { PublicKey, Keypair, Connection, Transaction, sendAndConfirmRawTransaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { PublicKey, Keypair, Connection, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
 import * as anchor from '@project-serum/anchor';
-import { Program, AnchorError, workspace, BN, IdlAccounts } from '@project-serum/anchor';
+import { Program, workspace, BN } from '@project-serum/anchor';
 import { Msp } from '../target/types/msp';
-import { expect } from 'chai';
-import node_assert from 'assert';
-import { bs58 } from '@project-serum/anchor/dist/cjs/utils/bytes';
-import { Category, SubCategory } from '../sdks/msp/src/types';
 import { CONFIRM_OPTIONS, DECIMALS, LATEST_IDL_FILE_VERSION, MSP_FEES_PUBKEY, SYSTEM_PROGRAM_ID, SYSVAR_RENT_PUBKEY, TREASURY_TYPE_OPEN, URL } from './constants';
+
+const Category = {
+    Default: { default: {} },
+    Vesting: { vesting: {} },
+};
+const SubCategory = {
+    Default: { default: {} },
+};
+
 
 
 const connection = new Connection(URL, CONFIRM_OPTIONS.commitment);
@@ -96,8 +101,8 @@ describe('msp-pda-streams', () => {
                     TREASURY_TYPE_OPEN,
                     false,
                     false,
-                    { [Category[Category.default]]: {} },
-                    { [SubCategory[SubCategory.default]]: {} }
+                    Category.Default,
+                    SubCategory.Default
                 )
                 .accounts({
                     payer: treasurerKey.publicKey,
@@ -224,8 +229,8 @@ describe('msp-pda-streams', () => {
                     TREASURY_TYPE_OPEN,
                     false,
                     false,
-                    { [Category[Category.default]]: {} },
-                    { [SubCategory[SubCategory.default]]: {} }
+                    Category.Default,
+                    SubCategory.Default
                 )
                 .accounts({
                     payer: treasurerKey.publicKey,
@@ -361,8 +366,8 @@ describe('msp-pda-streams', () => {
                     TREASURY_TYPE_OPEN,
                     false,
                     false,
-                    { [Category[Category.default]]: {} },
-                    { [SubCategory[SubCategory.default]]: {} }
+                    Category.Default,
+                    SubCategory.Default
                 )
                 .accounts({
                     payer: treasurerKey.publicKey,
@@ -594,8 +599,8 @@ describe('msp-pda-streams', () => {
                     TREASURY_TYPE_OPEN,
                     false,
                     false,
-                    { [Category[Category.default]]: {} },
-                    { [SubCategory[SubCategory.default]]: {} },
+                    Category.Default,
+                    SubCategory.Default,
                     nowBn,
                     new BN(1),
                     new BN(100),
@@ -734,8 +739,8 @@ describe('msp-pda-streams', () => {
                     TREASURY_TYPE_OPEN,
                     false,
                     false,
-                    { [Category[Category.default]]: {} },
-                    { [SubCategory[SubCategory.default]]: {} },
+                    Category.Default,
+                    SubCategory.Default,
                     nowBn,
                     new BN(1),
                     new BN(100),
@@ -883,8 +888,8 @@ describe('msp-pda-streams', () => {
                     TREASURY_TYPE_OPEN,
                     false,
                     false,
-                    { [Category[Category.default]]: {} },
-                    { [SubCategory[SubCategory.default]]: {} },
+                    Category.Default,
+                    SubCategory.Default,
                     nowBn,
                     new BN(1),
                     new BN(100),

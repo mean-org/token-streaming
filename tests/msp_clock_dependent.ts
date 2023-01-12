@@ -133,7 +133,6 @@ describe('msp', () => {
     );
     console.log('withdrawable amount', streamEvent2!.beneficiaryWithdrawableAmount.toNumber());
 
-    const rate = streamEvent2!.rateAmountUnits.toNumber() / streamEvent2!.rateIntervalInSeconds.toNumber();
     console.log('estimated depletion time', new Date(streamEvent2!.estDepletionTime.toNumber() * 1000).toString());
 
     expect(
@@ -212,12 +211,17 @@ describe('msp', () => {
     const preTreasuryFromAmount = new BN(
       (await connection.getTokenAccountBalance(mspSetup.treasuryFrom)).value.amount
     ).toNumber();
+
+    // with an integration test it is not possible to control time so even
+    // after sleeping for 3 seconds the amount withdrew by the beneficieary
+    // might be the available amount streamed after 2 seconds (33_250_000) or
+    // after 3 seconds (49_875_000). Thus we consider both possibilities
     expect(preTreasuryFromAmount).oneOf([250_000_000, 266_666_667], 'incorrect preTreasuryFromAmount');
 
     const beneficiaryFromAmount = new BN(
       (await connection.getTokenAccountBalance(beneficiaryFrom)).value.amount
     ).toNumber();
-    expect(beneficiaryFromAmount).eq(49_875_000);
+    expect(beneficiaryFromAmount).oneOf([33_250_000, 49_875_000]);
 
     await mspSetup.closeStream({
       beneficiary: beneficiaryKeypair.publicKey,
@@ -623,7 +627,6 @@ describe('msp', () => {
 
   it('create treasury -> add funds -> create stream -> wait for auto-pause 111111', async () => {
     const treasurerKeypair = Keypair.generate();
-    const treasurer = treasurerKeypair.publicKey;
 
     const mspSetup = await createMspSetup({
       fromTokenClient,
