@@ -1452,7 +1452,7 @@ export class PaymentStreaming {
       );
     ixs.push(allocateInstruction);
 
-    const tx = await this.createTransaction(ixs, feePayer);
+    const tx = await this.createTransaction(ixs, feePayer, txSigners);
     return {
       transaction: tx,
     };
