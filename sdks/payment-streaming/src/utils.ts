@@ -79,8 +79,8 @@ export const createProgram = (
 ): Program<Ps> => {
   // we are not confirming transactions here
   const opts: ConfirmOptions = {
-    preflightCommitment: 'finalized',
-    commitment: 'finalized',
+    preflightCommitment: connection.commitment,
+    commitment: connection.commitment,
   };
 
   // dummy wallet only to configure the provider, we are not doing any signing
@@ -176,7 +176,7 @@ export const listStreams = async (
     category,
     subCategory,
   );
-  const slot = await program.provider.connection.getSlot('finalized');
+  const slot = await program.provider.connection.getSlot();
   const blockTime = (await program.provider.connection.getBlockTime(
     slot,
   )) as number;

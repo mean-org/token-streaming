@@ -38,6 +38,7 @@ import {
   STREAM_STATUS_CODE,
   ActivityActionCode,
   ACTION_CODES,
+  Stream,
 } from '../src/types';
 import BN from 'bn.js';
 import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
@@ -1628,6 +1629,16 @@ describe('PS Tests\n', async () => {
       assert.fail();
     }
 
+    // let listedStreams = await ps.listStreams({psAccount: psAccountPubKey});
+    // const {transaction: fundAccountTx} = await ps.buildAddFundsToAccountTransaction({psAccount: psAccountPubKey, psAccountMint: NATIVE_SOL_MINT, contributor: user1Wallet.publicKey}, 1000_000_000);
+    // await partialSignSendAndConfirmTransaction(connection, fundAccountTx, user1Wallet);
+
+    // const {transaction: tx} = await ps.buildAllocateFundsToStreamTransaction({psAccount: psAccountPubKey, owner: user1Wallet.publicKey, stream: psAccountStream1PubKey}, 1000_000_000);
+    // await partialSignSendAndConfirmTransaction(connection, tx, user1Wallet);
+
+    // listedStreams = await ps.listStreams({psAccount: psAccountPubKey});
+    // stream = await ps.getStream(psAccountStream1PubKey);
+
     stream = await ps.refreshStream(stream);
     assert.exists(stream);
 
@@ -2051,6 +2062,34 @@ async function setupAccount({
     beneficiaryToken,
     token,
     mint,
+  };
+}
+
+function prettifyStream(stream: Stream) {
+  return {
+    id: stream.id.toBase58(),
+    name: stream.name,
+    startUtc: stream.startUtc,
+    psAccountOwner: stream.psAccountOwner.toBase58(),
+    psAccount: stream.psAccount.toBase58(),
+    beneficiary: stream.psAccount.toBase58(),
+    mint: stream.mint.toBase58(),
+    cliffVestAmount: stream.cliffVestAmount.toString(),
+    cliffVestPercent: stream.cliffVestPercent,
+    allocationAssigned: stream.allocationAssigned.toString(),
+    rateAmount: stream.rateAmount.toString(),
+    rateIntervalInSeconds: stream.rateIntervalInSeconds,
+    totalWithdrawalsAmount: stream.totalWithdrawalsAmount.toString(),
+    fundsLeftInStream: stream.fundsLeftInStream.toString(),
+    fundsSentToBeneficiary: stream.fundsSentToBeneficiary.toString(),
+    remainingAllocationAmount: stream.remainingAllocationAmount.toString(),
+    withdrawableAmount: stream.withdrawableAmount.toString(),
+    streamUnitsPerSecond: stream.streamUnitsPerSecond,
+    isManuallyPaused: stream.isManuallyPaused.toString(),
+    statusCode: stream.statusCode,
+    statusName: stream.statusName,
+    tokenFeePayedFromAccount: stream.tokenFeePayedFromAccount,
+    createdOnUtc: stream.createdOnUtc,
   };
 }
 
