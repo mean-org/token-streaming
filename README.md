@@ -1,9 +1,9 @@
-# Payment Streaming
-The Payment Streaming program is one of the interoperable smart contracts composing the Mean Protocol. It is maintained by the Mean DAO and is deployed on the Solana Blockchain. 
+# Token Streaming
+The Token Streaming program is one of the interoperable smart contracts composing the Mean Protocol. It is maintained by the Mean DAO and is deployed on the Solana Blockchain. 
 
-Payment streaming represents the idea of continuous payments over time. Block numbers are used to measure time in the blockchain and continuously update the balances of the parties in the contract. Head over to the **[Whitepaper](https://docs.meandao.org/mean/products/mean-protocol/payment-streaming-whitepaper)** for more details.
+Token streaming represents the idea of continuous payments over time. Block numbers are used to measure time in the blockchain and continuously update the balances of the parties in the contract. Head over to the **[Whitepaper](https://docs.meandao.org/mean/products/mean-protocol/payment-streaming-whitepaper)** for more details.
 
-The Payment Streaming program is an implementation of the protocol built and deployed on the Solana blockchain, with address `MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu` on [Mainnet Beta](https://explorer.solana.com/address/MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu).
+The Token Streaming program is an implementation of the protocol built and deployed on the Solana blockchain, with address `MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu` on [Mainnet Beta](https://explorer.solana.com/address/MSPCUMbLfy2MeT6geLMMzrUkv1Tx88XRApaVRdyxTuu).
 
 
 ```mermaid
@@ -16,7 +16,7 @@ The Payment Streaming program is an implementation of the protocol built and dep
       style programs fill:#DFCEEF,stroke:#7E3FBF,stroke-width:4px #EEE6C9
 ```
 
-- Payment Streaming SDK 👉 **[HERE](https://github.com/mean-dao/payment-streaming/blob/main/sdks/payment-streaming/README.md)** (how to use instructions there)
+- Token Streaming SDK 👉 **[HERE](https://github.com/mean-dao/payment-streaming/blob/main/sdks/payment-streaming/README.md)** (how to use instructions there)
 - MeanFi App 👉 **[HERE](https://meanfi.com)** 
 [MeanFi](https://meanfi.com) is a web3 app you can use to interact with the different programs in the Mean Protocol 
 
@@ -70,7 +70,7 @@ console.log(`beneficiary2: ${beneficiary2}`);
 const mint = NATIVE_SOL_MINT;
 ```
 
-### Create a payment streaming account
+### Create a token streaming account
 ```ts
   const { transaction: createAccountTx, psAccount } =
     await psClient.buildCreateAccountTransaction(
@@ -95,7 +95,7 @@ const mint = NATIVE_SOL_MINT;
   });
 ```
 
-### Add funds to the Payment Streaming account
+### Add funds to the Token Streaming account
 ```ts
   const { transaction: addFundsTx } =
     await psClient.buildAddFundsToAccountTransaction(
@@ -173,7 +173,7 @@ const mint = NATIVE_SOL_MINT;
   });
 ```
 
-### List Payment streaming accounts
+### List Token streaming accounts
 ```ts
   const accounts = await psClient.listAccounts(owner);
   console.log(accounts.map(prettifyAccount));
@@ -297,5 +297,5 @@ Output:
 See the example here 👉 [example 1](https://github.com/mean-dao/payment-streaming/blob/main/sdks/payment-streaming/example1.ts)
 
 ## Notes
-* **Payment Streaming** is in active development and subject to change
+* **Token Streaming** is in active development and subject to change
 * For detailed documentation, please read the Developer Docs 👉 https://docs.meandao.org/mean/products/developers
