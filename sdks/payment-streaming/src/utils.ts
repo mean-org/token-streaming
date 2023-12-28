@@ -61,10 +61,14 @@ import {
 } from '@project-serum/anchor/dist/cjs/provider';
 import {
   AccountLayout,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getMinimumBalanceForRentExemptAccount,
+  createInitializeAccountInstruction,
+  createTransferInstruction,
   NATIVE_MINT,
-  Token,
   TOKEN_PROGRAM_ID,
+  createCloseAccountInstruction,
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
 import * as anchor from '@project-serum/anchor';
 import BigNumber from 'bignumber.js';
@@ -1079,7 +1083,7 @@ export async function fundExistingWSolAccountInstructions(
   amountToWrapInLamports: number,
 ): Promise<[TransactionInstruction[], Keypair]> {
   // Allocate memory for the account
-  const minimumAccountBalance = await Token.getMinBalanceRentForExemptAccount(
+  const minimumAccountBalance = await getMinimumBalanceForRentExemptAccount(
     connection,
   );
   const newWrapAccount = Keypair.generate();
@@ -1092,22 +1096,19 @@ export async function fundExistingWSolAccountInstructions(
       space: AccountLayout.span,
       programId: TOKEN_PROGRAM_ID,
     }),
-    Token.createInitAccountInstruction(
-      TOKEN_PROGRAM_ID,
+    createInitializeAccountInstruction(
+      newWrapAccount.publicKey,
       NATIVE_MINT,
-      newWrapAccount.publicKey,
       owner,
     ),
-    Token.createTransferInstruction(
-      TOKEN_PROGRAM_ID,
-      newWrapAccount.publicKey,
+    createTransferInstruction(
       ownerWSolTokenAccount,
+      newWrapAccount.publicKey,
       owner,
-      [],
       amountToWrapInLamports,
+      [],
     ),
-    Token.createCloseAccountInstruction(
-      TOKEN_PROGRAM_ID,
+    createCloseAccountInstruction(
       newWrapAccount.publicKey,
       payer,
       owner,
@@ -1151,21 +1152,17 @@ export async function createAtaCreateInstruction(
   payerAddress: PublicKey,
 ): Promise<[PublicKey, TransactionInstruction]> {
   if (ataAddress === null) {
-    ataAddress = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    ataAddress = await getAssociatedTokenAddress(
       mintAddress,
       ownerAccountAddress,
     );
   }
 
-  const ataCreateInstruction = Token.createAssociatedTokenAccountInstruction(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    mintAddress,
+  const ataCreateInstruction = createAssociatedTokenAccountInstruction(
+    payerAddress,
     ataAddress,
     ownerAccountAddress,
-    payerAddress,
+    mintAddress
   );
   return [ataAddress, ataCreateInstruction];
 }

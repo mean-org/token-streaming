@@ -6,7 +6,6 @@ import {
   Commitment,
   Connection,
   Finality,
-  Keypair,
   PublicKey,
   Signer,
   SystemProgram,
@@ -14,10 +13,12 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  Token,
+  getAccount as getTokenAccountInfo,
   TOKEN_PROGRAM_ID,
-  u64,
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  createCloseAccountInstruction,
 } from '@solana/spl-token';
 import { BN, Program } from '@project-serum/anchor';
 
@@ -284,9 +285,7 @@ export class PaymentStreaming {
         }),
       );
     } else {
-      const senderToken = await Token.getAssociatedTokenAddress(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
+      const senderToken = await getAssociatedTokenAddress(
         mint,
         sender,
         true,
@@ -306,9 +305,7 @@ export class PaymentStreaming {
         !beneficiaryAccountInfo ||
         !beneficiaryAccountInfo.owner.equals(TOKEN_PROGRAM_ID)
       ) {
-        beneficiaryToken = await Token.getAssociatedTokenAddress(
-          ASSOCIATED_TOKEN_PROGRAM_ID,
-          TOKEN_PROGRAM_ID,
+        beneficiaryToken = await getAssociatedTokenAddress(
           mint,
           beneficiary,
           true,
@@ -319,27 +316,20 @@ export class PaymentStreaming {
 
         if (!beneficiaryTokenAccountInfo) {
           ixs.push(
-            Token.createAssociatedTokenAccountInstruction(
-              ASSOCIATED_TOKEN_PROGRAM_ID,
-              TOKEN_PROGRAM_ID,
-              mint,
+            createAssociatedTokenAccountInstruction(
+              feePayer,
               beneficiaryToken,
               beneficiary,
-              sender,
+              mint,
             ),
           );
         }
       } else {
         // At this point the beneficiaryToken is either a mint or a token account
         // Let's make sure it is a token account of the passed mint
-        const tokenClient: Token = new Token(
-          this.connection,
-          mint,
-          TOKEN_PROGRAM_ID,
-          Keypair.generate(),
-        );
         try {
-          const beneficiaryTokenInfo = await tokenClient.getAccountInfo(
+          const beneficiaryTokenInfo = await getTokenAccountInfo(
+            this.connection,
             beneficiaryToken,
           );
           if (!beneficiaryTokenInfo)
@@ -350,13 +340,12 @@ export class PaymentStreaming {
       }
 
       ixs.push(
-        Token.createTransferInstruction(
-          TOKEN_PROGRAM_ID,
+        createTransferInstruction(
           senderToken,
           beneficiaryToken,
           sender,
+          BigInt(amountBN.toString()),
           [],
-          new u64(amountBN.toString()),
         ),
       );
     }
@@ -395,9 +384,7 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
     const txSigners: Signer[] = [];
 
-    const ownerToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const ownerToken = await getAssociatedTokenAddress(
       mint,
       owner,
       true,
@@ -550,9 +537,7 @@ export class PaymentStreaming {
     ixs.push(createAccountIx);
 
     // Get the PS account owner token account
-    const ownerToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const ownerToken = await getAssociatedTokenAddress(
       mint,
       owner,
       true,
@@ -862,9 +847,7 @@ export class PaymentStreaming {
 
     const fundingAmountBN = new BN(fundingAmount);
     if (fundingAmountBN.gtn(0)) {
-      const ownerToken = await Token.getAssociatedTokenAddress(
-        ASSOCIATED_TOKEN_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
+      const ownerToken = await getAssociatedTokenAddress(
         mint,
         owner,
         true,
@@ -1225,9 +1208,7 @@ export class PaymentStreaming {
       autoWSol = true;
     }
 
-    const contributorToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const contributorToken = await getAssociatedTokenAddress(
       psAccountMint,
       contributor,
       true,
@@ -1251,9 +1232,7 @@ export class PaymentStreaming {
       txSigners,
     );
 
-    const psAccountToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const psAccountToken = await getAssociatedTokenAddress(
       psAccountMint,
       psAccount,
       true,
@@ -1321,9 +1300,7 @@ export class PaymentStreaming {
       throw Error('Invalid stream mint');
     }
 
-    const psAccountToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const psAccountToken = await getAssociatedTokenAddress(
       psAccountInfo.mint,
       psAccount,
       true,
@@ -1391,9 +1368,7 @@ export class PaymentStreaming {
       throw Error('Invalid stream mint');
     }
 
-    const ownerToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const ownerToken = await getAssociatedTokenAddress(
       psAccountInfo.mint,
       owner,
       true,
@@ -1508,8 +1483,7 @@ export class PaymentStreaming {
       psAccountInfo.mint.equals(NATIVE_WSOL_MINT) &&
       destination.equals(psAccountInfo.owner) // the ata authority needs to be signer for the unwrap to work
     ) {
-      const closeWSolIx = Token.createCloseAccountInstruction(
-        TOKEN_PROGRAM_ID,
+      const closeWSolIx = createCloseAccountInstruction(
         destinationToken,
         destination,
         destination,
@@ -1582,9 +1556,7 @@ export class PaymentStreaming {
       ? new PublicKey(NATIVE_WSOL_MINT)
       : psAccountInfo.mint;
 
-    const destinationToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const destinationToken = await getAssociatedTokenAddress(
       psAccountMint,
       destination,
       true,
@@ -1607,8 +1579,7 @@ export class PaymentStreaming {
       psAccountMint.equals(NATIVE_WSOL_MINT) &&
       destination.equals(psAccountInfo.owner) // the ata authority needs to be signer for the unwrap to work
     ) {
-      const closeWSolIx = Token.createCloseAccountInstruction(
-        TOKEN_PROGRAM_ID,
+      const closeWSolIx = createCloseAccountInstruction(
         destinationToken,
         destination,
         destination,
@@ -1658,9 +1629,7 @@ export class PaymentStreaming {
     feePayer = feePayer || beneficiary;
     // Check for the beneficiary associated token account
     const psAccountMint = streamInfo.mint;
-    const beneficiaryToken = await Token.getAssociatedTokenAddress(
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      TOKEN_PROGRAM_ID,
+    const beneficiaryToken = await getAssociatedTokenAddress(
       psAccountMint,
       beneficiary,
       true,
@@ -1686,8 +1655,7 @@ export class PaymentStreaming {
 
     // unwrap all on exit
     if (autoWSol && psAccountMint.equals(NATIVE_WSOL_MINT)) {
-      const closeWSolIx = Token.createCloseAccountInstruction(
-        TOKEN_PROGRAM_ID,
+      const closeWSolIx = createCloseAccountInstruction(
         beneficiaryToken,
         beneficiary,
         beneficiary,
@@ -1888,8 +1856,7 @@ export class PaymentStreaming {
         psAccountMint.equals(NATIVE_WSOL_MINT) &&
         destination.equals(owner)
       ) {
-        const closeWSolIx = Token.createCloseAccountInstruction(
-          TOKEN_PROGRAM_ID,
+        const closeWSolIx = createCloseAccountInstruction(
           destinationToken,
           destination,
           destination,
