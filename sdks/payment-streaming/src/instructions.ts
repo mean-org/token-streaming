@@ -1,5 +1,5 @@
-import { BN, Program, utils } from '@project-serum/anchor';
-import { Token } from '@solana/spl-token';
+import { Program, utils } from '@project-serum/anchor';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
 import {
   PublicKey,
   Keypair,
@@ -14,6 +14,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   TOKEN_PROGRAM_ID,
 } from './constants';
+import BN from 'bn.js'
 
 import { Msp as Ps } from './msp_idl_005';
 import { Category, AccountType, SubCategory } from './types';
@@ -76,9 +77,7 @@ export async function buildCreateAccountInstruction(
     program.programId,
   );
 
-  const psAccountToken = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
+  const psAccountToken = await getAssociatedTokenAddress(
     mint,
     psAccount,
     true,
@@ -517,9 +516,7 @@ export async function buildCreateAccountAndTemplateInstruction(
     program.programId,
   );
 
-  const psAccountToken = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
+  const psAccountToken = await getAssociatedTokenAddress(
     mint,
     psAccount,
     true,
@@ -1341,9 +1338,7 @@ async function ensureAssociatedTokenAddress(
   if (associatedToken) {
     return associatedToken;
   }
-  return Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
+  return getAssociatedTokenAddress(
     mint,
     owner,
     true,
