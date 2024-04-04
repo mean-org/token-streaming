@@ -31,78 +31,78 @@ branding:
 runs:
   using: 'composite'
   steps:
-      - name: Exit if release type argument is invalid
-        if: ${{ inputs.release-type != 'major' && inputs.release-type != 'minor' && inputs.release-type != 'patch' && inputs.release-type != 'prerelease'}}
-        run: exit 1
-        shell: bash
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          registry-url: https://registry.npmjs.org/
-          node-version: 16
+    - name: Exit if release type argument is invalid
+      if: ${{ inputs.release-type != 'major' && inputs.release-type != 'minor' && inputs.release-type != 'patch' && inputs.release-type != 'prerelease'}}
+      run: exit 1
+      shell: bash
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        registry-url: https://registry.npmjs.org/
+        node-version: 18
 
-      # Install dependencies
-      - name: Install dependencies
-        run: cd ${{ inputs.path }} && yarn install --frozen-lockfile
-        shell: bash
+    # Install dependencies
+    - name: Install dependencies
+      run: cd ${{ inputs.path }} && yarn install --frozen-lockfile
+      shell: bash
 
-      # # Test the project
-      # - name: Tests
-      #   run: yarn test
+    # # Test the project
+    # - name: Tests
+    #   run: yarn test
 
-      # Configure Git
-      - name: Git configuration
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
-        shell: bash
+    # Configure Git
+    - name: Git configuration
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "GitHub Actions"
+      shell: bash
 
-      # Prepare release version and NPM release tag
-      - name: Bump release version
-        if: ${{ inputs.release-type != 'prerelease' }}
-        run: |
-          echo "NEW_VERSION=$(cd $PACKAGE_PATH && npm --no-git-tag-version version $RELEASE_TYPE)" >> $GITHUB_ENV
-          echo "RELEASE_TAG=latest" >> $GITHUB_ENV
-        shell: bash
-        env:
-          RELEASE_TYPE: ${{ inputs.release-type }}
-          PACKAGE_PATH: ${{ inputs.path }}
+    # Prepare release version and NPM release tag
+    - name: Bump release version
+      if: ${{ inputs.release-type != 'prerelease' }}
+      run: |
+        echo "NEW_VERSION=$(cd $PACKAGE_PATH && npm --no-git-tag-version version $RELEASE_TYPE)" >> $GITHUB_ENV
+        echo "RELEASE_TAG=latest" >> $GITHUB_ENV
+      shell: bash
+      env:
+        RELEASE_TYPE: ${{ inputs.release-type }}
+        PACKAGE_PATH: ${{ inputs.path }}
 
-      - name: Bump pre-release version
-        if: ${{ inputs.release-type == 'prerelease' }}
-        run: |
-          echo "NEW_VERSION=$(cd $PACKAGE_PATH && npm --no-git-tag-version --preid=beta version $RELEASE_TYPE)" >> $GITHUB_ENV
-          echo "RELEASE_TAG=beta" >> $GITHUB_ENV
-        shell: bash
-        env:
-          RELEASE_TYPE: ${{ inputs.release-type }}
-          PACKAGE_PATH: ${{ inputs.path }}
+    - name: Bump pre-release version
+      if: ${{ inputs.release-type == 'prerelease' }}
+      run: |
+        echo "NEW_VERSION=$(cd $PACKAGE_PATH && npm --no-git-tag-version --preid=beta version $RELEASE_TYPE)" >> $GITHUB_ENV
+        echo "RELEASE_TAG=beta" >> $GITHUB_ENV
+      shell: bash
+      env:
+        RELEASE_TYPE: ${{ inputs.release-type }}
+        PACKAGE_PATH: ${{ inputs.path }}
 
-      # Build
-      - name: Build
-        run: cd ${{ inputs.path }} && yarn build
-        shell: bash
+    # Build
+    - name: Build
+      run: cd ${{ inputs.path }} && yarn build
+      shell: bash
 
-      # Publish version to public repository
-      - name: Publish
-        run: cd ${{ inputs.path }} && yarn publish --verbose --access ${{ inputs.access }} --tag ${{ env.RELEASE_TAG }}
-        shell: bash
-        env:
-          NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
+    # Publish version to public repository
+    - name: Publish
+      run: cd ${{ inputs.path }} && yarn publish --verbose --access ${{ inputs.access }} --tag ${{ env.RELEASE_TAG }}
+      shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
 
-      # Push changes to origin
-      - name: Push changes to repository
-        env:
-          GITHUB_TOKEN: ${{ inputs.github_token }}
-        run: |
-          git add "${{ inputs.path }}/package.json" && git commit -m "[SDK]: Release ${{ env.NEW_VERSION }}" && git push origin && git push --tags
-        shell: bash
+    # Push changes to origin
+    - name: Push changes to repository
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      run: |
+        git add "${{ inputs.path }}/package.json" && git commit -m "[SDK]: Release ${{ env.NEW_VERSION }}" && git push origin && git push --tags
+      shell: bash
 
-      # GitHub Release
-      - name: Create a new GitHub release
-        env:
-          GITHUB_TOKEN: ${{ inputs.github_token }}
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ inputs.tag_prefix }}${{ env.NEW_VERSION }}
-          prerelease: ${{ startsWith(inputs.release-type, 'pre') }}
+    # GitHub Release
+    - name: Create a new GitHub release
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ inputs.tag_prefix }}${{ env.NEW_VERSION }}
+        prerelease: ${{ startsWith(inputs.release-type, 'pre') }}
