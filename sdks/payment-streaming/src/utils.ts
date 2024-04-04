@@ -318,7 +318,7 @@ export const findStreamTemplateAddress = async (
   psAccount: PublicKey,
   programId: PublicKey,
 ): Promise<[PublicKey, number]> => {
-  return anchor.web3.PublicKey.findProgramAddress(
+  return anchor.web3.PublicKey.findProgramAddressSync(
     [anchor.utils.bytes.utf8.encode('template'), psAccount.toBuffer()],
     programId,
   );
@@ -1108,12 +1108,7 @@ export async function fundExistingWSolAccountInstructions(
       amountToWrapInLamports,
       [],
     ),
-    createCloseAccountInstruction(
-      newWrapAccount.publicKey,
-      payer,
-      owner,
-      [],
-    ),
+    createCloseAccountInstruction(newWrapAccount.publicKey, payer, owner, []),
   ];
 
   return [wrapIxs, newWrapAccount];
@@ -1162,7 +1157,7 @@ export async function createAtaCreateInstruction(
     payerAddress,
     ataAddress,
     ownerAccountAddress,
-    mintAddress
+    mintAddress,
   );
   return [ataAddress, ataCreateInstruction];
 }

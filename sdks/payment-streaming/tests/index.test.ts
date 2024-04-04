@@ -38,11 +38,16 @@ import {
   STREAM_STATUS_CODE,
   ActivityActionCode,
   ACTION_CODES,
-  Stream,
 } from '../src/types';
 import BN from 'bn.js';
-import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
-import { ASSOCIATED_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
+import {
+  createAssociatedTokenAccount,
+  createMint,
+  getAccount,
+  getAssociatedTokenAddress,
+  mintToChecked,
+} from '@solana/spl-token';
+import { getOrCreateAssociatedAccountInfo } from './utils';
 
 const ZERO_BN = new BN(0);
 
@@ -128,7 +133,7 @@ const endpoint = 'http://127.0.0.1:8899';
 const commitment = 'confirmed';
 let ps: PaymentStreaming;
 let psProgram: Program<Ps>;
-let token: Token;
+let token: PublicKey;
 
 describe('PS Tests\n', async () => {
   let connection: Connection;
@@ -197,13 +202,12 @@ describe('PS Tests\n', async () => {
       commitment,
     );
 
-    token = await Token.createMint(
+    token = await createMint(
       connection,
       testPayerKey,
       testPayerKey.publicKey,
       null,
       6,
-      TOKEN_PROGRAM_ID,
     );
 
     ps = new PaymentStreaming(
@@ -399,7 +403,8 @@ describe('PS Tests\n', async () => {
       actors.ownerKey,
     );
 
-    const beneficiaryTokenInfo = await actors.token.getAccountInfo(
+    const beneficiaryTokenInfo = await getAccount(
+      connection,
       actors.beneficiaryToken,
     );
     assert.exists(beneficiaryTokenInfo);
@@ -560,6 +565,8 @@ describe('PS Tests\n', async () => {
       ownerKey,
     );
 
+    // Assert psAccount, toke and all 3 streams
+
     const [
       psAccountInfo,
       psAccountTokenInfo,
@@ -596,6 +603,7 @@ describe('PS Tests\n', async () => {
       ownerLamports: 20 * LAMPORTS_PER_SOL,
     });
     // create a regular PS account
+    const psAccountName = `PS-ACCOUNT-${Date.now()}`;
     const { transaction: createAccountTx, psAccount } =
       await ps.buildCreateAccountTransaction(
         {
@@ -603,7 +611,7 @@ describe('PS Tests\n', async () => {
           feePayer: ownerKey.publicKey,
           mint: NATIVE_SOL_MINT,
         },
-        '',
+        psAccountName,
         AccountType.Open,
         true,
       );
@@ -654,11 +662,22 @@ describe('PS Tests\n', async () => {
       createStream1Tx,
       ownerKey,
     );
+
+    // Assert psAccount and created stream
+
+    const [psAccountInfo, psAccountStream1Info] =
+      await connection.getMultipleAccountsInfo([psAccount, stream1]);
+
+    assert.exists(psAccountInfo);
+    assert.equal(psAccountInfo?.data.length, 300);
+
+    assert.exists(psAccountStream1Info);
+    assert.equal(psAccountStream1Info?.data.length, 500);
   });
 
   it('Withdraws from account (to owner)', async () => {
     // Prepare
-    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+    const { ownerKey, psAccount, ownerToken } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -684,7 +703,7 @@ describe('PS Tests\n', async () => {
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '700');
 
-    const ownerTokenInfo = await token.getAccountInfo(ownerToken);
+    const ownerTokenInfo = await getAccount(connection, ownerToken);
     assert.exists(ownerTokenInfo);
     assert.equal(ownerTokenInfo.amount.toString(), '300');
 
@@ -702,7 +721,7 @@ describe('PS Tests\n', async () => {
 
   it('Withdraws from account (to destination)', async () => {
     // Prepare
-    const { ownerKey, psAccount, token } = await setupAccount({
+    const { ownerKey, psAccount, mint } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -730,7 +749,10 @@ describe('PS Tests\n', async () => {
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '700');
 
-    const destinationTokenInfo = await token.getOrCreateAssociatedAccountInfo(
+    const destinationTokenInfo = await getOrCreateAssociatedAccountInfo(
+      connection,
+      testPayerKey,
+      mint,
       destination,
     );
     assert.exists(destinationTokenInfo);
@@ -739,14 +761,25 @@ describe('PS Tests\n', async () => {
 
   it('Refreshes account data', async () => {
     // Prepare
-    const { ownerKey, psAccount, psAccountToken, token } = await setupAccount({
+    const { ownerKey, psAccount, psAccountToken, mint } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
     });
 
     // Act
-    await token.mintTo(psAccountToken, testPayerKey, [], 300);
+
+    // await token.mintTo(psAccountToken, testPayerKey, [], 300);
+
+    await mintToChecked(
+      connection,
+      testPayerKey,
+      mint,
+      psAccountToken,
+      ownerKey,
+      300,
+      6,
+    );
     let account = await psProgram.account.treasury.fetch(psAccount);
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '1000');
@@ -791,7 +824,7 @@ describe('PS Tests\n', async () => {
 
   it('Closes an account (send funds to owner)', async () => {
     // Prepare
-    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+    const { ownerKey, psAccount, ownerToken } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -813,14 +846,14 @@ describe('PS Tests\n', async () => {
       psProgram.account.treasury.fetch(psAccount),
     ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
 
-    const ownerTokenInfo = await token.getAccountInfo(ownerToken);
+    const ownerTokenInfo = await getAccount(connection, ownerToken);
     assert.exists(ownerTokenInfo);
     assert.equal(ownerTokenInfo.amount.toString(), '1000');
   });
 
   it('Closes an account (send funds to destination)', async () => {
     // Prepare
-    const { ownerKey, psAccount, token } = await setupAccount({
+    const { ownerKey, psAccount, mint } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -845,7 +878,10 @@ describe('PS Tests\n', async () => {
       psProgram.account.treasury.fetch(psAccount),
     ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
 
-    const destinationTokenInfo = await token.getOrCreateAssociatedAccountInfo(
+    const destinationTokenInfo = await getOrCreateAssociatedAccountInfo(
+      connection,
+      testPayerKey,
+      mint,
       destination,
     );
     assert.exists(destinationTokenInfo);
@@ -934,7 +970,7 @@ describe('PS Tests\n', async () => {
     const psAccountFetched = await psProgram.account.treasury.fetch(psAccount);
     assert.equal(psAccountFetched.lastKnownBalanceUnits.toString(), '1000');
 
-    const psTokenAccountInfo = await token.getAccountInfo(psAccountToken);
+    const psTokenAccountInfo = await getAccount(connection, psAccountToken);
     assert.equal(psTokenAccountInfo.amount.toString(), '1000');
 
     const streamAccount = await psProgram.account.stream.fetch(stream);
@@ -942,7 +978,8 @@ describe('PS Tests\n', async () => {
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
     assert.equal(streamAccount.lastWithdrawalUnits.toString(), '500');
 
-    const beneficiaryTokenAccountInfo = await token.getAccountInfo(
+    const beneficiaryTokenAccountInfo = await getAccount(
+      connection,
       beneficiaryToken,
     );
     assert.equal(
@@ -1081,7 +1118,8 @@ describe('PS Tests\n', async () => {
       `Account does not exist ${stream}`,
     );
 
-    const beneficiaryTokenAccountInfo = await token.getAccountInfo(
+    const beneficiaryTokenAccountInfo = await getAccount(
+      connection,
       beneficiaryToken,
     );
     assert.equal(
@@ -1806,7 +1844,6 @@ type TestActors = {
   readonly beneficiary: PublicKey;
   readonly beneficiaryKey: Keypair;
   readonly beneficiaryToken: PublicKey;
-  readonly token: Token;
   readonly mint: PublicKey;
 };
 
@@ -1842,24 +1879,19 @@ async function setupTestActors({
     return {
       owner: ownerKey.publicKey,
       ownerKey,
-      ownerToken: await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
+      ownerToken: await getAssociatedTokenAddress(
+        token,
         ownerKey.publicKey,
         false,
       ),
       beneficiary: beneficiaryKey.publicKey,
       beneficiaryKey,
-      beneficiaryToken: await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
+      beneficiaryToken: await getAssociatedTokenAddress(
+        token,
         beneficiaryKey.publicKey,
         false,
       ),
-      token,
-      mint: token.publicKey,
+      mint: token,
     };
   }
 
@@ -1878,13 +1910,21 @@ async function setupTestActors({
   }
 
   if (ownerTokenAmount) {
-    ownerToken = await token.createAssociatedTokenAccount(ownerKey.publicKey);
+    ownerToken = await createAssociatedTokenAccount(
+      connection,
+      ownerKey,
+      token,
+      beneficiaryKey.publicKey,
+    );
     if (ownerTokenAmount.gt(ZERO_BN)) {
-      await token.mintTo(
-        ownerToken,
+      await mintToChecked(
+        connection,
         testPayerKey,
-        [],
-        new u64(ownerTokenAmount.toString()),
+        token,
+        ownerToken,
+        ownerKey,
+        BigInt(ownerTokenAmount.toString()),
+        6,
       );
     }
   }
@@ -1901,15 +1941,21 @@ async function setupTestActors({
   }
 
   if (beneficiaryTokenAmount) {
-    beneficiaryToken = await token.createAssociatedTokenAccount(
-      ownerKey.publicKey,
+    beneficiaryToken = await createAssociatedTokenAccount(
+      connection,
+      ownerKey,
+      token,
+      beneficiaryKey.publicKey,
     );
     if (beneficiaryTokenAmount.gt(ZERO_BN)) {
-      await token.mintTo(
-        beneficiaryToken,
+      await mintToChecked(
+        connection,
         testPayerKey,
-        [],
-        new u64(beneficiaryTokenAmount.toString()),
+        token,
+        beneficiaryToken,
+        ownerKey,
+        BigInt(beneficiaryTokenAmount.toString()),
+        6,
       );
     }
   }
@@ -1919,26 +1965,13 @@ async function setupTestActors({
     ownerKey,
     ownerToken:
       ownerToken ||
-      (await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
-        ownerKey.publicKey,
-        false,
-      )),
+      (await getAssociatedTokenAddress(token, ownerKey.publicKey, false)),
     beneficiary: beneficiaryKey.publicKey,
     beneficiaryKey,
     beneficiaryToken:
       beneficiaryToken ||
-      (await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
-        beneficiaryKey.publicKey,
-        false,
-      )),
-    token,
-    mint: token.publicKey,
+      (await getAssociatedTokenAddress(token, beneficiaryKey.publicKey, false)),
+    mint: token,
   };
 }
 
@@ -2060,11 +2093,11 @@ async function setupAccount({
     beneficiary,
     beneficiaryKey,
     beneficiaryToken,
-    token,
     mint,
   };
 }
 
+/**
 function prettifyStream(stream: Stream) {
   return {
     id: stream.id.toBase58(),
@@ -2092,5 +2125,6 @@ function prettifyStream(stream: Stream) {
     createdOnUtc: stream.createdOnUtc,
   };
 }
+*/
 
 //#endregion
