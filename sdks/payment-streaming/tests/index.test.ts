@@ -29,6 +29,7 @@ import {
   WARNING_TYPES,
   SYSTEM_PROGRAM_ID,
   calculateFeesForAction,
+  NATIVE_WSOL_MINT,
 } from '../src';
 import {
   Category,
@@ -156,6 +157,7 @@ describe('PS Tests\n', async () => {
       },
       commitment,
     );
+
     // airdrop some rent sol to the read on-chain data account
     await connection.confirmTransaction(
       {
@@ -218,7 +220,8 @@ describe('PS Tests\n', async () => {
     psProgram = createProgram(connection, PAYMENT_STREAMING_PROGRAM_ID);
 
     console.log();
-    await sleep(20000);
+    await sleep(3000);
+    // await sleep(20000);
   });
 
   it('Fetches stream', async () => {
@@ -382,10 +385,20 @@ describe('PS Tests\n', async () => {
   });
 
   it('Transfers tokens (direct transfer)', async () => {
-    const actors = await setupTestActors({
-      connection: connection,
-      ownerTokenAmount: new BN(1000),
-    });
+    let actors: TestActors | undefined = undefined;
+
+    try {
+      actors = await setupTestActors({
+        connection: connection,
+        ownerTokenAmount: new BN(1000),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!actors) {
+      throw new Error(`Actors couldn't be initialized. Aborting test`);
+    }
 
     const { transaction: transferTx } = await ps.buildTransferTransaction(
       {
@@ -455,10 +468,24 @@ describe('PS Tests\n', async () => {
   });
 
   it('Creates a PS account + add funds + creates 3 streams', async () => {
-    const { ownerKey } = await setupTestActors({
-      connection: connection,
-      ownerLamports: 20 * LAMPORTS_PER_SOL,
-    });
+    let actors: TestActors | undefined = undefined;
+
+    try {
+      actors = await setupTestActors({
+        connection: connection,
+        ownerLamports: 20 * LAMPORTS_PER_SOL,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!actors) {
+      throw new Error(`Actors couldn't be initialized. Aborting test`);
+    }
+
+    const { ownerKey } = actors;
+    let createAccountTxHash = '';
+
     // create a regular PS account
     const psAccountName = `PS-ACCOUNT-${Date.now()}`;
     const {
@@ -474,9 +501,20 @@ describe('PS Tests\n', async () => {
       psAccountName,
       AccountType.Open,
     );
-    psAccount;
 
-    await sendTestTransaction(connection, createAccountTx, [ownerKey]);
+    try {
+      createAccountTxHash = await sendTestTransaction(
+        connection,
+        createAccountTx,
+        [ownerKey],
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!createAccountTxHash) {
+      throw new Error(`Account couldn't be created. Aborting test`);
+    }
 
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
@@ -598,10 +636,24 @@ describe('PS Tests\n', async () => {
   });
 
   it('Creates an account (fees payed from account) + add funds', async () => {
-    const { ownerKey } = await setupTestActors({
-      connection: connection,
-      ownerLamports: 20 * LAMPORTS_PER_SOL,
-    });
+    let actors: TestActors | undefined = undefined;
+
+    try {
+      actors = await setupTestActors({
+        connection: connection,
+        ownerLamports: 20 * LAMPORTS_PER_SOL,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!actors) {
+      throw new Error(`Actors couldn't be initialized. Aborting test`);
+    }
+
+    const { ownerKey } = actors;
+    let createAccountTxHash = '';
+
     // create a regular PS account
     const psAccountName = `PS-ACCOUNT-${Date.now()}`;
     const { transaction: createAccountTx, psAccount } =
@@ -613,11 +665,21 @@ describe('PS Tests\n', async () => {
         },
         psAccountName,
         AccountType.Open,
-        true,
       );
-    psAccount;
 
-    await sendTestTransaction(connection, createAccountTx, [ownerKey]);
+    try {
+      createAccountTxHash = await sendTestTransaction(
+        connection,
+        createAccountTx,
+        [ownerKey],
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!createAccountTxHash) {
+      throw new Error(`Account couldn't be created. Aborting test`);
+    }
 
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
@@ -767,19 +829,29 @@ describe('PS Tests\n', async () => {
       accountInitialAmount: 1000,
     });
 
+    let mintToAccountTxHash = '';
+
     // Act
+    try {
+      mintToAccountTxHash = await mintToChecked(
+        connection,
+        testPayerKey,
+        mint,
+        psAccountToken,
+        testPayerKey,
+        300,
+        6,
+      );
+    } catch (error) {
+      console.error(error);
+    }
 
-    // await token.mintTo(psAccountToken, testPayerKey, [], 300);
+    if (!mintToAccountTxHash) {
+      throw new Error(
+        `Couldn't mint tokens to account: ${psAccountToken.toBase58()}. Aborting test`,
+      );
+    }
 
-    await mintToChecked(
-      connection,
-      testPayerKey,
-      mint,
-      psAccountToken,
-      ownerKey,
-      300,
-      6,
-    );
     let account = await psProgram.account.treasury.fetch(psAccount);
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '1000');
@@ -956,7 +1028,7 @@ describe('PS Tests\n', async () => {
     const { transaction: withdrawFromStreamTx } =
       await ps.buildWithdrawFromStreamTransaction(
         {
-          stream: stream,
+          stream,
         },
         500,
       );
@@ -1015,9 +1087,9 @@ describe('PS Tests\n', async () => {
     // Act
     const { transaction: transferStreamTx } =
       await ps.buildTransferStreamTransaction({
-        stream: stream,
+        stream,
         beneficiary: beneficiaryKey.publicKey,
-        newBeneficiary: newBeneficiary,
+        newBeneficiary,
       });
     await partialSignSendAndConfirmTransaction(
       connection,
@@ -1047,7 +1119,7 @@ describe('PS Tests\n', async () => {
 
     // Act Pause
     const { transaction: pauseTx } = await ps.buildPauseStreamTransaction({
-      stream: stream,
+      stream,
       owner: ownerKey.publicKey,
     });
     await partialSignSendAndConfirmTransaction(connection, pauseTx, ownerKey);
@@ -1062,7 +1134,7 @@ describe('PS Tests\n', async () => {
 
     // Act Resume
     const { transaction: resumeTx } = await ps.buildResumeStreamTransaction({
-      stream: stream,
+      stream,
       owner: ownerKey.publicKey,
     });
     await partialSignSendAndConfirmTransaction(connection, resumeTx, ownerKey);
@@ -1104,7 +1176,7 @@ describe('PS Tests\n', async () => {
     // Act
     const { transaction: closeStreamTx } = await ps.buildCloseStreamTransaction(
       {
-        stream: stream,
+        stream,
       },
     );
     await partialSignSendAndConfirmTransaction(
@@ -1153,9 +1225,9 @@ describe('PS Tests\n', async () => {
     const { transaction: allocateToStreamTx } =
       await ps.buildFundStreamTransaction(
         {
-          psAccount: psAccount,
+          psAccount,
           owner: ownerKey.publicKey,
-          stream: stream,
+          stream,
         },
         500,
       );
@@ -1195,9 +1267,9 @@ describe('PS Tests\n', async () => {
     const { transaction: allocateToStreamTx } =
       await ps.buildFundStreamTransaction(
         {
-          psAccount: psAccount,
+          psAccount,
           owner: ownerKey.publicKey,
-          stream: stream,
+          stream,
         },
         501, // 1 for fees and 500 to stay in the account
       );
@@ -1263,8 +1335,8 @@ describe('PS Tests\n', async () => {
       await ps.buildStreamPaymentTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
-          mint: mint,
+          beneficiary,
+          mint,
         },
         "Bob's payment",
         1_000_000,
@@ -1298,7 +1370,7 @@ describe('PS Tests\n', async () => {
     // Act: close stream (and account because autoClose = true)
     const { transaction: closeStreamTx } = await ps.buildCloseStreamTransaction(
       {
-        stream: stream,
+        stream,
         destination: ownerKey.publicKey,
       },
       true,
@@ -1324,11 +1396,11 @@ describe('PS Tests\n', async () => {
       ownerLamports: LAMPORTS_PER_SOL,
     });
 
-    const { transaction: streamPaymentTx } =
+    const { transaction: streamPaymentTx, stream } =
       await ps.buildStreamPaymentTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
+          beneficiary,
           mint: NATIVE_SOL_MINT,
         },
         "Bob's payment",
@@ -1344,6 +1416,22 @@ describe('PS Tests\n', async () => {
       streamPaymentTx,
       ownerKey,
     );
+
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAssociatedToken.toBase58(),
+      NATIVE_WSOL_MINT.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000000');
   });
 
   it('Schedules a transfer', async () => {
@@ -1352,14 +1440,15 @@ describe('PS Tests\n', async () => {
       ownerTokenAmount: new BN(1000),
     });
 
-    const startDate = new Date(2050, 1, 1);
+    // Set 1 year ahead
+    const startDate = getFutureDate();
 
     const { transaction: transferTx, stream } =
       await ps.buildScheduleTransferTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
-          mint: mint,
+          beneficiary,
+          mint,
         },
         1000,
         startDate,
@@ -1391,13 +1480,14 @@ describe('PS Tests\n', async () => {
       ownerTokenAmount: new BN(1000),
     });
 
-    const startDate = new Date(2050, 1, 1);
+    // Set 1 year ahead
+    const startDate = getFutureDate();
 
     const { transaction: transferTx, stream } =
       await ps.buildScheduleTransferTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
+          beneficiary,
           mint: NATIVE_SOL_MINT,
         },
         1000,
@@ -1419,6 +1509,10 @@ describe('PS Tests\n', async () => {
     assert.equal(
       streamAccount.beneficiaryAddress.toBase58(),
       beneficiary.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAssociatedToken.toBase58(),
+      NATIVE_WSOL_MINT.toBase58(),
     );
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
     assert.equal(streamAccount.startUtc.toNumber(), toUnixTimestamp(startDate));
@@ -1447,6 +1541,10 @@ describe('PS Tests\n', async () => {
       connection: connection,
       ownerLamports: 20 * LAMPORTS_PER_SOL,
     });
+
+    // Set 1 year ahead
+    const startDate = getFutureDate();
+
     // create a vesting account
     const vestingAccountName = `VESTING-ACCOUNT-${Date.now()}`;
     const {
@@ -1461,13 +1559,13 @@ describe('PS Tests\n', async () => {
         mint: NATIVE_SOL_MINT,
       },
       vestingAccountName,
-      AccountType.Open,
+      AccountType.Lock,
       false,
       12,
       TimeUnit.Minute,
       10 * LAMPORTS_PER_SOL,
       SubCategory.seed,
-      new Date(2040, 1, 1),
+      startDate,
       10, // 10 %
     );
 
@@ -1481,7 +1579,7 @@ describe('PS Tests\n', async () => {
       vestingAccount,
     );
     assert.exists(parsedVestingAccount);
-    assert.equal(parsedVestingAccount.treasuryType, AccountType.Open);
+    assert.equal(parsedVestingAccount.treasuryType, AccountType.Lock);
     assert.equal(parsedVestingAccount.category, Category.vesting);
     assert.equal(parsedVestingAccount.subCategory, SubCategory.seed);
     assert.equal(parsedVestingAccount.allocationAssignedUnits.toString(), '0');
@@ -1496,17 +1594,21 @@ describe('PS Tests\n', async () => {
     assert.exists(parsedVestingTemplate);
     assert.equal(parsedVestingTemplate.durationNumberOfUnits.toString(), '12');
     assert.equal(parsedVestingTemplate.rateIntervalInSeconds.toString(), '60');
+    assert.equal(
+      parsedVestingTemplate.startUtcInSeconds.toNumber(),
+      toUnixTimestamp(startDate),
+    );
 
     // update vesting account template
     const { transaction: updateVestinTx } =
       await ps.buildUpdateVestingTemplateTransaction(
         {
           owner: ownerKey.publicKey,
-          vestingAccount: vestingAccount,
+          vestingAccount,
         },
         6,
         TimeUnit.Hour,
-        new Date(2050, 1, 1),
+        getFutureDate(2),
       );
 
     await partialSignSendAndConfirmTransaction(
@@ -1738,6 +1840,11 @@ describe('PS Tests\n', async () => {
 
 //#region UTILS
 
+const getFutureDate = (yearIncrement = 1) => {
+  const year = new Date().getFullYear();
+  return new Date(year + yearIncrement, 1, 1);
+};
+
 async function partialSignSendAndConfirmTransaction(
   connection: Connection,
   transaction: Transaction,
@@ -1882,14 +1989,14 @@ async function setupTestActors({
       ownerToken: await getAssociatedTokenAddress(
         token,
         ownerKey.publicKey,
-        false,
+        true,
       ),
       beneficiary: beneficiaryKey.publicKey,
       beneficiaryKey,
       beneficiaryToken: await getAssociatedTokenAddress(
         token,
         beneficiaryKey.publicKey,
-        false,
+        true,
       ),
       mint: token,
     };
@@ -1914,7 +2021,7 @@ async function setupTestActors({
       connection,
       ownerKey,
       token,
-      beneficiaryKey.publicKey,
+      ownerKey.publicKey,
     );
     if (ownerTokenAmount.gt(ZERO_BN)) {
       await mintToChecked(
@@ -1922,7 +2029,7 @@ async function setupTestActors({
         testPayerKey,
         token,
         ownerToken,
-        ownerKey,
+        testPayerKey,
         BigInt(ownerTokenAmount.toString()),
         6,
       );
@@ -1953,7 +2060,7 @@ async function setupTestActors({
         testPayerKey,
         token,
         beneficiaryToken,
-        ownerKey,
+        testPayerKey,
         BigInt(beneficiaryTokenAmount.toString()),
         6,
       );
@@ -1965,12 +2072,12 @@ async function setupTestActors({
     ownerKey,
     ownerToken:
       ownerToken ||
-      (await getAssociatedTokenAddress(token, ownerKey.publicKey, false)),
+      (await getAssociatedTokenAddress(token, ownerKey.publicKey, true)),
     beneficiary: beneficiaryKey.publicKey,
     beneficiaryKey,
     beneficiaryToken:
       beneficiaryToken ||
-      (await getAssociatedTokenAddress(token, beneficiaryKey.publicKey, false)),
+      (await getAssociatedTokenAddress(token, beneficiaryKey.publicKey, true)),
     mint: token,
   };
 }
@@ -2034,8 +2141,8 @@ async function setupAccount({
     await instructions.buildAddFundsInstruction(
       psProgram,
       {
-        psAccount: psAccount,
-        psAccountToken: psAccountToken,
+        psAccount,
+        psAccountToken,
         psAccountMint: mint,
         contributor: ownerKey.publicKey,
         contributorToken: ownerToken,
@@ -2096,35 +2203,5 @@ async function setupAccount({
     mint,
   };
 }
-
-/**
-function prettifyStream(stream: Stream) {
-  return {
-    id: stream.id.toBase58(),
-    name: stream.name,
-    startUtc: stream.startUtc,
-    psAccountOwner: stream.psAccountOwner.toBase58(),
-    psAccount: stream.psAccount.toBase58(),
-    beneficiary: stream.psAccount.toBase58(),
-    mint: stream.mint.toBase58(),
-    cliffVestAmount: stream.cliffVestAmount.toString(),
-    cliffVestPercent: stream.cliffVestPercent,
-    allocationAssigned: stream.allocationAssigned.toString(),
-    rateAmount: stream.rateAmount.toString(),
-    rateIntervalInSeconds: stream.rateIntervalInSeconds,
-    totalWithdrawalsAmount: stream.totalWithdrawalsAmount.toString(),
-    fundsLeftInStream: stream.fundsLeftInStream.toString(),
-    fundsSentToBeneficiary: stream.fundsSentToBeneficiary.toString(),
-    remainingAllocationAmount: stream.remainingAllocationAmount.toString(),
-    withdrawableAmount: stream.withdrawableAmount.toString(),
-    streamUnitsPerSecond: stream.streamUnitsPerSecond,
-    isManuallyPaused: stream.isManuallyPaused.toString(),
-    statusCode: stream.statusCode,
-    statusName: stream.statusName,
-    tokenFeePayedFromAccount: stream.tokenFeePayedFromAccount,
-    createdOnUtc: stream.createdOnUtc,
-  };
-}
-*/
 
 //#endregion

@@ -69,6 +69,7 @@ import {
   createCloseAccountInstruction,
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
+  createSyncNativeInstruction,
 } from '@solana/spl-token';
 import * as anchor from '@project-serum/anchor';
 import BigNumber from 'bignumber.js';
@@ -1192,15 +1193,26 @@ export async function createWrapSolInstructions(
   }
   if (wSolAmountInLamportsBn.gt(ownerWSolAtaBalanceBn)) {
     const amountToWrapBn = wSolAmountInLamportsBn.sub(ownerWSolAtaBalanceBn);
-    const [wrapIxs, newWrapAccount] = await fundExistingWSolAccountInstructions(
-      connection,
-      owner,
-      ownerWSolTokenAccount,
-      owner,
-      amountToWrapBn.toNumber(),
+    ixs.push(
+      // trasnfer SOL
+      SystemProgram.transfer({
+        fromPubkey: owner,
+        toPubkey: ownerWSolTokenAccount,
+        lamports: BigInt(amountToWrapBn.toString()),
+      }),
+      // sync wrapped SOL balance
+      createSyncNativeInstruction(ownerWSolTokenAccount),
     );
-    ixs.push(...wrapIxs);
-    signers.push(newWrapAccount);
+
+    // const [wrapIxs, newWrapAccount] = await fundExistingWSolAccountInstructions(
+    //   connection,
+    //   owner,
+    //   ownerWSolTokenAccount,
+    //   owner,
+    //   amountToWrapBn.toNumber(),
+    // );
+    // ixs.push(...wrapIxs);
+    // signers.push(newWrapAccount);
   }
 
   return [ixs, signers];

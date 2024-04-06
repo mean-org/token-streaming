@@ -285,11 +285,7 @@ export class PaymentStreaming {
         }),
       );
     } else {
-      const senderToken = await getAssociatedTokenAddress(
-        mint,
-        sender,
-        true,
-      );
+      const senderToken = await getAssociatedTokenAddress(mint, sender, true);
 
       const senderTokenInfo = await this.connection.getAccountInfo(senderToken);
       if (!senderTokenInfo) {
@@ -384,11 +380,7 @@ export class PaymentStreaming {
     const ixs: TransactionInstruction[] = [];
     const txSigners: Signer[] = [];
 
-    const ownerToken = await getAssociatedTokenAddress(
-      mint,
-      owner,
-      true,
-    );
+    const ownerToken = await getAssociatedTokenAddress(mint, owner, true);
 
     const ownerTokenInfo = await this.connection.getAccountInfo(ownerToken);
     await this.ensureAutoWrapSolInstructions(
@@ -537,11 +529,7 @@ export class PaymentStreaming {
     ixs.push(createAccountIx);
 
     // Get the PS account owner token account
-    const ownerToken = await getAssociatedTokenAddress(
-      mint,
-      owner,
-      true,
-    );
+    const ownerToken = await getAssociatedTokenAddress(mint, owner, true);
 
     const ownerTokenInfo = await this.connection.getAccountInfo(ownerToken);
 
@@ -847,11 +835,7 @@ export class PaymentStreaming {
 
     const fundingAmountBN = new BN(fundingAmount);
     if (fundingAmountBN.gtn(0)) {
-      const ownerToken = await getAssociatedTokenAddress(
-        mint,
-        owner,
-        true,
-      );
+      const ownerToken = await getAssociatedTokenAddress(mint, owner, true);
 
       const ownerTokenInfo = await this.connection.getAccountInfo(
         ownerToken,
@@ -1216,7 +1200,6 @@ export class PaymentStreaming {
 
     const contributorTokenInfo = await this.connection.getAccountInfo(
       contributorToken,
-      'recent',
     );
 
     const ixs: TransactionInstruction[] = [];

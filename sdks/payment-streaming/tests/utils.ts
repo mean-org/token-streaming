@@ -4,6 +4,7 @@ import {
   PublicKey,
   Signer,
   Transaction,
+  VersionedTransaction,
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import BigNumber from 'bignumber.js';
@@ -15,6 +16,16 @@ import {
 
 const FAILED_TO_FIND_ACCOUNT = 'Failed to find account';
 const INVALID_ACCOUNT_OWNER = 'Invalid account owner';
+
+export const toBuffer = (arr: Buffer | Uint8Array | Array<number>): Buffer => {
+  if (Buffer.isBuffer(arr)) {
+    return arr;
+  } else if (arr instanceof Uint8Array) {
+    return Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength);
+  } else {
+    return Buffer.from(arr);
+  }
+};
 
 export const getDefaultKeyPair = async (): Promise<Keypair> => {
   // const id = await fs.readJSON(join(homedir(), '.config/solana/id.json'));
@@ -89,7 +100,7 @@ export const getOrCreateAssociatedAccountInfo = async (
   // Sadly we can't do this atomically;
   try {
     return await getAccount(connection, associatedAddress);
-  } catch (err) {
+  } catch (err: any) {
     // INVALID_ACCOUNT_OWNER can be possible if the associatedAddress has
     // already been received some lamports (= became system accounts).
     // Assuming program derived addressing is safe, this is the only case
@@ -119,4 +130,22 @@ export const getOrCreateAssociatedAccountInfo = async (
       throw err;
     }
   }
+};
+
+export const serializeTx = (tx: Transaction | VersionedTransaction) => {
+  let base64Tx = '';
+  const isVersioned = 'version' in tx ? true : false;
+
+  if (isVersioned) {
+    const encodedTx = tx.serialize();
+    const asBuffer = toBuffer(encodedTx);
+    base64Tx = asBuffer.toString('base64');
+  } else {
+    base64Tx = tx
+      .serialize({ requireAllSignatures: false, verifySignatures: false })
+      .toString('base64');
+  }
+
+  console.log('encodedTx:', base64Tx);
+  return base64Tx;
 };

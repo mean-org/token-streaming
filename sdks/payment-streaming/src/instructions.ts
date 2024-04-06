@@ -197,8 +197,8 @@ export async function buildAddFundsInstruction(
     .addFunds(LATEST_IDL_FILE_VERSION, amount)
     .accounts({
       payer: feePayer,
-      contributor: contributor,
-      contributorToken: contributorToken,
+      contributor,
+      contributorToken,
       treasury: psAccount,
       treasuryToken: psAccountToken,
       associatedToken: psAccountMint,

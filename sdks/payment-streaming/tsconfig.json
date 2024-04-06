@@ -9,6 +9,7 @@
             "esnext"
         ],
         "allowJs": true,
+        "useUnknownInCatchVariables": false,
         "allowSyntheticDefaultImports": true,
         "module": "commonjs",
         "strict": true,
