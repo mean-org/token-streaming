@@ -108,7 +108,8 @@ export class PaymentStreaming {
     blockhashCommitment?: Commitment,
   ) {
     this.connection = connection;
-    this.blockhashCommitment = blockhashCommitment ?? 'confirmed';
+    this.blockhashCommitment =
+      blockhashCommitment ?? connection.commitment ?? 'confirmed';
     this.program = createProgram(this.connection, programId);
   }
 
