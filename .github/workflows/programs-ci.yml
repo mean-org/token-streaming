@@ -2,7 +2,7 @@ name: Programs CI
 
 on:
   pull_request:
-    branches:
+    branches:    
       - main
     paths:
       - 'programs/msp/**.rs'
@@ -17,17 +17,17 @@ on:
   workflow_dispatch:
 
 env:
-  SOLANA_VERSION: '1.18.20'
-  ANCHOR_VERSION: '0.24.2'
-  RUST_TOOLCHAIN: 'stable'
-  NODE_VERSION: '20'
-
+  SOLANA_VERSION: "1.13.4"
+  ANCHOR_VERSION: "0.24.2"
+  RUST_TOOLCHAIN: "stable"
+  NODE_VERSION: "16"
+  
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -38,7 +38,7 @@ jobs:
 
       # Run build
       - name: Cache build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v1
       # - name: Run clippy
       #   run: cargo clippy -- -D warnings -A clippy::too_many_arguments
 
@@ -47,9 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build]
     environment:
-      name: localnet
+        name: localnet
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-solana-anchor
 
       # Rust Unit tests
@@ -67,16 +67,16 @@ jobs:
     needs: [tests]
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Sec3 Pro Audit
         id: sec3-scan
-        continue-on-error: true # set to true if you don't want to fail jobs
+        continue-on-error: true    # set to true if you don't want to fail jobs
         uses: sec3dev/pro-action@v1
         with:
           path: programs/msp
           sec3-token: ${{ secrets.SEC3_TOKEN }}
       - name: Upload Sarif Report
-        continue-on-error: true # set to true if you don't want to fail jobs
+        continue-on-error: true    # set to true if you don't want to fail jobs
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: sec3-report.sarif

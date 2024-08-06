@@ -14,7 +14,7 @@ inputs:
   node-version:
     description: 'Node version'
     required: false
-    default: 20
+    default: 16
   solana-default-keypair:
     description: 'Solana default keypair'
     required: false
@@ -23,96 +23,96 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+      
+      # Install Rust
+      - name: Cache Cargo registry + index
+        uses: actions/cache@v3
+        id: cache-cargo
+        with:
+            path: |
+                ~/.cargo/bin/
+                ~/.cargo/registry/index/
+                ~/.cargo/registry/cache/
+                ~/.cargo/git/db/
+            key: cargo-${{ runner.os }}-v0000-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install Rust ${{ inputs.rust-toolchain }}
+        uses: actions-rs/toolchain@v1
+        with:
+            override: true
+            profile: minimal
+            toolchain: ${{ inputs.rust-toolchain }}
+            components: rustfmt, clippy
 
-    # Install Rust
-    - name: Cache Cargo registry + index
-      uses: actions/cache@v4
-      id: cache-cargo
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-        key: cargo-${{ runner.os }}-v0000-${{ hashFiles('**/Cargo.lock') }}
-    - name: Install Rust ${{ inputs.rust-toolchain }}
-      uses: actions-rs/toolchain@v1
-      with:
-        override: true
-        profile: minimal
-        toolchain: ${{ inputs.rust-toolchain }}
-        components: rustfmt, clippy
+      # Run build
+      - name: Cache build
+        uses: Swatinem/rust-cache@v1
 
-    # Run build
-    - name: Cache build
-      uses: Swatinem/rust-cache@v2
+      - name: Install Linux dependencies
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y pkg-config build-essential libudev-dev jq
+        shell: bash
 
-    - name: Install Linux dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y pkg-config build-essential libudev-dev jq
-      shell: bash
+      # Install Solana
+      - name: Cache Solana binaries
+        id: solana-cache
+        uses: actions/cache@v3
+        with:
+            path: |
+                ~/.cache/solana
+                ~/.local/share/solana/install
+            key: ${{ runner.os }}-${{ inputs.solana-cli-version }}
 
-    # Install Solana
-    - name: Cache Solana binaries
-      id: solana-cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/solana
-          ~/.local/share/solana/install
-        key: ${{ runner.os }}-${{ inputs.solana-cli-version }}
+      - name: Install Solana
+        if: steps.solana-cache.outputs.cache-hit != 'true'
+        run: sh -c "$(curl -sSfL https://release.solana.com/v${{inputs.solana-cli-version}}/install)"
+        shell: bash
 
-    - name: Install Solana
-      if: steps.solana-cache.outputs.cache-hit != 'true'
-      run: sh -c "$(curl -sSfL https://release.solana.com/v${{inputs.solana-cli-version}}/install)"
-      shell: bash
+      - name: Setup Solana Path
+        run: |
+            mkdir -p ~/.config/solana/
+            echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+            export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
+            solana config set --url localhost
+            solana config get
+        shell: bash
 
-    - name: Setup Solana Path
-      run: |
-        mkdir -p ~/.config/solana/
-        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-        export PATH="/home/runner/.local/share/solana/install/active_release/bin:$PATH"
-        solana config set --url localhost
-        solana config get
-      shell: bash
+      # Setup default keypair
+      - name: Copy keypair from inputs
+        if: ${{ inputs.solana-default-keypair != '' }}
+        run: echo ${{ inputs.solana-default-keypair }} > ~/.config/solana/id.json
+        shell: bash
+      - name: Generate random keypair
+        if: ${{ inputs.solana-default-keypair == '' }}
+        run: solana-keygen new --no-bip39-passphrase
+        shell: bash
 
-    # Setup default keypair
-    - name: Copy keypair from inputs
-      if: ${{ inputs.solana-default-keypair != '' }}
-      run: echo ${{ inputs.solana-default-keypair }} > ~/.config/solana/id.json
-      shell: bash
-    - name: Generate random keypair
-      if: ${{ inputs.solana-default-keypair == '' }}
-      run: solana-keygen new --no-bip39-passphrase
-      shell: bash
+      - name: Cargo Target Cache
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
+            ${{ runner.os }}-c-target
+      
+      # Install Node
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: https://registry.npmjs.org/
+          cache: 'yarn'
 
-    - name: Cargo Target Cache
-      uses: actions/cache@v4
-      with:
-        path: target
-        key: ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
-        restore-keys: |
-          ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
-          ${{ runner.os }}-c-target
+      # Yarn Cache      
+      - name: Cache packages
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
-    # Install Node
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ inputs.node-version }}
-        registry-url: https://registry.npmjs.org/
-        cache: 'yarn'
-
-    # Yarn Cache
-    - name: Cache packages
-      uses: actions/cache@v4
-      with:
-        path: '**/node_modules'
-        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-
-    # Install Anchor
-    - name: Install Anchor
-      run: yarn global add @project-serum/anchor-cli@${{ inputs.anchor-cli-version }}
-      shell: bash
+      # Install Anchor
+      - name: Install Anchor
+        run: yarn global add @project-serum/anchor-cli@${{ inputs.anchor-cli-version }}
+        shell: bash

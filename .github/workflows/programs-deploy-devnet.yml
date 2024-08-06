@@ -20,21 +20,21 @@ on:
   workflow_dispatch:
 
 env:
-  SOLANA_VERSION: '1.18.20'
-  ANCHOR_VERSION: '0.24.2'
-  RUST_TOOLCHAIN: 'stable'
-  NODE_VERSION: '20'
-  PROGRAM_NAME: 'msp'
+  SOLANA_VERSION: "1.13.4"
+  ANCHOR_VERSION: "0.24.2"
+  RUST_TOOLCHAIN: "stable"
+  NODE_VERSION: "16"
+  PROGRAM_NAME: "msp"
   MINIMUM_SOL_NEEDED: 6
   BUILD_NUMBER: $GITHUB_RUN_NUMBER
-
+  
 jobs:
   build:
     name: Build
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -56,16 +56,16 @@ jobs:
     needs: [build]
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Sec3 Pro Audit
         id: sec3-scan
-        continue-on-error: true # set to true if you don't want to fail jobs
+        continue-on-error: true    # set to true if you don't want to fail jobs
         uses: sec3dev/pro-action@v1
         with:
           path: programs/msp
           sec3-token: ${{ secrets.SEC3_TOKEN }}
       - name: Upload Sarif Report
-        continue-on-error: true # set to true if you don't want to fail jobs
+        continue-on-error: true    # set to true if you don't want to fail jobs
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: sec3-report.sarif
@@ -81,11 +81,11 @@ jobs:
     environment:
       name: devnet
     env:
-      CLUSTER: 'devnet'
+      CLUSTER: "devnet"
       RPC_URL: ${{ secrets.DEVNET_RPC_URL }}
       MULTISIG_AUTHORITY_ADDRESS: ${{ secrets.DEVNET_MULTISIG_AUTHORITY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -103,7 +103,7 @@ jobs:
           retry_on: error
           max_attempts: 3
           command: ./deploy.devnet.sh
-
+      
       # Print outputs
       - name: Print buffer account
         run: |
