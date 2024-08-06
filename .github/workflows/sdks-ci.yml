@@ -24,7 +24,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -39,7 +39,7 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -60,7 +60,7 @@ jobs:
     needs: [run-sdk-tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download SDK Test Coverage Report
