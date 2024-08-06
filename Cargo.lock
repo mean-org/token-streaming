@@ -1761,6 +1761,7 @@ dependencies = [
  "anchor-client",
  "anchor-lang",
  "anchor-spl",
+ "getrandom 0.2.15",
  "proc-macro2 1.0.86",
  "solana-program",
  "solana-program-test",
