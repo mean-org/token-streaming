@@ -14,7 +14,7 @@ inputs:
   node-version:
     description: 'Node version'
     required: false
-    default: 18
+    default: 20
   solana-default-keypair:
     description: 'Solana default keypair'
     required: false
@@ -23,11 +23,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # Install Rust
     - name: Cache Cargo registry + index
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: cache-cargo
       with:
         path: |
@@ -46,7 +46,7 @@ runs:
 
     # Run build
     - name: Cache build
-      uses: Swatinem/rust-cache@v1
+      uses: Swatinem/rust-cache@v2
 
     - name: Install Linux dependencies
       run: |
@@ -57,7 +57,7 @@ runs:
     # Install Solana
     - name: Cache Solana binaries
       id: solana-cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/solana
@@ -89,7 +89,7 @@ runs:
       shell: bash
 
     - name: Cargo Target Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: target
         key: ${{ runner.os }}-c-target-${{ hashFiles('**/programs/msp/Cargo.toml') }}
@@ -99,7 +99,7 @@ runs:
 
     # Install Node
     - name: Setup Node
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         registry-url: https://registry.npmjs.org/
@@ -107,7 +107,7 @@ runs:
 
     # Yarn Cache
     - name: Cache packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: '**/node_modules'
         key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
