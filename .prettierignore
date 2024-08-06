@@ -5,3 +5,5 @@ target
 node_modules
 test_scripts
 tests/workspace.ts
+**/*.yaml
+**/*.yml
