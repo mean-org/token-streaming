@@ -79,10 +79,6 @@ runs:
       #   run: sh -c "$(curl -sSfL https://release.solana.com/v${{inputs.solana-cli-version}}/install)"
       #   shell: bash
 
-      # - uses: metadaoproject/setup-solana@v1.0
-      #   with:
-      #     solana-cli-version: ${{inputs.solana-cli-version}}
-
       - name: Setup Solana Path
         run: |
             mkdir -p ~/.config/solana/
