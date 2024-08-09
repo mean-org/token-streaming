@@ -79,6 +79,11 @@ echo
 # echo
 
 echo
+echo "CLI version"
+solana --version
+echo
+
+echo
 echo "Running tests..."
 yarn test-coverage
 echo
