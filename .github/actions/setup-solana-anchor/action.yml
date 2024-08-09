@@ -64,10 +64,19 @@ runs:
                 ~/.local/share/solana/install
             key: ${{ runner.os }}-${{ inputs.solana-cli-version }}
 
-      - name: Install Solana
+      - name: Download and Install Solana CLI
         if: steps.solana-cache.outputs.cache-hit != 'true'
-        run: sh -c "$(curl -sSfL https://release.solana.com/v${{inputs.solana-cli-version}}/install)"
+        run: |
+          curl -L -o solana.tar.bz2 https://github.com/solana-labs/solana/releases/download/v${{inputs.solana-cli-version}}/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+          tar -xjf solana.tar.bz2
+          mv -f solana-release/bin/* $HOME/.local/share/solana/install/active_release/bin
+          rm -rf solana.tar.bz2 solana-install
         shell: bash
+
+      # - name: Install Solana
+      #   if: steps.solana-cache.outputs.cache-hit != 'true'
+      #   run: sh -c "$(curl -sSfL https://release.solana.com/v${{inputs.solana-cli-version}}/install)"
+      #   shell: bash
 
       # - uses: metadaoproject/setup-solana@v1.0
       #   with:

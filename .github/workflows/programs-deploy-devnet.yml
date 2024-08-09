@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
 
 env:
-  SOLANA_VERSION: "1.17.5"
+  SOLANA_VERSION: "1.13.4"
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
   NODE_VERSION: "20"
