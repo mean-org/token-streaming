@@ -54,7 +54,7 @@ type RawStreamTemplate = IdlAccounts<Ps>['streamTemplate'];
 // See https://github.com/coral-xyz/anchor/issues/2050
 // See https://github.com/coral-xyz/anchor/pull/2185
 // type RawStreamEvent = IdlEvent<Msp>[];
-import { bs58 } from '@project-serum/anchor/dist/cjs/utils/bytes';
+import bs58 from 'bs58';
 import {
   AnchorProvider,
   Wallet,
@@ -143,7 +143,7 @@ export async function getStreamEventData(
     const event: StreamEventData = streamEventResponse.events[0].data;
 
     return event;
-  } catch (error: any) {
+  } catch {
     return null;
   }
 }

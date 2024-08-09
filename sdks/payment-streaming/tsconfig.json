@@ -11,6 +11,7 @@
         "allowJs": true,
         "useUnknownInCatchVariables": false,
         "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node",
         "module": "commonjs",
         "strict": true,
         "sourceMap": false,
@@ -18,6 +19,10 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true
+    },
+    "ts-node": {
+        "esm": true,
+        "experimentalSpecifierResolution": "node"
     },
     "$schema": "https://json.schemastore.org/tsconfig",
     "display": "Recommended",

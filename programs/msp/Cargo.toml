@@ -17,11 +17,10 @@ test = []
 test-bpf = []
 
 [dependencies]
-proc-macro2 = "1.0.86"
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.1.14", features = ["dummy"] }
 anchor-lang = { version = "0.24.2", features = ["init-if-needed"] }
 anchor-spl = "0.24.2"
-solana-program = "~1.18.20"
+solana-program = "1.9.29"
 spl-token = { version = "3.1.1", features = ["no-entrypoint"] }
 
 [dev-dependencies]

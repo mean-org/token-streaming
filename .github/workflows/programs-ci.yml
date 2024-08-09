@@ -17,17 +17,17 @@ on:
   workflow_dispatch:
 
 env:
-  SOLANA_VERSION: "1.13.4"
+  SOLANA_VERSION: "1.9.29"
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
-  NODE_VERSION: "16"
-  
+  NODE_VERSION: "20"
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -38,7 +38,7 @@ jobs:
 
       # Run build
       - name: Cache build
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
       # - name: Run clippy
       #   run: cargo clippy -- -D warnings -A clippy::too_many_arguments
 
@@ -49,7 +49,7 @@ jobs:
     environment:
         name: localnet
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-solana-anchor
 
       # Rust Unit tests
@@ -67,7 +67,7 @@ jobs:
     needs: [tests]
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Sec3 Pro Audit
         id: sec3-scan
         continue-on-error: true    # set to true if you don't want to fail jobs

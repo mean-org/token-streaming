@@ -330,7 +330,7 @@ export class PaymentStreaming {
           );
           if (!beneficiaryTokenInfo)
             throw Error('Reciever is not a token account');
-        } catch (error) {
+        } catch {
           throw Error('Reciever is not a token account');
         }
       }
@@ -1900,7 +1900,7 @@ export class PaymentStreaming {
     //check the address validity
     try {
       pkAddress = new PublicKey(address);
-    } catch (error) {
+    } catch {
       return WARNING_TYPES.INVALID_ADDRESS;
     }
 
@@ -1916,7 +1916,7 @@ export class PaymentStreaming {
       if (!accountInfo || !accountInfo.owner.equals(SystemProgram.programId)) {
         return WARNING_TYPES.WARNING;
       }
-    } catch (error) {
+    } catch {
       return WARNING_TYPES.WARNING;
     }
 
