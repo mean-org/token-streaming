@@ -66,7 +66,7 @@ runs:
 
       - name: Install Solana
         if: steps.solana-cache.outputs.cache-hit != 'true'
-        run: sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+        run: sh -c "$(curl -sSfL https://release.solana.com/v${{inputs.solana-cli-version}}/install)"
         shell: bash
 
       # - uses: metadaoproject/setup-solana@v1.0
