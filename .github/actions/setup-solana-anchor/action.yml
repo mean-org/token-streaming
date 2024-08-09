@@ -22,6 +22,7 @@ inputs:
 
 runs:
   using: 'composite'
+  runs-on: linux
   steps:
       - uses: actions/checkout@v4
       
