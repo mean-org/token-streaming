@@ -74,6 +74,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
+            -X
             -Dsonar.verbose=false
             -Dsonar.projectKey=payment-streaming-sdk
             -Dsonar.sources=sdks/payment-streaming/src/
