@@ -1789,7 +1789,7 @@ function printObj(label: string, obj: any) {
 
 function loadKeypair(filePath: string): Keypair {
   return Keypair.fromSecretKey(
-    Buffer.from(
+    Uint8Array.from(
       JSON.parse(
         fs.readFileSync(filePath, {
           encoding: 'utf-8',
