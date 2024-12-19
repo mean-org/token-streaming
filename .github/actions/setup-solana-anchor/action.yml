@@ -14,11 +14,10 @@ inputs:
   node-version:
     description: 'Node version'
     required: false
-    default: 20
+    default: "20"
   solana-default-keypair:
     description: 'Solana default keypair'
     required: false
-    type: string
 
 runs:
   using: 'composite'

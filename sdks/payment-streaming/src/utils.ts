@@ -1,20 +1,4 @@
 import {
-  AccountInfo,
-  ConfirmedSignaturesForAddress2Options,
-  ConfirmOptions,
-  Connection,
-  Finality,
-  GetProgramAccountsFilter,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  ParsedTransactionWithMeta,
-  PartiallyDecodedInstruction,
-  PublicKey,
-  SystemProgram,
-  TransactionInstruction,
-  MemcmpFilter,
-} from '@solana/web3.js';
-import {
   BN,
   BorshInstructionCoder,
   Idl,
@@ -23,28 +7,44 @@ import {
   ProgramAccount,
 } from '@project-serum/anchor';
 import {
+  AccountInfo,
+  ConfirmOptions,
+  Connection,
+  Finality,
+  GetProgramAccountsFilter,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  MemcmpFilter,
+  ParsedTransactionWithMeta,
+  PartiallyDecodedInstruction,
+  PublicKey,
+  SignaturesForAddressOptions,
+  SystemProgram,
+  TransactionInstruction,
+} from '@solana/web3.js';
+import {
   CLIFF_PERCENT_DENOMINATOR,
   CLIFF_PERCENT_NUMERATOR,
   LATEST_IDL_FILE_VERSION,
   SIMULATION_PUBKEY,
 } from './constants';
+import { IDL, Msp as Ps } from './msp_idl_005'; // point to the latest IDL
 import {
-  Category,
-  ACTION_CODES,
-  PaymentStreamingAccount,
+  AccountActivity,
   AccountType,
+  ACTION_CODES,
+  ActivityActionCode,
+  ActivityRaw,
+  Category,
+  PaymentStreamingAccount,
   Stream,
+  STREAM_STATUS_CODE,
   StreamActivity,
   StreamEventData,
   StreamTemplate,
   SubCategory,
   TransactionFees,
-  AccountActivity,
-  ActivityRaw,
-  ActivityActionCode,
-  STREAM_STATUS_CODE,
 } from './types';
-import { IDL, Msp as Ps } from './msp_idl_005'; // point to the latest IDL
 // Given an IDL type IDL we can derive Typescript types for its accounts
 // using eg. IdlAccounts<IDL>['ACCOUNT_NAME']
 type RawStream = IdlAccounts<Ps>['stream'];
@@ -54,25 +54,25 @@ type RawStreamTemplate = IdlAccounts<Ps>['streamTemplate'];
 // See https://github.com/coral-xyz/anchor/issues/2050
 // See https://github.com/coral-xyz/anchor/pull/2185
 // type RawStreamEvent = IdlEvent<Msp>[];
-import bs58 from 'bs58';
+import * as anchor from '@project-serum/anchor';
 import {
   AnchorProvider,
   Wallet,
 } from '@project-serum/anchor/dist/cjs/provider';
 import {
   AccountLayout,
-  getMinimumBalanceForRentExemptAccount,
+  createAssociatedTokenAccountInstruction,
+  createCloseAccountInstruction,
   createInitializeAccountInstruction,
+  createSyncNativeInstruction,
   createTransferInstruction,
+  getAssociatedTokenAddress,
+  getMinimumBalanceForRentExemptAccount,
   NATIVE_MINT,
   TOKEN_PROGRAM_ID,
-  createCloseAccountInstruction,
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  createSyncNativeInstruction,
 } from '@solana/spl-token';
-import * as anchor from '@project-serum/anchor';
 import BigNumber from 'bignumber.js';
+import bs58 from 'bs58';
 
 String.prototype.toPublicKey = function (): PublicKey {
   return new PublicKey(this.toString());
@@ -241,12 +241,12 @@ export const listStreamActivity = async (
 ): Promise<StreamActivity[]> => {
   let activityRaw: ActivityRaw[] = [];
   const finality = commitment !== undefined ? commitment : 'confirmed';
-  const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
+  const filter = { limit } as SignaturesForAddressOptions;
   if (before) {
     filter['before'] = before;
   }
   const signatures =
-    await program.provider.connection.getConfirmedSignaturesForAddress2(
+    await program.provider.connection.getSignaturesForAddress(
       address,
       filter,
       finality,
@@ -1260,12 +1260,12 @@ export const listAccountActivity = async (
 ): Promise<AccountActivity[]> => {
   let activityRaw: ActivityRaw[] = [];
   const finality = commitment !== undefined ? commitment : 'confirmed';
-  const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
+  const filter = { limit: limit } as SignaturesForAddressOptions;
   if (before) {
     filter['before'] = before;
   }
   const signatures =
-    await program.provider.connection.getConfirmedSignaturesForAddress2(
+    await program.provider.connection.getSignaturesForAddress(
       address,
       filter,
       finality,
