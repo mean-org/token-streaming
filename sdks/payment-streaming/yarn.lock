@@ -136,10 +136,10 @@
   dependencies:
     "@babel/types" "^7.25.2"
 
-"@babel/runtime@^7.24.8":
-  version "7.26.0"
-  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.26.0.tgz#8600c2f595f277c60815256418b85356a65173c1"
-  integrity sha512-FDSOghenHTiToteC/QRlv2q3DhPZ/oOXTBoirfWNx1Cx3TMVcGWQtMMmQcSvb/JjpNeGzx8Pq/b4fKEJuWm1sw==
+"@babel/runtime@^7.24.7":
+  version "7.25.0"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.25.0.tgz#3af9a91c1b739c569d5d80cc917280919c544ecb"
+  integrity sha512-7dRy4DwXwtzBrPbZflqxnvfxLF8kdZXPkhymtDeFoFqE6ldzjQFgYTtYIFARcLEYDrqfBfYcZt1WqFxRoyC9Rw==
   dependencies:
     regenerator-runtime "^0.14.0"
 
@@ -512,12 +512,12 @@
   dependencies:
     buffer "^6.0.3"
 
-"@solana/web3.js@1.95.1", "@solana/web3.js@^1.32.0", "@solana/web3.js@^1.36.0":
-  version "1.95.1"
-  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.95.1.tgz#fcbbaf845309ff7ceb8d3726702799e8c27530e8"
-  integrity sha512-mRX/AjV6QbiOXpWcy5Rz1ZWEH2lVkwO7T0pcv9t97ACpv3/i3tPiqXwk0JIZgSR3wOSTiT26JfygnJH2ulS6dQ==
+"@solana/web3.js@1.95.0", "@solana/web3.js@^1.32.0", "@solana/web3.js@^1.36.0":
+  version "1.95.0"
+  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.95.0.tgz#9cf08383e7dcba212a73d78349cf9b25bc34764f"
+  integrity sha512-iHwJ/HcWrF9qbnI1ctwI1UXHJ0vZXRpnt+lI5UcQIk8WvJNuQ5gV06icxzM6B7ojUES85Q1/FM4jZ49UQ8yZZQ==
   dependencies:
-    "@babel/runtime" "^7.24.8"
+    "@babel/runtime" "^7.24.7"
     "@noble/curves" "^1.4.2"
     "@noble/hashes" "^1.4.0"
     "@solana/buffer-layout" "^4.0.1"
@@ -528,7 +528,7 @@
     bs58 "^4.0.1"
     buffer "6.0.3"
     fast-stable-stringify "^1.0.0"
-    jayson "^4.1.1"
+    jayson "^4.1.0"
     node-fetch "^2.7.0"
     rpc-websockets "^9.0.2"
     superstruct "^2.0.2"
@@ -1002,7 +1002,7 @@ brace-expansion@^2.0.1:
   dependencies:
     balanced-match "^1.0.0"
 
-braces@3.0.3, braces@^3.0.3, braces@~3.0.2:
+braces@3.0.3, braces@^3.0.2, braces@~3.0.2:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/braces/-/braces-3.0.3.tgz#490332f40919452272d55a8480adc0c441358789"
   integrity sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==
@@ -1248,10 +1248,10 @@ cross-fetch@^3.1.5:
   dependencies:
     node-fetch "2.6.7"
 
-cross-spawn@7.0.6, cross-spawn@^7.0.0, cross-spawn@^7.0.2, cross-spawn@^7.0.3:
-  version "7.0.6"
-  resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-7.0.6.tgz#8a58fe78f00dcd70c370451759dfbfaf03e8ee9f"
-  integrity sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==
+cross-spawn@^7.0.0, cross-spawn@^7.0.2, cross-spawn@^7.0.3:
+  version "7.0.3"
+  resolved "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.3.tgz"
+  integrity sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==
   dependencies:
     path-key "^3.1.0"
     shebang-command "^2.0.0"
@@ -1971,10 +1971,10 @@ istanbul-reports@^3.0.2:
     html-escaper "^2.0.0"
     istanbul-lib-report "^3.0.0"
 
-jayson@^4.1.1:
-  version "4.1.3"
-  resolved "https://registry.yarnpkg.com/jayson/-/jayson-4.1.3.tgz#db9be2e4287d9fef4fc05b5fe367abe792c2eee8"
-  integrity sha512-LtXh5aYZodBZ9Fc3j6f2w+MTNcnxteMOrb+QgIouguGOulWi0lieEkOUg+HkjjFs0DGoWDds6bi4E9hpNFLulQ==
+jayson@^4.1.0:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/jayson/-/jayson-4.1.1.tgz#282ff13d3cea09776db684b7eeca98c47b2fa99a"
+  integrity sha512-5ZWm4Q/0DHPyeMfAsrwViwUS2DMVsQgWh8bEEIVTkfb3DzHZ2L3G5WUnF+AKmGjjM9r1uAv73SaqC1/U4RL45w==
   dependencies:
     "@types/connect" "^3.4.33"
     "@types/node" "^12.12.54"
@@ -2157,12 +2157,12 @@ merge2@^1.3.0, merge2@^1.4.1:
   resolved "https://registry.npmjs.org/merge2/-/merge2-1.4.1.tgz"
   integrity sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==
 
-micromatch@4.0.8, micromatch@^4.0.4:
-  version "4.0.8"
-  resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-4.0.8.tgz#d66fa18f3a47076789320b9b1af32bd86d9fa202"
-  integrity sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==
+micromatch@^4.0.4:
+  version "4.0.5"
+  resolved "https://registry.npmjs.org/micromatch/-/micromatch-4.0.5.tgz"
+  integrity sha512-DMy+ERcEW2q8Z2Po+WNXuw3c5YaUSFjAO5GsJqfEl7UjvtIuFKO6ZrKvcItdy98dwFI2N1tg3zNIdKaQT+aNdA==
   dependencies:
-    braces "^3.0.3"
+    braces "^3.0.2"
     picomatch "^2.3.1"
 
 minimatch@^3.0.4, minimatch@^3.0.5, minimatch@^3.1.1, minimatch@^3.1.2:

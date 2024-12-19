@@ -570,7 +570,7 @@ describe('msp-pda-streams', () => {
             treasurySlot,
         } = await prepareTreasury({ program, fromTokenClient, treasurerKey });
 
-        const [template, templateBump] = PublicKey.findProgramAddressSync(
+        const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
           [anchor.utils.bytes.utf8.encode('template'), treasury.toBuffer()],
           program.programId
         );
@@ -710,7 +710,7 @@ describe('msp-pda-streams', () => {
             treasurySlot,
         } = await prepareTreasury({ program, fromTokenClient, treasurerKey });
 
-        const [template, templateBump] = PublicKey.findProgramAddressSync(
+        const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
           [anchor.utils.bytes.utf8.encode('template'), treasury.toBuffer()],
           program.programId
         );
@@ -859,7 +859,7 @@ describe('msp-pda-streams', () => {
             treasurySlot,
         } = await prepareTreasury({ program, fromTokenClient, treasurerKey });
 
-        const [template, templateBump] = PublicKey.findProgramAddressSync(
+        const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
           [anchor.utils.bytes.utf8.encode('template'), treasury.toBuffer()],
           program.programId
         );
@@ -1107,7 +1107,7 @@ async function prepareTreasury(p: {
     treasurySlot: number,
 }> {
     const treasurySlot = await p.program.provider.connection.getSlot('confirmed');
-    const [treasury, treasuryBump] = PublicKey.findProgramAddressSync(
+    const [treasury, treasuryBump] = await anchor.web3.PublicKey.findProgramAddress(
         [p.treasurerKey.publicKey.toBuffer(), new BN(treasurySlot).toBuffer('le', 8)],
         p.program.programId
     );
@@ -1178,7 +1178,7 @@ async function preparePdaStream(p: {
 
     const streamPdaSeed = Keypair.generate().publicKey;
 
-    const [stream, streamBump] = PublicKey.findProgramAddressSync(
+    const [stream, streamBump] = await anchor.web3.PublicKey.findProgramAddress(
         // [Buffer.from(anchor.utils.bytes.utf8.encode('stream')), this.treasury.toBuffer(), streamPdaSeed.toBuffer()],
         [Buffer.from('stream'), p.treasury.toBuffer(), streamPdaSeed.toBuffer()],
         p.programId
