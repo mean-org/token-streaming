@@ -71,7 +71,7 @@ export async function buildCreateAccountInstruction(
     owner,
   );
 
-  const [psAccount] = await PublicKey.findProgramAddress(
+  const [psAccount] = PublicKey.findProgramAddressSync(
     psAccountSeeds,
     program.programId,
   );
@@ -333,7 +333,7 @@ export async function buildCreateStreamInstruction(
 
   if (usePda) {
     const streamPdaSeed = Keypair.generate().publicKey;
-    const [streamPda] = await PublicKey.findProgramAddress(
+    const [streamPda] = PublicKey.findProgramAddressSync(
       [Buffer.from('stream'), psAccount.toBuffer(), streamPdaSeed.toBuffer()],
       program.programId,
     );
@@ -512,7 +512,7 @@ export async function buildCreateAccountAndTemplateInstruction(
     owner,
   );
 
-  const [psAccount] = await PublicKey.findProgramAddress(
+  const [psAccount] = PublicKey.findProgramAddressSync(
     psAccountSeeds,
     program.programId,
   );
@@ -526,7 +526,7 @@ export async function buildCreateAccountAndTemplateInstruction(
   );
 
   // Template address
-  const [template] = await PublicKey.findProgramAddress(
+  const [template] = PublicKey.findProgramAddressSync(
     [utils.bytes.utf8.encode('template'), psAccount.toBuffer()],
     program.programId,
   );
@@ -695,7 +695,7 @@ export async function buildCreateStreamWithTemplateInstruction(
 
   if (usePda) {
     const streamPdaSeed = Keypair.generate().publicKey;
-    const [streamPda] = await PublicKey.findProgramAddress(
+    const [streamPda] = PublicKey.findProgramAddressSync(
       [Buffer.from('stream'), psAccount.toBuffer(), streamPdaSeed.toBuffer()],
       program.programId,
     );

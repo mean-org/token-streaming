@@ -1,6 +1,5 @@
 import {
   AccountInfo,
-  ConfirmedSignaturesForAddress2Options,
   ConfirmOptions,
   Connection,
   Finality,
@@ -13,6 +12,7 @@ import {
   SystemProgram,
   TransactionInstruction,
   MemcmpFilter,
+  SignaturesForAddressOptions,
 } from '@solana/web3.js';
 import {
   BN,
@@ -236,12 +236,12 @@ export const listStreamActivity = async (
 ): Promise<StreamActivity[]> => {
   let activityRaw: ActivityRaw[] = [];
   const finality = commitment !== undefined ? commitment : 'confirmed';
-  const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
+  const filter = { limit } as SignaturesForAddressOptions;
   if (before) {
     filter['before'] = before;
   }
   const signatures =
-    await program.provider.connection.getConfirmedSignaturesForAddress2(
+    await program.provider.connection.getSignaturesForAddress(
       address,
       filter,
       finality,
@@ -310,11 +310,11 @@ export const getStreamTemplate = async (
   return parseStreamTemplateData(template, address);
 };
 
-export const findStreamTemplateAddress = async (
+export const findStreamTemplateAddress = (
   psAccount: PublicKey,
   programId: PublicKey,
-): Promise<[PublicKey, number]> => {
-  return anchor.web3.PublicKey.findProgramAddress(
+): [PublicKey, number] => {
+  return PublicKey.findProgramAddressSync(
     [anchor.utils.bytes.utf8.encode('template'), psAccount.toBuffer()],
     programId,
   );
@@ -1256,12 +1256,12 @@ export const listAccountActivity = async (
 ): Promise<AccountActivity[]> => {
   let activityRaw: ActivityRaw[] = [];
   const finality = commitment !== undefined ? commitment : 'confirmed';
-  const filter = { limit: limit } as ConfirmedSignaturesForAddress2Options;
+  const filter = { limit } as SignaturesForAddressOptions;
   if (before) {
     filter['before'] = before;
   }
   const signatures =
-    await program.provider.connection.getConfirmedSignaturesForAddress2(
+    await program.provider.connection.getSignaturesForAddress(
       address,
       filter,
       finality,
