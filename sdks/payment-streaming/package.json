@@ -26,7 +26,6 @@
   ],
   "scripts": {
     "build": "tsc",
-    "prebuild": "yarn clean",
     "clean": "rm -R ./lib",
     "start": "ts-node main.ts",
     "lint": "eslint . --ext .ts",
