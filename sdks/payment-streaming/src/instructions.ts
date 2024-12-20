@@ -1,5 +1,5 @@
-import { BN, Program, utils } from '@project-serum/anchor';
-import { Token } from '@solana/spl-token';
+import { Program, utils } from '@project-serum/anchor';
+import { getAssociatedTokenAddress } from '@solana/spl-token';
 import {
   PublicKey,
   Keypair,
@@ -14,6 +14,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   TOKEN_PROGRAM_ID,
 } from './constants';
+import BN from 'bn.js';
 
 import { Msp as Ps } from './msp_idl_005';
 import { Category, AccountType, SubCategory } from './types';
@@ -71,18 +72,12 @@ export async function buildCreateAccountInstruction(
     owner,
   );
 
-  const [psAccount] = await PublicKey.findProgramAddress(
+  const [psAccount] = PublicKey.findProgramAddressSync(
     psAccountSeeds,
     program.programId,
   );
 
-  const psAccountToken = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    mint,
-    psAccount,
-    true,
-  );
+  const psAccountToken = await getAssociatedTokenAddress(mint, psAccount, true);
 
   const instruction = await program.methods
     .createTreasury(
@@ -202,8 +197,8 @@ export async function buildAddFundsInstruction(
     .addFunds(LATEST_IDL_FILE_VERSION, amount)
     .accounts({
       payer: feePayer,
-      contributor: contributor,
-      contributorToken: contributorToken,
+      contributor,
+      contributorToken,
       treasury: psAccount,
       treasuryToken: psAccountToken,
       associatedToken: psAccountMint,
@@ -333,7 +328,7 @@ export async function buildCreateStreamInstruction(
 
   if (usePda) {
     const streamPdaSeed = Keypair.generate().publicKey;
-    const [streamPda] = await PublicKey.findProgramAddress(
+    const [streamPda] = PublicKey.findProgramAddressSync(
       [Buffer.from('stream'), psAccount.toBuffer(), streamPdaSeed.toBuffer()],
       program.programId,
     );
@@ -512,21 +507,15 @@ export async function buildCreateAccountAndTemplateInstruction(
     owner,
   );
 
-  const [psAccount] = await PublicKey.findProgramAddress(
+  const [psAccount] = PublicKey.findProgramAddressSync(
     psAccountSeeds,
     program.programId,
   );
 
-  const psAccountToken = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    mint,
-    psAccount,
-    true,
-  );
+  const psAccountToken = await getAssociatedTokenAddress(mint, psAccount, true);
 
   // Template address
-  const [template] = await PublicKey.findProgramAddress(
+  const [template] = PublicKey.findProgramAddressSync(
     [utils.bytes.utf8.encode('template'), psAccount.toBuffer()],
     program.programId,
   );
@@ -695,7 +684,7 @@ export async function buildCreateStreamWithTemplateInstruction(
 
   if (usePda) {
     const streamPdaSeed = Keypair.generate().publicKey;
-    const [streamPda] = await PublicKey.findProgramAddress(
+    const [streamPda] = PublicKey.findProgramAddressSync(
       [Buffer.from('stream'), psAccount.toBuffer(), streamPdaSeed.toBuffer()],
       program.programId,
     );
@@ -1341,13 +1330,7 @@ async function ensureAssociatedTokenAddress(
   if (associatedToken) {
     return associatedToken;
   }
-  return Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    mint,
-    owner,
-    true,
-  );
+  return getAssociatedTokenAddress(mint, owner, true);
 }
 
 //#endregion

@@ -61,8 +61,8 @@ async function runExample(): Promise<void> {
   const { transaction: createAccountTx, psAccount } =
     await psClient.buildCreateAccountTransaction(
       {
-        owner: owner, // authority over the newly created account
-        mint: mint, // mint that will be streamed out of this account
+        owner, // authority over the newly created account
+        mint, // mint that will be streamed out of this account
       },
       'Airdrop', // name (label for the new account)
       AccountType.Open, // type (account type)
@@ -85,7 +85,7 @@ async function runExample(): Promise<void> {
   const { transaction: addFundsTx } =
     await psClient.buildAddFundsToAccountTransaction(
       {
-        psAccount: psAccount,
+        psAccount,
         psAccountMint: mint,
         contributor: owner, // account authorizing the funds to be added
       }, // account paying for rent and SOL protocol fees
@@ -108,7 +108,7 @@ async function runExample(): Promise<void> {
     await psClient.buildCreateStreamTransaction(
       {
         psAccount: psAccount,
-        owner: owner, // owner of the cointaining PS account
+        owner, // owner of the cointaining PS account
         beneficiary: beneficiary1,
       },
       'Airdrop for Alice', // name
@@ -135,7 +135,7 @@ async function runExample(): Promise<void> {
     await psClient.buildCreateStreamTransaction(
       {
         psAccount: psAccount,
-        owner: owner, // owner of the cointaining PS account
+        owner, // owner of the cointaining PS account
         beneficiary: beneficiary1,
       },
       'Airdrop for Bob', // name

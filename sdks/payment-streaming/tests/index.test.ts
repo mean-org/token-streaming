@@ -29,6 +29,7 @@ import {
   WARNING_TYPES,
   SYSTEM_PROGRAM_ID,
   calculateFeesForAction,
+  NATIVE_WSOL_MINT,
 } from '../src';
 import {
   Category,
@@ -38,11 +39,16 @@ import {
   STREAM_STATUS_CODE,
   ActivityActionCode,
   ACTION_CODES,
-  Stream,
 } from '../src/types';
 import BN from 'bn.js';
-import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
-import { ASSOCIATED_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
+import {
+  createAssociatedTokenAccount,
+  createMint,
+  getAccount,
+  getAssociatedTokenAddress,
+  mintToChecked,
+} from '@solana/spl-token';
+import { getOrCreateAssociatedAccountInfo } from './utils';
 
 const ZERO_BN = new BN(0);
 
@@ -128,7 +134,7 @@ const endpoint = 'http://127.0.0.1:8899';
 const commitment = 'confirmed';
 let ps: PaymentStreaming;
 let psProgram: Program<Ps>;
-let token: Token;
+let token: PublicKey;
 
 describe('PS Tests\n', async () => {
   let connection: Connection;
@@ -151,6 +157,7 @@ describe('PS Tests\n', async () => {
       },
       commitment,
     );
+
     // airdrop some rent sol to the read on-chain data account
     await connection.confirmTransaction(
       {
@@ -197,13 +204,12 @@ describe('PS Tests\n', async () => {
       commitment,
     );
 
-    token = await Token.createMint(
+    token = await createMint(
       connection,
       testPayerKey,
       testPayerKey.publicKey,
       null,
       6,
-      TOKEN_PROGRAM_ID,
     );
 
     ps = new PaymentStreaming(
@@ -214,7 +220,8 @@ describe('PS Tests\n', async () => {
     psProgram = createProgram(connection, PAYMENT_STREAMING_PROGRAM_ID);
 
     console.log();
-    await sleep(20000);
+    await sleep(3000);
+    // await sleep(20000);
   });
 
   it('Fetches stream', async () => {
@@ -378,10 +385,20 @@ describe('PS Tests\n', async () => {
   });
 
   it('Transfers tokens (direct transfer)', async () => {
-    const actors = await setupTestActors({
-      connection: connection,
-      ownerTokenAmount: new BN(1000),
-    });
+    let actors: TestActors | undefined = undefined;
+
+    try {
+      actors = await setupTestActors({
+        connection: connection,
+        ownerTokenAmount: new BN(1000),
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!actors) {
+      throw new Error(`Actors couldn't be initialized. Aborting test`);
+    }
 
     const { transaction: transferTx } = await ps.buildTransferTransaction(
       {
@@ -399,7 +416,8 @@ describe('PS Tests\n', async () => {
       actors.ownerKey,
     );
 
-    const beneficiaryTokenInfo = await actors.token.getAccountInfo(
+    const beneficiaryTokenInfo = await getAccount(
+      connection,
       actors.beneficiaryToken,
     );
     assert.exists(beneficiaryTokenInfo);
@@ -450,10 +468,24 @@ describe('PS Tests\n', async () => {
   });
 
   it('Creates a PS account + add funds + creates 3 streams', async () => {
-    const { ownerKey } = await setupTestActors({
-      connection: connection,
-      ownerLamports: 20 * LAMPORTS_PER_SOL,
-    });
+    let actors: TestActors | undefined = undefined;
+
+    try {
+      actors = await setupTestActors({
+        connection: connection,
+        ownerLamports: 20 * LAMPORTS_PER_SOL,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!actors) {
+      throw new Error(`Actors couldn't be initialized. Aborting test`);
+    }
+
+    const { ownerKey } = actors;
+    let createAccountTxHash = '';
+
     // create a regular PS account
     const psAccountName = `PS-ACCOUNT-${Date.now()}`;
     const {
@@ -469,9 +501,20 @@ describe('PS Tests\n', async () => {
       psAccountName,
       AccountType.Open,
     );
-    psAccount;
 
-    await sendTestTransaction(connection, createAccountTx, [ownerKey]);
+    try {
+      createAccountTxHash = await sendTestTransaction(
+        connection,
+        createAccountTx,
+        [ownerKey],
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!createAccountTxHash) {
+      throw new Error(`Account couldn't be created. Aborting test`);
+    }
 
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
@@ -560,6 +603,8 @@ describe('PS Tests\n', async () => {
       ownerKey,
     );
 
+    // Assert psAccount, toke and all 3 streams
+
     const [
       psAccountInfo,
       psAccountTokenInfo,
@@ -591,11 +636,26 @@ describe('PS Tests\n', async () => {
   });
 
   it('Creates an account (fees payed from account) + add funds', async () => {
-    const { ownerKey } = await setupTestActors({
-      connection: connection,
-      ownerLamports: 20 * LAMPORTS_PER_SOL,
-    });
+    let actors: TestActors | undefined = undefined;
+
+    try {
+      actors = await setupTestActors({
+        connection: connection,
+        ownerLamports: 20 * LAMPORTS_PER_SOL,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!actors) {
+      throw new Error(`Actors couldn't be initialized. Aborting test`);
+    }
+
+    const { ownerKey } = actors;
+    let createAccountTxHash = '';
+
     // create a regular PS account
+    const psAccountName = `PS-ACCOUNT-${Date.now()}`;
     const { transaction: createAccountTx, psAccount } =
       await ps.buildCreateAccountTransaction(
         {
@@ -603,13 +663,23 @@ describe('PS Tests\n', async () => {
           feePayer: ownerKey.publicKey,
           mint: NATIVE_SOL_MINT,
         },
-        '',
+        psAccountName,
         AccountType.Open,
-        true,
       );
-    psAccount;
 
-    await sendTestTransaction(connection, createAccountTx, [ownerKey]);
+    try {
+      createAccountTxHash = await sendTestTransaction(
+        connection,
+        createAccountTx,
+        [ownerKey],
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!createAccountTxHash) {
+      throw new Error(`Account couldn't be created. Aborting test`);
+    }
 
     // add funds to PS account
     const { transaction: addFundsToAccountTx } =
@@ -654,11 +724,22 @@ describe('PS Tests\n', async () => {
       createStream1Tx,
       ownerKey,
     );
+
+    // Assert psAccount and created stream
+
+    const [psAccountInfo, psAccountStream1Info] =
+      await connection.getMultipleAccountsInfo([psAccount, stream1]);
+
+    assert.exists(psAccountInfo);
+    assert.equal(psAccountInfo?.data.length, 300);
+
+    assert.exists(psAccountStream1Info);
+    assert.equal(psAccountStream1Info?.data.length, 500);
   });
 
   it('Withdraws from account (to owner)', async () => {
     // Prepare
-    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+    const { ownerKey, psAccount, ownerToken } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -684,7 +765,7 @@ describe('PS Tests\n', async () => {
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '700');
 
-    const ownerTokenInfo = await token.getAccountInfo(ownerToken);
+    const ownerTokenInfo = await getAccount(connection, ownerToken);
     assert.exists(ownerTokenInfo);
     assert.equal(ownerTokenInfo.amount.toString(), '300');
 
@@ -702,7 +783,7 @@ describe('PS Tests\n', async () => {
 
   it('Withdraws from account (to destination)', async () => {
     // Prepare
-    const { ownerKey, psAccount, token } = await setupAccount({
+    const { ownerKey, psAccount, mint } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -730,7 +811,10 @@ describe('PS Tests\n', async () => {
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '700');
 
-    const destinationTokenInfo = await token.getOrCreateAssociatedAccountInfo(
+    const destinationTokenInfo = await getOrCreateAssociatedAccountInfo(
+      connection,
+      testPayerKey,
+      mint,
       destination,
     );
     assert.exists(destinationTokenInfo);
@@ -739,14 +823,35 @@ describe('PS Tests\n', async () => {
 
   it('Refreshes account data', async () => {
     // Prepare
-    const { ownerKey, psAccount, psAccountToken, token } = await setupAccount({
+    const { ownerKey, psAccount, psAccountToken, mint } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
     });
 
+    let mintToAccountTxHash = '';
+
     // Act
-    await token.mintTo(psAccountToken, testPayerKey, [], 300);
+    try {
+      mintToAccountTxHash = await mintToChecked(
+        connection,
+        testPayerKey,
+        mint,
+        psAccountToken,
+        testPayerKey,
+        300,
+        6,
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (!mintToAccountTxHash) {
+      throw new Error(
+        `Couldn't mint tokens to account: ${psAccountToken.toBase58()}. Aborting test`,
+      );
+    }
+
     let account = await psProgram.account.treasury.fetch(psAccount);
     assert.exists(account);
     assert.equal(account.lastKnownBalanceUnits.toString(), '1000');
@@ -791,7 +896,7 @@ describe('PS Tests\n', async () => {
 
   it('Closes an account (send funds to owner)', async () => {
     // Prepare
-    const { ownerKey, psAccount, ownerToken, token } = await setupAccount({
+    const { ownerKey, psAccount, ownerToken } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -813,14 +918,14 @@ describe('PS Tests\n', async () => {
       psProgram.account.treasury.fetch(psAccount),
     ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
 
-    const ownerTokenInfo = await token.getAccountInfo(ownerToken);
+    const ownerTokenInfo = await getAccount(connection, ownerToken);
     assert.exists(ownerTokenInfo);
     assert.equal(ownerTokenInfo.amount.toString(), '1000');
   });
 
   it('Closes an account (send funds to destination)', async () => {
     // Prepare
-    const { ownerKey, psAccount, token } = await setupAccount({
+    const { ownerKey, psAccount, mint } = await setupAccount({
       connection,
       ownerInitialAmount: 1000,
       accountInitialAmount: 1000,
@@ -845,7 +950,10 @@ describe('PS Tests\n', async () => {
       psProgram.account.treasury.fetch(psAccount),
     ).to.be.rejectedWith(`Account does not exist ${psAccount}`);
 
-    const destinationTokenInfo = await token.getOrCreateAssociatedAccountInfo(
+    const destinationTokenInfo = await getOrCreateAssociatedAccountInfo(
+      connection,
+      testPayerKey,
+      mint,
       destination,
     );
     assert.exists(destinationTokenInfo);
@@ -920,7 +1028,7 @@ describe('PS Tests\n', async () => {
     const { transaction: withdrawFromStreamTx } =
       await ps.buildWithdrawFromStreamTransaction(
         {
-          stream: stream,
+          stream,
         },
         500,
       );
@@ -934,7 +1042,7 @@ describe('PS Tests\n', async () => {
     const psAccountFetched = await psProgram.account.treasury.fetch(psAccount);
     assert.equal(psAccountFetched.lastKnownBalanceUnits.toString(), '1000');
 
-    const psTokenAccountInfo = await token.getAccountInfo(psAccountToken);
+    const psTokenAccountInfo = await getAccount(connection, psAccountToken);
     assert.equal(psTokenAccountInfo.amount.toString(), '1000');
 
     const streamAccount = await psProgram.account.stream.fetch(stream);
@@ -942,7 +1050,8 @@ describe('PS Tests\n', async () => {
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
     assert.equal(streamAccount.lastWithdrawalUnits.toString(), '500');
 
-    const beneficiaryTokenAccountInfo = await token.getAccountInfo(
+    const beneficiaryTokenAccountInfo = await getAccount(
+      connection,
       beneficiaryToken,
     );
     assert.equal(
@@ -978,9 +1087,9 @@ describe('PS Tests\n', async () => {
     // Act
     const { transaction: transferStreamTx } =
       await ps.buildTransferStreamTransaction({
-        stream: stream,
+        stream,
         beneficiary: beneficiaryKey.publicKey,
-        newBeneficiary: newBeneficiary,
+        newBeneficiary,
       });
     await partialSignSendAndConfirmTransaction(
       connection,
@@ -1010,7 +1119,7 @@ describe('PS Tests\n', async () => {
 
     // Act Pause
     const { transaction: pauseTx } = await ps.buildPauseStreamTransaction({
-      stream: stream,
+      stream,
       owner: ownerKey.publicKey,
     });
     await partialSignSendAndConfirmTransaction(connection, pauseTx, ownerKey);
@@ -1025,7 +1134,7 @@ describe('PS Tests\n', async () => {
 
     // Act Resume
     const { transaction: resumeTx } = await ps.buildResumeStreamTransaction({
-      stream: stream,
+      stream,
       owner: ownerKey.publicKey,
     });
     await partialSignSendAndConfirmTransaction(connection, resumeTx, ownerKey);
@@ -1067,7 +1176,7 @@ describe('PS Tests\n', async () => {
     // Act
     const { transaction: closeStreamTx } = await ps.buildCloseStreamTransaction(
       {
-        stream: stream,
+        stream,
       },
     );
     await partialSignSendAndConfirmTransaction(
@@ -1081,7 +1190,8 @@ describe('PS Tests\n', async () => {
       `Account does not exist ${stream}`,
     );
 
-    const beneficiaryTokenAccountInfo = await token.getAccountInfo(
+    const beneficiaryTokenAccountInfo = await getAccount(
+      connection,
       beneficiaryToken,
     );
     assert.equal(
@@ -1115,9 +1225,9 @@ describe('PS Tests\n', async () => {
     const { transaction: allocateToStreamTx } =
       await ps.buildFundStreamTransaction(
         {
-          psAccount: psAccount,
+          psAccount,
           owner: ownerKey.publicKey,
-          stream: stream,
+          stream,
         },
         500,
       );
@@ -1157,9 +1267,9 @@ describe('PS Tests\n', async () => {
     const { transaction: allocateToStreamTx } =
       await ps.buildFundStreamTransaction(
         {
-          psAccount: psAccount,
+          psAccount,
           owner: ownerKey.publicKey,
-          stream: stream,
+          stream,
         },
         501, // 1 for fees and 500 to stay in the account
       );
@@ -1225,8 +1335,8 @@ describe('PS Tests\n', async () => {
       await ps.buildStreamPaymentTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
-          mint: mint,
+          beneficiary,
+          mint,
         },
         "Bob's payment",
         1_000_000,
@@ -1260,7 +1370,7 @@ describe('PS Tests\n', async () => {
     // Act: close stream (and account because autoClose = true)
     const { transaction: closeStreamTx } = await ps.buildCloseStreamTransaction(
       {
-        stream: stream,
+        stream,
         destination: ownerKey.publicKey,
       },
       true,
@@ -1286,11 +1396,11 @@ describe('PS Tests\n', async () => {
       ownerLamports: LAMPORTS_PER_SOL,
     });
 
-    const { transaction: streamPaymentTx } =
+    const { transaction: streamPaymentTx, stream } =
       await ps.buildStreamPaymentTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
+          beneficiary,
           mint: NATIVE_SOL_MINT,
         },
         "Bob's payment",
@@ -1306,6 +1416,22 @@ describe('PS Tests\n', async () => {
       streamPaymentTx,
       ownerKey,
     );
+
+    const streamAccount = await psProgram.account.stream.fetch(stream);
+    assert.exists(streamAccount);
+    assert.equal(
+      streamAccount.treasurerAddress.toBase58(),
+      ownerKey.publicKey.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAddress.toBase58(),
+      beneficiary.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAssociatedToken.toBase58(),
+      NATIVE_WSOL_MINT.toBase58(),
+    );
+    assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000000');
   });
 
   it('Schedules a transfer', async () => {
@@ -1314,14 +1440,15 @@ describe('PS Tests\n', async () => {
       ownerTokenAmount: new BN(1000),
     });
 
-    const startDate = new Date(2050, 1, 1);
+    // Set 1 year ahead
+    const startDate = getFutureDate();
 
     const { transaction: transferTx, stream } =
       await ps.buildScheduleTransferTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
-          mint: mint,
+          beneficiary,
+          mint,
         },
         1000,
         startDate,
@@ -1353,13 +1480,14 @@ describe('PS Tests\n', async () => {
       ownerTokenAmount: new BN(1000),
     });
 
-    const startDate = new Date(2050, 1, 1);
+    // Set 1 year ahead
+    const startDate = getFutureDate();
 
     const { transaction: transferTx, stream } =
       await ps.buildScheduleTransferTransaction(
         {
           owner: ownerKey.publicKey,
-          beneficiary: beneficiary,
+          beneficiary,
           mint: NATIVE_SOL_MINT,
         },
         1000,
@@ -1381,6 +1509,10 @@ describe('PS Tests\n', async () => {
     assert.equal(
       streamAccount.beneficiaryAddress.toBase58(),
       beneficiary.toBase58(),
+    );
+    assert.equal(
+      streamAccount.beneficiaryAssociatedToken.toBase58(),
+      NATIVE_WSOL_MINT.toBase58(),
     );
     assert.equal(streamAccount.allocationAssignedUnits.toString(), '1000');
     assert.equal(streamAccount.startUtc.toNumber(), toUnixTimestamp(startDate));
@@ -1409,6 +1541,10 @@ describe('PS Tests\n', async () => {
       connection: connection,
       ownerLamports: 20 * LAMPORTS_PER_SOL,
     });
+
+    // Set 1 year ahead
+    const startDate = getFutureDate();
+
     // create a vesting account
     const vestingAccountName = `VESTING-ACCOUNT-${Date.now()}`;
     const {
@@ -1423,13 +1559,13 @@ describe('PS Tests\n', async () => {
         mint: NATIVE_SOL_MINT,
       },
       vestingAccountName,
-      AccountType.Open,
+      AccountType.Lock,
       false,
       12,
       TimeUnit.Minute,
       10 * LAMPORTS_PER_SOL,
       SubCategory.seed,
-      new Date(2040, 1, 1),
+      startDate,
       10, // 10 %
     );
 
@@ -1443,7 +1579,7 @@ describe('PS Tests\n', async () => {
       vestingAccount,
     );
     assert.exists(parsedVestingAccount);
-    assert.equal(parsedVestingAccount.treasuryType, AccountType.Open);
+    assert.equal(parsedVestingAccount.treasuryType, AccountType.Lock);
     assert.equal(parsedVestingAccount.category, Category.vesting);
     assert.equal(parsedVestingAccount.subCategory, SubCategory.seed);
     assert.equal(parsedVestingAccount.allocationAssignedUnits.toString(), '0');
@@ -1458,17 +1594,21 @@ describe('PS Tests\n', async () => {
     assert.exists(parsedVestingTemplate);
     assert.equal(parsedVestingTemplate.durationNumberOfUnits.toString(), '12');
     assert.equal(parsedVestingTemplate.rateIntervalInSeconds.toString(), '60');
+    assert.equal(
+      parsedVestingTemplate.startUtcInSeconds.toNumber(),
+      toUnixTimestamp(startDate),
+    );
 
     // update vesting account template
     const { transaction: updateVestinTx } =
       await ps.buildUpdateVestingTemplateTransaction(
         {
           owner: ownerKey.publicKey,
-          vestingAccount: vestingAccount,
+          vestingAccount,
         },
         6,
         TimeUnit.Hour,
-        new Date(2050, 1, 1),
+        getFutureDate(2),
       );
 
     await partialSignSendAndConfirmTransaction(
@@ -1700,6 +1840,11 @@ describe('PS Tests\n', async () => {
 
 //#region UTILS
 
+const getFutureDate = (yearIncrement = 1) => {
+  const year = new Date().getFullYear();
+  return new Date(year + yearIncrement, 1, 1);
+};
+
 async function partialSignSendAndConfirmTransaction(
   connection: Connection,
   transaction: Transaction,
@@ -1806,7 +1951,6 @@ type TestActors = {
   readonly beneficiary: PublicKey;
   readonly beneficiaryKey: Keypair;
   readonly beneficiaryToken: PublicKey;
-  readonly token: Token;
   readonly mint: PublicKey;
 };
 
@@ -1842,24 +1986,19 @@ async function setupTestActors({
     return {
       owner: ownerKey.publicKey,
       ownerKey,
-      ownerToken: await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
+      ownerToken: await getAssociatedTokenAddress(
+        token,
         ownerKey.publicKey,
-        false,
+        true,
       ),
       beneficiary: beneficiaryKey.publicKey,
       beneficiaryKey,
-      beneficiaryToken: await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
+      beneficiaryToken: await getAssociatedTokenAddress(
+        token,
         beneficiaryKey.publicKey,
-        false,
+        true,
       ),
-      token,
-      mint: token.publicKey,
+      mint: token,
     };
   }
 
@@ -1878,13 +2017,21 @@ async function setupTestActors({
   }
 
   if (ownerTokenAmount) {
-    ownerToken = await token.createAssociatedTokenAccount(ownerKey.publicKey);
+    ownerToken = await createAssociatedTokenAccount(
+      connection,
+      ownerKey,
+      token,
+      ownerKey.publicKey,
+    );
     if (ownerTokenAmount.gt(ZERO_BN)) {
-      await token.mintTo(
+      await mintToChecked(
+        connection,
+        testPayerKey,
+        token,
         ownerToken,
         testPayerKey,
-        [],
-        new u64(ownerTokenAmount.toString()),
+        BigInt(ownerTokenAmount.toString()),
+        6,
       );
     }
   }
@@ -1901,15 +2048,21 @@ async function setupTestActors({
   }
 
   if (beneficiaryTokenAmount) {
-    beneficiaryToken = await token.createAssociatedTokenAccount(
-      ownerKey.publicKey,
+    beneficiaryToken = await createAssociatedTokenAccount(
+      connection,
+      ownerKey,
+      token,
+      beneficiaryKey.publicKey,
     );
     if (beneficiaryTokenAmount.gt(ZERO_BN)) {
-      await token.mintTo(
+      await mintToChecked(
+        connection,
+        testPayerKey,
+        token,
         beneficiaryToken,
         testPayerKey,
-        [],
-        new u64(beneficiaryTokenAmount.toString()),
+        BigInt(beneficiaryTokenAmount.toString()),
+        6,
       );
     }
   }
@@ -1919,26 +2072,13 @@ async function setupTestActors({
     ownerKey,
     ownerToken:
       ownerToken ||
-      (await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
-        ownerKey.publicKey,
-        false,
-      )),
+      (await getAssociatedTokenAddress(token, ownerKey.publicKey, true)),
     beneficiary: beneficiaryKey.publicKey,
     beneficiaryKey,
     beneficiaryToken:
       beneficiaryToken ||
-      (await Token.getAssociatedTokenAddress(
-        ASSOCIATED_PROGRAM_ID,
-        TOKEN_PROGRAM_ID,
-        token.publicKey,
-        beneficiaryKey.publicKey,
-        false,
-      )),
-    token,
-    mint: token.publicKey,
+      (await getAssociatedTokenAddress(token, beneficiaryKey.publicKey, true)),
+    mint: token,
   };
 }
 
@@ -2001,8 +2141,8 @@ async function setupAccount({
     await instructions.buildAddFundsInstruction(
       psProgram,
       {
-        psAccount: psAccount,
-        psAccountToken: psAccountToken,
+        psAccount,
+        psAccountToken,
         psAccountMint: mint,
         contributor: ownerKey.publicKey,
         contributorToken: ownerToken,
@@ -2060,36 +2200,7 @@ async function setupAccount({
     beneficiary,
     beneficiaryKey,
     beneficiaryToken,
-    token,
     mint,
-  };
-}
-
-function prettifyStream(stream: Stream) {
-  return {
-    id: stream.id.toBase58(),
-    name: stream.name,
-    startUtc: stream.startUtc,
-    psAccountOwner: stream.psAccountOwner.toBase58(),
-    psAccount: stream.psAccount.toBase58(),
-    beneficiary: stream.psAccount.toBase58(),
-    mint: stream.mint.toBase58(),
-    cliffVestAmount: stream.cliffVestAmount.toString(),
-    cliffVestPercent: stream.cliffVestPercent,
-    allocationAssigned: stream.allocationAssigned.toString(),
-    rateAmount: stream.rateAmount.toString(),
-    rateIntervalInSeconds: stream.rateIntervalInSeconds,
-    totalWithdrawalsAmount: stream.totalWithdrawalsAmount.toString(),
-    fundsLeftInStream: stream.fundsLeftInStream.toString(),
-    fundsSentToBeneficiary: stream.fundsSentToBeneficiary.toString(),
-    remainingAllocationAmount: stream.remainingAllocationAmount.toString(),
-    withdrawableAmount: stream.withdrawableAmount.toString(),
-    streamUnitsPerSecond: stream.streamUnitsPerSecond,
-    isManuallyPaused: stream.isManuallyPaused.toString(),
-    statusCode: stream.statusCode,
-    statusName: stream.statusName,
-    tokenFeePayedFromAccount: stream.tokenFeePayedFromAccount,
-    createdOnUtc: stream.createdOnUtc,
   };
 }
 
