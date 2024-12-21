@@ -17,14 +17,14 @@ env:
   SOLANA_VERSION: "1.13.4"
   ANCHOR_VERSION: "0.24.2"
   RUST_TOOLCHAIN: "stable"
-  NODE_VERSION: "16"
+  NODE_VERSION: "20"
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -39,7 +39,7 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-solana-anchor
         with:
           solana-cli-version: ${{ env.SOLANA_VERSION }}
@@ -50,7 +50,7 @@ jobs:
       - run: cd sdks/payment-streaming && ./run-tests.sh
         name: Run Tests
       - name: Upload SDK Test Coverage Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sdk-test-coverage-lcov-report
           path: sdks/payment-streaming/coverage/lcov.info
@@ -60,11 +60,11 @@ jobs:
     needs: [run-sdk-tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Download SDK Test Coverage Report
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: sdk-test-coverage-lcov-report
           path: sdks/payment-streaming/coverage/
@@ -74,7 +74,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.verbose=false
+            -Dsonar.verbose=true
             -Dsonar.projectKey=payment-streaming-sdk
             -Dsonar.sources=sdks/payment-streaming/src/
             -Dsonar.exclusions=sdks/payment-streaming/src/msp*.ts

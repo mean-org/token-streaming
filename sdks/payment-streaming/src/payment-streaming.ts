@@ -226,11 +226,11 @@ export class PaymentStreaming {
   public async getStreamTemplate(
     psAccount: PublicKey,
   ): Promise<StreamTemplate> {
-    const [template] = await findStreamTemplateAddress(
+    const [template] = findStreamTemplateAddress(
       psAccount,
       this.program.programId,
     );
-    return getStreamTemplate(this.program, template);
+    return await getStreamTemplate(this.program, template);
   }
 
   private async prepareTransaction(
@@ -944,7 +944,7 @@ export class PaymentStreaming {
     }
 
     // Get the template
-    const [template] = await findStreamTemplateAddress(
+    const [template] = findStreamTemplateAddress(
       vestingAccount,
       this.program.programId,
     );
@@ -1062,7 +1062,7 @@ export class PaymentStreaming {
     }
 
     // Get the template
-    const [templateAddress] = await findStreamTemplateAddress(
+    const [templateAddress] = findStreamTemplateAddress(
       vestingAccount,
       this.program.programId,
     );
@@ -1156,7 +1156,7 @@ export class PaymentStreaming {
     }
     const psAccountMint = new PublicKey(psAccountInfo.mint);
     // Get the template
-    const [template] = await findStreamTemplateAddress(
+    const [template] = findStreamTemplateAddress(
       vestingAccount,
       this.program.programId,
     );

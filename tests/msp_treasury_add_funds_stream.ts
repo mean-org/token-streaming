@@ -368,7 +368,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -407,7 +407,7 @@ describe('msp', () => {
       treasurerLamports: 1_000_000_000
     });
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -468,7 +468,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -513,7 +513,7 @@ describe('msp', () => {
       treasurerLamports: 1_000_000_000
     });
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -580,7 +580,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -627,7 +627,7 @@ describe('msp', () => {
       treasurerLamports: 1_000_000_000
     });
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -687,7 +687,7 @@ describe('msp', () => {
 
     await mspSetup.addFunds({ amount: 100_000_000 });
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -731,7 +731,7 @@ describe('msp', () => {
       treasurerLamports: 1_000_000_000
     });
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -778,7 +778,7 @@ describe('msp', () => {
       treasurerLamports: 1_000_000_000
     });
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -860,7 +860,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );
@@ -925,7 +925,7 @@ describe('msp', () => {
       'confirmed'
     );
 
-    const [template, templateBump] = await anchor.web3.PublicKey.findProgramAddress(
+    const [template, templateBump] = PublicKey.findProgramAddressSync(
       [anchor.utils.bytes.utf8.encode('template'), mspSetup.treasury.toBuffer()],
       mspSetup.program.programId
     );

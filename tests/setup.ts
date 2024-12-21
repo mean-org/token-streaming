@@ -73,12 +73,12 @@ export async function createMspSetup({
   );
 
   const slot = await payerProgram.provider.connection.getSlot('confirmed');
-  const [treasury, treasuryBump] = await anchor.web3.PublicKey.findProgramAddress(
+  const [treasury, treasuryBump] = PublicKey.findProgramAddressSync(
     [treasurerKeypair.publicKey.toBuffer(), new BN(slot).toBuffer('le', 8)],
     payerProgram.programId
   );
 
-  const [treasuryMint, treasuryMintBump] = await anchor.web3.PublicKey.findProgramAddress(
+  const [treasuryMint, treasuryMintBump] = PublicKey.findProgramAddressSync(
     [treasurerKeypair.publicKey.toBuffer(), treasury.toBuffer(), new BN(slot).toBuffer('le', 8)],
     payerProgram.programId
   );
@@ -2793,13 +2793,6 @@ export class MspSetup {
     // https://docs.solana.com/developing/clients/jsonrpc-api#getfeeformessage
 
     return 5_000;
-  }
-
-  public async findMspProgramAddress(): Promise<[PublicKey, number]> {
-    return await anchor.web3.PublicKey.findProgramAddress(
-      [this.treasurerKeypair.publicKey.toBuffer(), this.slotBuffer],
-      this.program.programId
-    );
   }
 
   public async findTreasuryFromAssociatedTokenAddress(owner: PublicKey): Promise<PublicKey> {

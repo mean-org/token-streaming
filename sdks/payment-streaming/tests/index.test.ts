@@ -43,6 +43,7 @@ import {
 import BN from 'bn.js';
 import { Token, TOKEN_PROGRAM_ID, u64 } from '@solana/spl-token';
 import { ASSOCIATED_PROGRAM_ID } from '@project-serum/anchor/dist/cjs/utils/token';
+import { getKeypairFromJson } from './utils';
 
 const ZERO_BN = new BN(0);
 
@@ -51,10 +52,10 @@ console.log(`\nWorld State:`);
 const PAYMENT_STREAMING_PROGRAM_ID =
   'MSPdQo5ZdrPh6rU1LsvUv5nRhAnj1mj6YQEqBUq8YwZ';
 
-const user1Wallet = loadKeypair(
+const user1Wallet = getKeypairFromJson(
   './tests/data/AUTH1btNKtuwPF2mF58YtSga5vAZ59Hg4SUKHmDF7SAn.json',
 );
-const user2Wallet = loadKeypair(
+const user2Wallet = getKeypairFromJson(
   './tests/data/AUTH2qMifVS3uMjmyC5C6agD4nwxwuvnfnBvFQHs5h5T.json',
 );
 const testPayerKey = Keypair.generate();
@@ -1787,17 +1788,17 @@ function printObj(label: string, obj: any) {
   console.log(`${label}: ${JSON.stringify(obj, null, 2)}\n`);
 }
 
-function loadKeypair(filePath: string): Keypair {
-  return Keypair.fromSecretKey(
-    Buffer.from(
-      JSON.parse(
-        fs.readFileSync(filePath, {
-          encoding: 'utf-8',
-        }),
-      ),
-    ),
-  );
-}
+// function loadKeypair(filePath: string): Keypair {
+//   return Keypair.fromSecretKey(
+//     Buffer.from(
+//       JSON.parse(
+//         fs.readFileSync(filePath, {
+//           encoding: 'utf-8',
+//         }),
+//       ),
+//     ),
+//   );
+// }
 
 type TestActors = {
   readonly owner: PublicKey;
